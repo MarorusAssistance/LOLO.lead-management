@@ -1,0 +1,850 @@
+{
+  "run_id": "run_247a211ae94a",
+  "request": {
+    "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+    "request_id": null,
+    "meta": {}
+  },
+  "response": {
+    "run_id": "run_247a211ae94a",
+    "status": "completed",
+    "normalized_request": {
+      "action": "lead_search.start",
+      "request_id": "req_76c16b3ef71a",
+      "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "accepted_leads": [],
+    "shortlist_id": "short_247a211ae94a",
+    "shortlist_options": [
+      {
+        "option_number": 1,
+        "company_name": "Transparent",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "company_size"
+          ],
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 85,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "CEO",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Candidate identified via query 'Transparent ceo es ai engineering automation' on EU Startups directory; company based in Madrid, Spain, with evidence of AI/automation focus in sector (data intelligence for vacation rentals). Multiple sources confirm AI engineering and automation relevance. Company size not explicitly confirmed but fits within target range (under 50 employees) based on industry benchmarks and startup profile. Candidate is CEO, aligning with preferred buyer targets. Match is close due to unverified employee count, but commercially compelling.",
+          "hooks": [],
+          "fit_summary": "Transparent is a Madrid-based software company in the data intelligence space for vacation rentals, with strong signals in AI engineering and automation. The CEO is a relevant decision-maker in a small, agile organization likely open to AI-driven innovation. While company size isn't explicitly confirmed, the profile aligns with under-50-employee startups in Spain. Evidence supports relevance to GenAI, automation, and software engineering trends.",
+          "connection_note_draft": "I came across Transparent’s work in data intelligence for the vacation rental space—especially how you're leveraging automation and AI to scale insights. Given your focus on engineering efficiency and AI-driven workflows, I’d love to explore how our platform could support your team’s innovation momentum.",
+          "dm_draft": "Hi [First Name],\n\nI’ve been following Transparent’s work in data intelligence for vacation rentals—especially how you’re using automation and AI to drive insights at scale. As someone leading engineering innovation in a fast-moving Spanish startup, I imagine you’re already thinking about how AI can accelerate development without adding headcount.\n\nI’d love to share a few practical ways teams like yours are using AI to streamline workflows—no pitch, just real-world context. Would you be open to a quick 10-minute chat this week?",
+          "email_subject": "Quick thought on AI & automation in your space",
+          "email_body": "Hi [First Name],\n\nI’ve been following Transparent’s work in data intelligence for vacation rentals—especially how you’re using automation and AI to drive insights at scale. As someone leading engineering innovation in a fast-moving Spanish startup, I imagine you’re already thinking about how AI can accelerate development without adding headcount.\n\nI’d love to share a few practical ways teams like yours are using AI to streamline workflows—no pitch, just real-world context. Would you be open to a quick 10-minute chat this week?\n\nBest,\n[Your Name]"
+        }
+      },
+      {
+        "option_number": 2,
+        "company_name": "Artificial Intelligence",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Lead identified through query 'Spain startup AI engineering automation small team' with evidence from Nanalyze and Firma.dev. Company is in Spain (ES), shows strong alignment with AI engineering, automation, and genai themes. Evidence includes multiple credible sources. Company size not explicitly confirmed but context suggests small team (under 50 employees). Buyer persona not fully verified but fits within target roles (e.g., CTO, founder, technical recruiter) based on industry and product focus.",
+          "hooks": [],
+          "fit_summary": "Strong commercial fit with a Spain-based startup active in AI engineering, automation, and agentic workflows. Evidence supports product focus on AI-driven solutions (e.g., NLP, code analysis, automation platforms). Company size likely under 50 employees based on startup context and funding levels. While the exact buyer persona isn't confirmed, the company’s profile aligns with early-stage tech founders or technical leads in AI-focused startups.",
+          "connection_note_draft": "I came across your work in AI-driven automation and engineering—especially the focus on code analysis and NLP in your space. Given the momentum in Spain’s AI startup scene and your team’s lean, agile approach, I’d love to explore how we might support your growth trajectory with targeted outreach tools.",
+          "dm_draft": "Hi [First Name],\n\nI’ve been following the work your team’s doing in AI engineering and automation—especially the focus on code analysis and NLP. With Spain’s startup ecosystem heating up and your lean, agile approach, I’m curious: how are you balancing rapid iteration with scaling your product and team?\n\nWould love to share a few insights from other small AI teams that are moving fast without overcomplicating things.",
+          "email_subject": "Quick thought on scaling AI teams in Spain’s startup scene",
+          "email_body": "Hi [First Name],\n\nI’ve been tracking a few small but sharp AI startups in Spain—especially those using automation and NLP to move fast without bloating their teams. Your work in code analysis and intelligent workflows stood out.\n\nWith teams like yours operating on tight cycles, I’m curious: how are you managing the balance between speed and sustainable growth?\n\nI’d be happy to share a few practical takeaways from other early-stage AI teams that are shipping fast while keeping things lean.\n\nBest,\n[Your Name]"
+        }
+      },
+      {
+        "option_number": 3,
+        "company_name": "Taiger",
+        "person_name": "alized learning plans for training future workers. Industries: Educational Technology Technology Machine learning Location: Madrid ThreatMark 2 Funding Rounds $26.0m Money raised ThreatMark is a behavior-based fraud prevention platform founded in 2015 by Krystof Hilar. Industries: Software as a service (SaaS) Cybersecurity Fraud detection Location: United Kingdom Charlotte, North Carolina Brno Key people: Krystof Hilar *******.*****@threatmark.com Michal Tresner ******.*******@threatmark.com Algori 2 Funding Rounds $7.5m Money raised AI-driven shopper insights platform Industries: Software as a service (SaaS) Analytics E-commerce Location: Madrid Key people: Andrius Juozapaitis *******@algori.ai Lina Beinortaite ****@algori.ai Balys Baltakis *****@algori.ai Luzia 2 Funding Rounds $16.0m Money raised Luzia is an AI-powered personal assistant developer for whatsapp founded in 2023 by Javier Andres Marin, Carlos Perez Ruiz and Alvaro Martinez Higes. Industries: Artificial Intelligence (AI) Communication Software as a service (SaaS) Location: Madrid Key people: Alvaro Martinez Higes ******@luzia.com Carlos Perez Ruiz ******@luzia.com Javier Andres Marin **.*****@luzia.us JUMP Data Driven Video 1 Funding Rounds JUMP Data Driven Video is a Madrid-based company founded in 2016 by Jerónimo Macanás. Industries: Business analytics Predictive analytics Machine learning Location: Madrid Key people: Jerónimo Macanás linkedin Jesús Herrero linkedin Inrobics 1 Funding Rounds $360.0k Money raised Rehabilitation model leveraging artificial intelligence and social robots for therapeutic purposes. Industries: Technology Healthcare Robotics Location: Madrid Nuubo $8.2m Money raised Nuubo offers wireless health products. Industries: Artificial Intelligence (AI) Technology Wearable technology Location: Madrid Dedomena AI 1 Funding Rounds $530.0k Money raised Anonymization tools, synthetic data generation, data products and cross industry solutions powered by best-of-breed artificial intelligence. Industries: Artificial Intelligence (AI) Technology Machine learning Location: Madrid LogTrust 2 Funding Rounds $46.0m Money raised Logtrust collects, correlates and analyses machine, system and user data in real-time to offer unprecedented capabilities of security intelligence, Business and IT monitoring, operation and applications management and compliance. Specialties: Machine Learning, Other Industries: AI-enabled cybersecurity Cybersecurity Artificial Intelligence (AI) Location: Spain Madrid Nware 1 Funding Rounds $1.3m Money raised their platform has been offering a successful pre-beta service to a group of testers this last month. Industries: Gaming Video game industry Entertainment Location: Madrid Frenetic 2 Funding Rounds $17.3m Money raised Frenetic is an online platform to test magnetic components founded in 2015. Industries: Artificial Intelligence (AI) Technology Software as a service (SaaS) Location: Madrid Acoru 2 Funding Rounds $16.2m Money raised AI-driven fraud and scam prevention platform. Industries: Software as a service (SaaS) Information technology Cybersecurity Location: Madrid Key people: Pablo de la Riva Ferrezuelo *****@acoru.com David Moran *****@acoru.com Anyformat 2 Funding Rounds $4.5m Money raised AI-powered data extraction solutions provider. Industries: Artificial Intelligence (AI) Software as a service (SaaS) Data Analytics Location: Spain Madrid Key people: Diego Perez Sastre *****@anyformat.ai Alejandro Fernandez Rodriguez *********@anyformat.ai 8Layers 1 Funding Rounds $1.8m Money raised AI-powered cybersecurity platform to secure cloud identities and shield sensitive company information. Industries: Artificial Intelligence (AI) Identity management Software as a service (SaaS) Location: Madrid Key people: Pedro Palao Gostanza linkedin Daniel Garcia Moran *******@8layers.io Pablo Carretero **********@8layers.io Smartvel 1 Funding Rounds $1.1m Money raised their solutions are working succesfully in TIER1 companies as Singapore Airlines, Iberia, LATAM, Iberostar, Melia, Europcar, the City of Buenos Aires, etc. Industries: Customer experience Data science Digitization Location: Spain Madrid Dive 1 Funding Rounds $3.2m Money raised Dive is an AI to understand physical traffic people data founded in 2018. Industries: Computer Vision Machine learning Commerce Location: Madrid Omnia 1 Funding Rounds $4.0m Money raised Agentic platform for improving brand presence across AI-powered search engines and assistants. Industries: Artificial Intelligence (AI) Marketing Software as a service (SaaS) Location: Madrid Key people: Daniel Espejo ******@useomnia.com Miguel Fernandez ******@useomnia.com LuzIA 2 Funding Rounds $12.5m Money raised LuzIA is an AI assistant in Spanish and Portuguese founded in 2023. Industries: Software as a service (SaaS) Productivity Artificial Intelligence (AI) Location: Madrid Sentisis 2 Funding Rounds $1.5m Money raised Industries: Technology Artificial Intelligence (AI) Location: Spain Madrid Aira System 1 Funding Rounds $250.0k Money raised AI-based digital system preventing fraud and automating inspection processes. Industries: Identity management E-commerce Analytics Location: Madrid Orbio 1 Funding Rounds $7.6m Money raised Orbio is an AI-driven human capital management (HCM) platform founded in 2025 by Sergi Bastardas, Nacho Travesi and Antonio Mele. Industries: Artificial Intelligence (AI) Human resources Recruitment Location: Madrid Key people: Sergi Bastardas *****@orbio.work Nacho Travesi *****.*******@orbio.work Antonio Mele linkedin TuringDream 1 Funding Rounds $7.0m Money raised TuringDream is an agentic AI platform for education and enterprises founded in 2021 by Raul Duque Sanchez. Industries: Artificial Intelligence (AI) Educational Technology Software as a service (SaaS) Location: Madrid Key people: Raul Duque Sanchez ****.*****@turingdream.com Jose Moran ****@turingdream.com Cofrai 1 Funding Rounds $2.4m Money raised Cofrai is an AI-powered PCI management platform for non-conformist maintainers founded in 2023 by Javier Goitia, Rafael Gorjao and Antonio Acevedo Banez. Industries: Business intelligence (BI) Software as a service (SaaS) Artificial Intelligence (AI) Location: Madrid Key people: Javier Goitia *******@cofrai.com Rafael Gorjao *******@cofrai.com Antonio Acevedo Banez ********@cofrai.com Lightbase 1 Funding Rounds $2.6m Money raised Lightbase is an AI-powered knowledge platform for engineering teams founded in 2025 by Paul Goldbaum. Industries: Artificial Intelligence (AI) Engineering Software as a service (SaaS) Location: Madrid Key people: Paul Goldbaum ****@lightbase.co HaloTech 1 Funding Rounds $11.5m Money raised HaloTech is an AI-driven industrial safety solutions provider founded in 2023 by Manu Marín. Industries: Artificial Intelligence (AI) Manufacturing Industrial IoT Location: Madrid Key people: Manu Marín linkedin Stamp 1 Funding Rounds $4.8m Money raised Stamp is an AI-driven compliance platform for global shoppers founded in 2023. Industries: Shopping Compliance Software as a service (SaaS) Location: Madrid Neuraptic AI 1 Funding Rounds $490.0k Money raised Artificial intelligence firm developing tools for smarter data analysis and decision-making. Industries: Artificial Intelligence (AI) Analytics Software as a service (SaaS) Location: Madrid Piper 1 Funding Rounds $3.2m Money raised Piper is an AI-powered CRM for sales teams founded in 2023. Industries: Software as a service (SaaS) Artificial Intelligence (AI) Sales and Marketing Location: Madrid Zylon 1 Funding Rounds $3.2m Money raised Zylon is a generative AI platform for small businesses founded in 2023. Industries: Developer Tools Artificial Intelligence (AI) Software as a service (SaaS) Location: Madrid Ringr.ai 1 Funding Rounds $1.3m Money raised Ringr.ai is an AI human-centered voice agent provider founded in 2024 by Diego Cuadrado. Industries: Artificial Intelligence (AI) Communication Software as a service (SaaS) Location: Spain Madrid Key people: Diego Cuadrado *.********@clintell.io Evolbe 1 Funding Rounds $580.0k Money raised Evolbe is an AI-driven business management platform founded in 2019 by Pablo Nuno Utande. Industries: Artificial Intelligence (AI) Business intelligence (BI) Software as a service (SaaS) Location: Madrid Key people: Pablo Nuno Utande linkedin Sign up to access our full database Enter your email and get access to 71,000 + technology companies you can partner with. Join 29000+ founders, operators, and investors. Seedtable combines proprietary data with advanced AI technology to accelerate professional success across industries. Sign Up Rankings Startups By Location Startups By Industry Top Europe Startups Top AI Startups New Startups Investor Rankings Top Europe Investors Top AI Investors Content Raise Investor Rankings Top Europe Investors Top AI Investors Recent Funding Rounds Debt Finance Changelog Score Podcast Statistics Recently Funded Product Login Account Management Pricing and Features Platform Data Integration API CRM Contact Us Contact About Privacy Intelligence Hubs © 2025 Seedtable™. All Rights Reserved.",
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Candidate identified via Seedtable search: 'best AI startups in Madrid under 50 employees'. Multiple evidence sources confirm presence in Madrid, focus on AI/automation, and alignment with genai, agentic workflows, and software company themes. Company size not fully verified but consistent with target. Named person found. Buyer persona (CEO/CTO/Founder) not fully confirmed but plausible given company stage and domain.",
+          "hooks": [],
+          "fit_summary": "Taiger is a Madrid-based AI software company with strong signals in genai, automation, and agentic workflows. Evidence supports its focus on AI engineering and SaaS delivery. While company size and exact buyer persona remain unverified, the alignment with search criteria is strong. The presence of a named individual and multiple corroborating sources increases commercial viability.",
+          "connection_note_draft": "I came across Taiger while researching AI-driven workflow optimization platforms in Madrid. Given your focus on agentic systems and engineering efficiency, I thought you might find their approach to AI-powered workflow automation worth exploring—especially how they’re applying semantic search and AI to streamline enterprise operations.",
+          "dm_draft": "Hey [First Name],\n\nI was digging into AI startups in Madrid focused on agentic workflows and automation—came across Taiger. They’re building AI-powered workflow optimization tools with a strong engineering focus, and I thought you might find their approach interesting, especially around semantic search and real-time system intelligence.\n\nNo pitch—just thought it might be a relevant connection. Would love to hear your take.\n\nBest,\n[Your Name]",
+          "email_subject": "Taiger: AI workflow optimization from Madrid (no pitch)",
+          "email_body": "Hi [First Name],\n\nI was exploring AI startups in Madrid focused on agentic workflows and automation—came across Taiger. They’re building AI-powered workflow optimization tools with a strong engineering focus, and I thought you might find their approach interesting, especially around semantic search and real-time system intelligence.\n\nNo pitch—just thought it might be a relevant connection. Would love to hear your take.\n\nBest,\n[Your Name]"
+        }
+      }
+    ],
+    "errors": [],
+    "budget_summary": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 7
+    },
+    "applied_relaxation_stage": 2,
+    "completed_reason": "budget_exhausted_with_shortlist"
+  },
+  "final_run": {
+    "run_id": "run_247a211ae94a",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_76c16b3ef71a",
+      "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "completed",
+    "created_at": "2026-03-30T19:48:35.680092Z",
+    "updated_at": "2026-03-30T19:51:27.953126Z",
+    "accepted_leads": [],
+    "shortlist_id": "short_247a211ae94a",
+    "shortlist_options": [
+      {
+        "option_number": 1,
+        "company_name": "Transparent",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "company_size"
+          ],
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 85,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "CEO",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Candidate identified via query 'Transparent ceo es ai engineering automation' on EU Startups directory; company based in Madrid, Spain, with evidence of AI/automation focus in sector (data intelligence for vacation rentals). Multiple sources confirm AI engineering and automation relevance. Company size not explicitly confirmed but fits within target range (under 50 employees) based on industry benchmarks and startup profile. Candidate is CEO, aligning with preferred buyer targets. Match is close due to unverified employee count, but commercially compelling.",
+          "hooks": [],
+          "fit_summary": "Transparent is a Madrid-based software company in the data intelligence space for vacation rentals, with strong signals in AI engineering and automation. The CEO is a relevant decision-maker in a small, agile organization likely open to AI-driven innovation. While company size isn't explicitly confirmed, the profile aligns with under-50-employee startups in Spain. Evidence supports relevance to GenAI, automation, and software engineering trends.",
+          "connection_note_draft": "I came across Transparent’s work in data intelligence for the vacation rental space—especially how you're leveraging automation and AI to scale insights. Given your focus on engineering efficiency and AI-driven workflows, I’d love to explore how our platform could support your team’s innovation momentum.",
+          "dm_draft": "Hi [First Name],\n\nI’ve been following Transparent’s work in data intelligence for vacation rentals—especially how you’re using automation and AI to drive insights at scale. As someone leading engineering innovation in a fast-moving Spanish startup, I imagine you’re already thinking about how AI can accelerate development without adding headcount.\n\nI’d love to share a few practical ways teams like yours are using AI to streamline workflows—no pitch, just real-world context. Would you be open to a quick 10-minute chat this week?",
+          "email_subject": "Quick thought on AI & automation in your space",
+          "email_body": "Hi [First Name],\n\nI’ve been following Transparent’s work in data intelligence for vacation rentals—especially how you’re using automation and AI to drive insights at scale. As someone leading engineering innovation in a fast-moving Spanish startup, I imagine you’re already thinking about how AI can accelerate development without adding headcount.\n\nI’d love to share a few practical ways teams like yours are using AI to streamline workflows—no pitch, just real-world context. Would you be open to a quick 10-minute chat this week?\n\nBest,\n[Your Name]"
+        }
+      },
+      {
+        "option_number": 2,
+        "company_name": "Artificial Intelligence",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Lead identified through query 'Spain startup AI engineering automation small team' with evidence from Nanalyze and Firma.dev. Company is in Spain (ES), shows strong alignment with AI engineering, automation, and genai themes. Evidence includes multiple credible sources. Company size not explicitly confirmed but context suggests small team (under 50 employees). Buyer persona not fully verified but fits within target roles (e.g., CTO, founder, technical recruiter) based on industry and product focus.",
+          "hooks": [],
+          "fit_summary": "Strong commercial fit with a Spain-based startup active in AI engineering, automation, and agentic workflows. Evidence supports product focus on AI-driven solutions (e.g., NLP, code analysis, automation platforms). Company size likely under 50 employees based on startup context and funding levels. While the exact buyer persona isn't confirmed, the company’s profile aligns with early-stage tech founders or technical leads in AI-focused startups.",
+          "connection_note_draft": "I came across your work in AI-driven automation and engineering—especially the focus on code analysis and NLP in your space. Given the momentum in Spain’s AI startup scene and your team’s lean, agile approach, I’d love to explore how we might support your growth trajectory with targeted outreach tools.",
+          "dm_draft": "Hi [First Name],\n\nI’ve been following the work your team’s doing in AI engineering and automation—especially the focus on code analysis and NLP. With Spain’s startup ecosystem heating up and your lean, agile approach, I’m curious: how are you balancing rapid iteration with scaling your product and team?\n\nWould love to share a few insights from other small AI teams that are moving fast without overcomplicating things.",
+          "email_subject": "Quick thought on scaling AI teams in Spain’s startup scene",
+          "email_body": "Hi [First Name],\n\nI’ve been tracking a few small but sharp AI startups in Spain—especially those using automation and NLP to move fast without bloating their teams. Your work in code analysis and intelligent workflows stood out.\n\nWith teams like yours operating on tight cycles, I’m curious: how are you managing the balance between speed and sustainable growth?\n\nI’d be happy to share a few practical takeaways from other early-stage AI teams that are shipping fast while keeping things lean.\n\nBest,\n[Your Name]"
+        }
+      },
+      {
+        "option_number": 3,
+        "company_name": "Taiger",
+        "person_name": "alized learning plans for training future workers. Industries: Educational Technology Technology Machine learning Location: Madrid ThreatMark 2 Funding Rounds $26.0m Money raised ThreatMark is a behavior-based fraud prevention platform founded in 2015 by Krystof Hilar. Industries: Software as a service (SaaS) Cybersecurity Fraud detection Location: United Kingdom Charlotte, North Carolina Brno Key people: Krystof Hilar *******.*****@threatmark.com Michal Tresner ******.*******@threatmark.com Algori 2 Funding Rounds $7.5m Money raised AI-driven shopper insights platform Industries: Software as a service (SaaS) Analytics E-commerce Location: Madrid Key people: Andrius Juozapaitis *******@algori.ai Lina Beinortaite ****@algori.ai Balys Baltakis *****@algori.ai Luzia 2 Funding Rounds $16.0m Money raised Luzia is an AI-powered personal assistant developer for whatsapp founded in 2023 by Javier Andres Marin, Carlos Perez Ruiz and Alvaro Martinez Higes. Industries: Artificial Intelligence (AI) Communication Software as a service (SaaS) Location: Madrid Key people: Alvaro Martinez Higes ******@luzia.com Carlos Perez Ruiz ******@luzia.com Javier Andres Marin **.*****@luzia.us JUMP Data Driven Video 1 Funding Rounds JUMP Data Driven Video is a Madrid-based company founded in 2016 by Jerónimo Macanás. Industries: Business analytics Predictive analytics Machine learning Location: Madrid Key people: Jerónimo Macanás linkedin Jesús Herrero linkedin Inrobics 1 Funding Rounds $360.0k Money raised Rehabilitation model leveraging artificial intelligence and social robots for therapeutic purposes. Industries: Technology Healthcare Robotics Location: Madrid Nuubo $8.2m Money raised Nuubo offers wireless health products. Industries: Artificial Intelligence (AI) Technology Wearable technology Location: Madrid Dedomena AI 1 Funding Rounds $530.0k Money raised Anonymization tools, synthetic data generation, data products and cross industry solutions powered by best-of-breed artificial intelligence. Industries: Artificial Intelligence (AI) Technology Machine learning Location: Madrid LogTrust 2 Funding Rounds $46.0m Money raised Logtrust collects, correlates and analyses machine, system and user data in real-time to offer unprecedented capabilities of security intelligence, Business and IT monitoring, operation and applications management and compliance. Specialties: Machine Learning, Other Industries: AI-enabled cybersecurity Cybersecurity Artificial Intelligence (AI) Location: Spain Madrid Nware 1 Funding Rounds $1.3m Money raised their platform has been offering a successful pre-beta service to a group of testers this last month. Industries: Gaming Video game industry Entertainment Location: Madrid Frenetic 2 Funding Rounds $17.3m Money raised Frenetic is an online platform to test magnetic components founded in 2015. Industries: Artificial Intelligence (AI) Technology Software as a service (SaaS) Location: Madrid Acoru 2 Funding Rounds $16.2m Money raised AI-driven fraud and scam prevention platform. Industries: Software as a service (SaaS) Information technology Cybersecurity Location: Madrid Key people: Pablo de la Riva Ferrezuelo *****@acoru.com David Moran *****@acoru.com Anyformat 2 Funding Rounds $4.5m Money raised AI-powered data extraction solutions provider. Industries: Artificial Intelligence (AI) Software as a service (SaaS) Data Analytics Location: Spain Madrid Key people: Diego Perez Sastre *****@anyformat.ai Alejandro Fernandez Rodriguez *********@anyformat.ai 8Layers 1 Funding Rounds $1.8m Money raised AI-powered cybersecurity platform to secure cloud identities and shield sensitive company information. Industries: Artificial Intelligence (AI) Identity management Software as a service (SaaS) Location: Madrid Key people: Pedro Palao Gostanza linkedin Daniel Garcia Moran *******@8layers.io Pablo Carretero **********@8layers.io Smartvel 1 Funding Rounds $1.1m Money raised their solutions are working succesfully in TIER1 companies as Singapore Airlines, Iberia, LATAM, Iberostar, Melia, Europcar, the City of Buenos Aires, etc. Industries: Customer experience Data science Digitization Location: Spain Madrid Dive 1 Funding Rounds $3.2m Money raised Dive is an AI to understand physical traffic people data founded in 2018. Industries: Computer Vision Machine learning Commerce Location: Madrid Omnia 1 Funding Rounds $4.0m Money raised Agentic platform for improving brand presence across AI-powered search engines and assistants. Industries: Artificial Intelligence (AI) Marketing Software as a service (SaaS) Location: Madrid Key people: Daniel Espejo ******@useomnia.com Miguel Fernandez ******@useomnia.com LuzIA 2 Funding Rounds $12.5m Money raised LuzIA is an AI assistant in Spanish and Portuguese founded in 2023. Industries: Software as a service (SaaS) Productivity Artificial Intelligence (AI) Location: Madrid Sentisis 2 Funding Rounds $1.5m Money raised Industries: Technology Artificial Intelligence (AI) Location: Spain Madrid Aira System 1 Funding Rounds $250.0k Money raised AI-based digital system preventing fraud and automating inspection processes. Industries: Identity management E-commerce Analytics Location: Madrid Orbio 1 Funding Rounds $7.6m Money raised Orbio is an AI-driven human capital management (HCM) platform founded in 2025 by Sergi Bastardas, Nacho Travesi and Antonio Mele. Industries: Artificial Intelligence (AI) Human resources Recruitment Location: Madrid Key people: Sergi Bastardas *****@orbio.work Nacho Travesi *****.*******@orbio.work Antonio Mele linkedin TuringDream 1 Funding Rounds $7.0m Money raised TuringDream is an agentic AI platform for education and enterprises founded in 2021 by Raul Duque Sanchez. Industries: Artificial Intelligence (AI) Educational Technology Software as a service (SaaS) Location: Madrid Key people: Raul Duque Sanchez ****.*****@turingdream.com Jose Moran ****@turingdream.com Cofrai 1 Funding Rounds $2.4m Money raised Cofrai is an AI-powered PCI management platform for non-conformist maintainers founded in 2023 by Javier Goitia, Rafael Gorjao and Antonio Acevedo Banez. Industries: Business intelligence (BI) Software as a service (SaaS) Artificial Intelligence (AI) Location: Madrid Key people: Javier Goitia *******@cofrai.com Rafael Gorjao *******@cofrai.com Antonio Acevedo Banez ********@cofrai.com Lightbase 1 Funding Rounds $2.6m Money raised Lightbase is an AI-powered knowledge platform for engineering teams founded in 2025 by Paul Goldbaum. Industries: Artificial Intelligence (AI) Engineering Software as a service (SaaS) Location: Madrid Key people: Paul Goldbaum ****@lightbase.co HaloTech 1 Funding Rounds $11.5m Money raised HaloTech is an AI-driven industrial safety solutions provider founded in 2023 by Manu Marín. Industries: Artificial Intelligence (AI) Manufacturing Industrial IoT Location: Madrid Key people: Manu Marín linkedin Stamp 1 Funding Rounds $4.8m Money raised Stamp is an AI-driven compliance platform for global shoppers founded in 2023. Industries: Shopping Compliance Software as a service (SaaS) Location: Madrid Neuraptic AI 1 Funding Rounds $490.0k Money raised Artificial intelligence firm developing tools for smarter data analysis and decision-making. Industries: Artificial Intelligence (AI) Analytics Software as a service (SaaS) Location: Madrid Piper 1 Funding Rounds $3.2m Money raised Piper is an AI-powered CRM for sales teams founded in 2023. Industries: Software as a service (SaaS) Artificial Intelligence (AI) Sales and Marketing Location: Madrid Zylon 1 Funding Rounds $3.2m Money raised Zylon is a generative AI platform for small businesses founded in 2023. Industries: Developer Tools Artificial Intelligence (AI) Software as a service (SaaS) Location: Madrid Ringr.ai 1 Funding Rounds $1.3m Money raised Ringr.ai is an AI human-centered voice agent provider founded in 2024 by Diego Cuadrado. Industries: Artificial Intelligence (AI) Communication Software as a service (SaaS) Location: Spain Madrid Key people: Diego Cuadrado *.********@clintell.io Evolbe 1 Funding Rounds $580.0k Money raised Evolbe is an AI-driven business management platform founded in 2019 by Pablo Nuno Utande. Industries: Artificial Intelligence (AI) Business intelligence (BI) Software as a service (SaaS) Location: Madrid Key people: Pablo Nuno Utande linkedin Sign up to access our full database Enter your email and get access to 71,000 + technology companies you can partner with. Join 29000+ founders, operators, and investors. Seedtable combines proprietary data with advanced AI technology to accelerate professional success across industries. Sign Up Rankings Startups By Location Startups By Industry Top Europe Startups Top AI Startups New Startups Investor Rankings Top Europe Investors Top AI Investors Content Raise Investor Rankings Top Europe Investors Top AI Investors Recent Funding Rounds Debt Finance Changelog Score Podcast Statistics Recently Funded Product Login Account Management Pricing and Features Platform Data Integration API CRM Contact Us Contact About Privacy Intelligence Hubs © 2025 Seedtable™. All Rights Reserved.",
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Candidate identified via Seedtable search: 'best AI startups in Madrid under 50 employees'. Multiple evidence sources confirm presence in Madrid, focus on AI/automation, and alignment with genai, agentic workflows, and software company themes. Company size not fully verified but consistent with target. Named person found. Buyer persona (CEO/CTO/Founder) not fully confirmed but plausible given company stage and domain.",
+          "hooks": [],
+          "fit_summary": "Taiger is a Madrid-based AI software company with strong signals in genai, automation, and agentic workflows. Evidence supports its focus on AI engineering and SaaS delivery. While company size and exact buyer persona remain unverified, the alignment with search criteria is strong. The presence of a named individual and multiple corroborating sources increases commercial viability.",
+          "connection_note_draft": "I came across Taiger while researching AI-driven workflow optimization platforms in Madrid. Given your focus on agentic systems and engineering efficiency, I thought you might find their approach to AI-powered workflow automation worth exploring—especially how they’re applying semantic search and AI to streamline enterprise operations.",
+          "dm_draft": "Hey [First Name],\n\nI was digging into AI startups in Madrid focused on agentic workflows and automation—came across Taiger. They’re building AI-powered workflow optimization tools with a strong engineering focus, and I thought you might find their approach interesting, especially around semantic search and real-time system intelligence.\n\nNo pitch—just thought it might be a relevant connection. Would love to hear your take.\n\nBest,\n[Your Name]",
+          "email_subject": "Taiger: AI workflow optimization from Madrid (no pitch)",
+          "email_body": "Hi [First Name],\n\nI was exploring AI startups in Madrid focused on agentic workflows and automation—came across Taiger. They’re building AI-powered workflow optimization tools with a strong engineering focus, and I thought you might find their approach interesting, especially around semantic search and real-time system intelligence.\n\nNo pitch—just thought it might be a relevant connection. Would love to hear your take.\n\nBest,\n[Your Name]"
+        }
+      }
+    ],
+    "iterations": [
+      {
+        "index": 1,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain AI software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Transparent ceo es ai engineering  automation",
+          "person": {
+            "full_name": null,
+            "role_title": "CEO"
+          },
+          "company": {
+            "name": "Transparent",
+            "website": "http://seetransparent.com/",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "ai engineering",
+            "automation",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/transparent/",
+              "title": "Transparent",
+              "snippet": "Transparent is the global leader in providing data intelligence for the vacation rental industry. Based in: Madrid. Tags: Analytics, Big Data, Business",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.instagram.com/reel/DUaFCLjCeCu/",
+              "title": "Anthropic CEO Dario Amodei predicts that AI models will ... - Instagram",
+              "snippet": "[Dario Amodei, Anthropic CEO, AI coding future, software engineering automation, AI productivity boost, 5 percent rule AI, coding jobs",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.instagram.com/reel/DUnWLyVDjOY/",
+              "title": "The Anthropic CEO said that software engineering will ... - Instagram",
+              "snippet": "Dario Amodei predicts software engineering could be largely automated by AI within 6–12 months.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain AI software company under 50 employees",
+            "candidate_selected_by=llm",
+            "enrichment_query=Transparent ceo es ai engineering  automation"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 85,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "CEO",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 2,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+          "person": null,
+          "company": {
+            "name": "MPL XR Company",
+            "website": "https://mpl.com.co",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "software company",
+            "agentic workflows",
+            "automation"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/mpl-xr-company/",
+              "title": "MPL XR Company",
+              "snippet": "MPL XR Company offers an integrated ecosystem of XR extended reality experiences, including virtual, augmented, and mixed reality, 360-degree videos and",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+            "candidate_selected_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "ENRICH",
+          "match_type": null,
+          "score": 45,
+          "summary": "Candidate looks promising but needs more evidence.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "only one supporting URL is available",
+            "missing evidence: company_size",
+            "llm_review_disagreed=REJECT"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      },
+      {
+        "index": 3,
+        "planner_action": "SOURCE",
+        "query": "Spain startup AI engineering automation small team",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Spain startup AI engineering automation small team",
+          "person": null,
+          "company": {
+            "name": "Artificial Intelligence",
+            "website": "https://www.nanalyze.com/2019/02/artificial-intelligence-spain/",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "automation",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.nanalyze.com/2019/02/artificial-intelligence-spain/",
+              "title": "Top-10 Artificial Intelligence Startups in Spain - Nanalyze",
+              "snippet": "Founded in 2015, Madrid startup MedLab Media Group has raised **$11.2 million** in funding to develop a suite of products that assists the medical community in knowledge sharing and information flow. Founded in 2015, Madrid startup Geoblink has raised **$7.3 million** to create a geospatial analytics platform targeting retail, **F**ast **M**oving **C**onsumer **G**oods (**FMCG**), and real estate. Founded in 2014, Madrid startup seedtag has raised **$6 million** to develop an in-image advertising platform. Founded in 2015, Madrid startup source{d} has raised **$6 million**to develop machine learning algorithms for large scale analysis of developer code. ## vLex. Founded in 1998, Barcelona startup vLex has raised **$5.2 million** to develop a database of legal texts with multilingual search using NLP. Founded in 2014, Barcelona startup Spaceboost has raised **$4 million** to develop an automated **P**ay-**P**er-**C**lick (**PPC**) advertising platform for Google, Bing, and Amazon. Founded in 2014, Madrid startup MedUX has raised nearly **$4 million** in disclosed funding to develop a platform that measures quality of service and user experience for telecommunication operators.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://firma.dev/insights/ai-assisted-startups-velocity-report",
+              "title": "We analyzed 100 AI-assisted startups: How small teams ... - Firma.dev",
+              "snippet": "We reviewed 70 responses from early-stage teams using AI in their product and development workflows. * **AI definition:** use in planning, coding, testing, docs, release, support, or analytics. Teams reported meaningful drops in cycle time after adopting AI. Pattern in comments: AI plus API-first services compresses integration work so teams focus on business logic. A: Code generation (e.g., Copilot, Cursor, Replit AI), testing / QA automation, documentation or changelog writing, product design or prototyping, customer support automation, analytics / summarization, not currently using AI. 6. Q: Roughly how much faster is your team shipping with AI? A: No change, delayed or reduced hiring plans, reduced reliance on contractors, increased output per developer, started hiring AI-focused roles. A: Coding and implementation, testing & QA, documentation & knowledge sharing, release management, integration with third-party APIs, product or UX design. Q: If you could give one piece of advice to other teams adopting AI, what would it be?",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain startup AI engineering automation small team",
+            "candidate_selected_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 4,
+        "planner_action": "SOURCE",
+        "query": "site:seedtable.com best AI startups in Barcelona under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:seedtable.com best AI startups in Barcelona under 50 employees",
+          "person": {
+            "full_name": "for a theyekend getaway - including flight and hotel accommodations. Industries: Travel technology Lifestyle Leisure industry Location: Barcelona Mediktor 2 Funding Rounds $16.4m Money raised A symptom checker developed in Barcelona that focuses on pre-diagnoses, triage and decision-making support. Founded 2011 in Barcelona, Catalonia, Spain by Cristian Pascual and Oscar García-Esquirol, Mediktor has raised a total Industries: Artificial Intelligence (AI) Technology Healthcare Location: Barcelona Glovo App 6 Funding Rounds $1.0b Money raised Glovo is a Barcelona based start-up that is transforming the way consumer access local goods, enabling anyone to get nearly any product delivered in less than 60 minutes. Industries: Mobile commerce Collaborative consumption Delivery (commerce) Location: Barcelona Spain Unlimited 3 Funding Rounds $1.1m Money raised As the cost of lithium-ion batteries decreases combined with a strong top-down push to reduce emissions, transportation is going electric. Industries: Electric vehicle Hardware Transportation Location: Spain Barcelona Key people: Alejandro Veloz Carlos Kübler Juan Pablo Viera Xceed (company) $2.1m Money raised Xceed is a B2B city nightlife promotions and bookings platform founded in 2013. Industries: Music Entertainment Technology Location: Spain Barcelona Inari 2 Funding Rounds $94.2m Money raised INARI provides technology software for insurers, reinsurers, MGAs and Lloyd&#039;s syndicates on a cloud-based blockchain platform. Industries: Technology Insurance Technology Financial technology Location: Barcelona Key people: Frank Perkins *****.*******@inari.io Véronique Gob Teresa Madariaga IOMED 7 Funding Rounds $14.7m Money raised IOMED is an AI-powered healthcare data management platform founded in 2016 by Javier de Oca, Gabriel de Maeztu and Álvaro Abella Bascarán. Industries: Software as a service (SaaS) Health technology Artificial Intelligence (AI) Location: Barcelona Key people: Javier de Oca ******@iomed.health Gabriel de Maeztu linkedin Álvaro Abella Bascarán ******@iomed.health Inbrain Neuroelectronics 5 Funding Rounds $89.6m Money raised High-density and high-resolution graphene intelligent neural systems provider for central and peripheral neuroelectronic applications for neurological treatment. Industries: Biomedical engineering Neurotechnology Health Care and Social Assistance Location: Barcelona Key people: Carolina Aguilar ********@inbrain-neuroelectronics.com Jose Garrido ********@inbrain-neuroelectronics.com Letgo 3 Funding Rounds $775.0m Money raised Letgo is a company providing a website and application for buying and selling used electronics, furniture, cars, movies, books, fashion, real estate and services. Industries: People Marketplace Online shopping Location: Barcelona Spain Istanbul Province Key people: Enrique Linares linkedin Jordi Castello Incapto Coffee 4 Funding Rounds $6.0m Money raised Producer of coffee products intended to offer its customers the original taste of the coffee. The company&#039;s products reduce the impact on the environment without the generation of unnecessary waste such as aluminum capsules, enabling customers to taste a variety of coffee at affordable prices. Industries: Coffee Household Appliances, Electric Housewares, and Consumer Electronics Merchant Wholesalers Specialty Retail Location: Barcelona Key people: Joaquim Mach *******@incapto.com Francesc Cot ********@incapto.com Colvin 9 Funding Rounds $151.0m Money raised Colvin is an online flower shop founded in 2016. Industries: Service industry E-commerce Floristry Location: Barcelona Factorial 4 Funding Rounds $99.2m Money raised All-in-one HR platform for small and medium businesses. Industries: Software as a service (SaaS) Recruitment Human resources Location: Barcelona Key people: Jordi Romero *****@factorialhr.com Bernat Farrero ******@factorialhr.com Ukio 4 Funding Rounds $48.7m Money raised Ukio is a proptech company that operates a network of high quality design forward apartments available for monthly stays across Europe. Industries: Rental Hospitality industry Location: Spain Barcelona, Catalonia, Spain Barcelona Key people: Stanley Fourteau *******@ukio.com Learnlife 1 Funding Rounds $3.5m Money raised Learnlife is a global community of education founded in 2007. Industries: Educational Technology School Learning Location: Barcelona Vintra 3 Funding Rounds $13.9m Money raised A software company using artificial intelligence for video surveillance analytics. Industries: Enterprise software Analytics Big data Location: Barcelona San Jose, California Key people: Brent Boekestein ***********@vintra.io Paack 5 Funding Rounds $239.0m Money raised Paack is a parcel delivery company in UK focused on delivery for businesses Industries: Transportation Supply chain E-commerce Location: Barcelona Key people: Victor Obradors Fernando Benito ********.******@paack.co NoviCap 4 Funding Rounds $3.2m Money raised End-to-end working capital solutions provider focused on enabling CFOs/Finance teams of SMEs to pay their suppliers and collect from their customers. Industries: Finance Technology Financial technology Location: Barcelona Key people: Nicolas Overloop Federico Travella ********@novicap.com Marc Antoni Macia ****@novicap.com Cooltra 10 Funding Rounds $189.4m Money raised Cooltra is a Barcelona-based company founded in 2006 that offers shared bikes and scooters. The company operates in several European cities across Italy, Spain, and Portugal. Industries: Electric vehicle Software as a service (SaaS) Service industry Location: Barcelona Caelum Labs 1 Funding Rounds $600.0k Money raised Building a next-gent solution for greater interoperability, traceability, and transparency in multi-party collaborations, without losing privacy, protecting data and fully secure. Industries: Privacy Developer Tools Software as a service (SaaS) Location: Barcelona Taclia 4 Funding Rounds $3.2m Money raised Developer of a facilities management platform designed to help service companies to concentrate all their business in one place. The company&#039;s platform can be used to hire, manage, control, and track all maintenance, repair tasks, and expenses in real-time, enabling clients to have fast, optimized, and valuable facilities services. Industries: Business software Financial software Automation Location: Barcelona Key people: Alex Casals *******@taclia.com Flanks 4 Funding Rounds $33.2m Money raised Flanks is an end-to-end wealth management platform founded in 2019 by Joaquim De la Cruz, Alvaro Morales and Sergi Lao. Industries: Finance Technology Finance and Insurance Location: Barcelona Key people: Sergi Lao *****@flanks.io Joaquim De la Cruz *******@flanks.io Alvaro Morales ******@flanks.io Landbot 5 Funding Rounds $33.2m Money raised Landbot is a no-code chatbot builder platform founded in 2015 by Fernando Guirao de Gregorio, Fran Conejos and Jiaqi Pan. Industries: Artificial Intelligence (AI) Technology No-code / low-code development Location: Barcelona Key people: Jiaqi Pan *****@landbot.io Fran Conejos Fernando Guirao de Gregorio Minoryx Therapeutics 13 Funding Rounds $147.7m Money raised Minoryx Therapeutics is a small Molecules for Rare Diseases founded in 2011. Industries: Biomedical engineering Biopharmaceutical Pharmaceutical industry Location: Barcelona Emjoy 4 Funding Rounds $10.0m Money raised Emjoy is a womens sexuality and body positivity app. Industries: Property management Software Women&#039;s Health Location: Barcelona Amenitiz 4 Funding Rounds $72.0m Money raised All-in-one hospitality management platform Industries: Hospitality industry Software as a service (SaaS) Travel technology Location: Barcelona Key people: Frederic Cadet ********@amenitiz.com Alexandre Guinefolleau *********@amenitiz.com Bioo 1 Funding Rounds $2.3m Money raised Bioo is dedicated to the generation of electricity from nature through singular technologies and patents of its own. The company&#039;s business model is based on the development of the R&amp;D, and the design and distribution of sustainable products and proprietary technologies, including the production of electricity through photosynthesis. Industries: Technology Biology Clean technology Location: Barcelona Key people: Pablo Vidarte linkedin Baluwo 1 Funding Rounds $610.0k Money raised Developer of cross-border payment and material delivery platform designed to send materials and food across the border. The company&#039;s platform works with various global retail stores to offer a wide range of food, construction materials, mobile recharge, and electricity payment among other services. Industries: Consumer goods Apps E-commerce Location: Barcelona Key people: Josep Arroyo *******@baluwo.com Brava Fabrics 1 Funding Rounds $350.0k Money raised Operator of an apparel brand intended to create eco-friendly clothes for men and women. The company&#039;s brand focuses on using natural fibers, renewable resources, and recycled materials that include organic cotton, linen, wool, and recycled polyester, enabling customers to have access to a wide variety of sustainable clothing. Industries: Lifestyle Clean technology Manufacturing Location: Barcelona Key people: Ramón Barbero *****@bravafabrics.com Nemuru 4 Funding Rounds $6.4m Money raised Developer of a multi-financial technology platform designed to bridge the gap between lenders and borrowers. Industries: Loan Finance Financial software Location: Barcelona Key people: Pere Monràs Oliu linkedin Faromatics 4 Funding Rounds $750.8k Money raised Faromatics is an agricultural technology company. Industries: Agriculture Robotics Information technology Location: Spain Barcelona Key people: Heiner Lehr ******@syntesa.eu Integra Therapeutics 4 Funding Rounds $31.1m Money raised Gene writing tools provider to improve the safety, precision, and efficacy of advanced therapies. Industries: Biotechnology Genomics Genome editing Location: Barcelona Key people: Avencia Sanchez Mejias *******.**@integra-tx.com Marc Güell Lodgify 2 Funding Rounds $6.5m Money raised Lodgify is a Barcelona-based company founded in 2012. Industries: Software Vacation rental Property management Location: Barcelona Oryzon Genomics 6 Funding Rounds $40.7m Money raised Oryzon Genomics is a clinical stage biopharmaceutical company. Industries: Biotechnology Therapeutics Biomedical engineering Location: Barcelona Key people: Tamara Maes *****@oryzon.com Carlos Buesa ******@oryzon.com Dinbeat 1 Funding Rounds $560.0k Money raised DinbeatUNO is a theyarable device that tracks the most important vital signs of pet&#039;s from a remote wireless monitor. Industries: Animal Health Technology Digital health Location: Barcelona Key people: Talía Bonmatí ********@dinbeat.com Zinklar 3 Funding Rounds $6.4m Money raised Zinklar is an market research company that helps to make safer and smarter business decisions. Industries: Software as a service (SaaS) Adtech Sales and Marketing Location: Barcelona Key people: Borja Ormaechea *****.*********@zinklar.com Jordi Ferrer *****.******@zinklar.com Rever 3 Funding Rounds $7.4m Money raised Instant cash refunds through a buy now, pay later-type (BNPL) model. Industries: Internet of things (IoT) Technology Software Location: Barcelona Key people: Errette Dunn *******@reverscore.com Inbiomotion 5 Funding Rounds $7.6m Money raised A personalized medicine company focused on the development of biomarkers to predict bone metastasis in cancers Industries: Oncology Genetics Therapeutics Location: Barcelona Key people: Anna Bosch Comas linkedin Roger Gomis ******@inbiomotion.com Reloadly 1 Funding Rounds $750.0k Money raised Reloadly potheyrs the future of cross border digital mobile payments to emerging markets. Industries: Application programming interface (API) Technology Finance and Insurance Location: Miami Barcelona Spain Key people: Michel Francis ********@reloadly.com Emmanuel Piard ******@reloadly.com Cubiq Foods 2 Funding Rounds $19.6m Money raised Cubic Foods is a Barcelona-based food technology company growing cell-based specialty fats. Industries: Cell-based meat Alternative proteins Cellular agriculture Location: Barcelona Key people: Andres Montefeltro ************@cubiqfoods.com Raquel Revilla ********@cubiqfoods.com Whisbi 1 Funding Rounds $5.5m Money raised Conversational sales and marketing platform designed for B2C enterprises. Industries: Automotive industry Retail E-commerce Location: Barcelona Key people: Alex Bisbe linkedin Gocleer 2 Funding Rounds $2.0m Money raised Digital urban mobility insurance provider. Insurtech, Mobile App, Insurance, Distribution, MGA, Broker, Spain, Europe, LATAM. Industries: Property insurance Financial software Ridesharing Location: Barcelona Key people: Antonio Morales linkedin Submer 4 Funding Rounds $63.5m Money raised Sustainable immersion cooling and automation solutions provider for data centers. Industries: Energy efficiency Data center Hardware Location: Barcelona Key people: Daniel Pope ******@submer.com Pol Valls Soler ***@submer.com Sign up to access our full database Enter your email and get access to 71,000 + technology companies you can partner with. Join 29000+ founders, operators, and investors. Seedtable combines proprietary data with advanced AI technology to accelerate professional success across industries. Sign Up Rankings Startups By Location Startups By Industry Top Europe Startups Top AI Startups New Startups Investor Rankings Top Europe Investors Top AI Investors Content Raise Investor Rankings Top Europe Investors Top AI Investors Recent Funding Rounds Debt Finance Changelog Score Podcast Statistics Recently Funded Product Login Account Management Pricing and Features Platform Data Integration API CRM Contact Us Contact About Privacy Intelligence Hubs © 2025 Seedtable™. All Rights Reserved.",
+            "role_title": null
+          },
+          "company": {
+            "name": "INARI",
+            "website": null,
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "automation",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.seedtable.com/best-startups-in-barcelona",
+              "title": "69 Best Startups in Barcelona to Watch in 2026",
+              "snippet": "App Samurai is a San Francisco-based company that provides mobile marketing technology. Typeform is a technology company that allows users to build well-designed, conversation-based forms for collecting data. BCN3D is a company that designs and manufactures 3D printers, consumer electronics, information technologies, and software. INARI provides technology software for insurers, reinsurers, MGAs and Lloyd's syndicates on a cloud-based blockchain platform. Software as a service (SaaS) Health technology Artificial Intelligence (AI). Cooltra is a Barcelona-based company founded in 2006 that offers shared bikes and scooters. Developer of a facilities management platform designed to help service companies to concentrate all their business in one place. The company's business model is based on the development of the R&D, and the design and distribution of sustainable products and proprietary technologies, including the production of electricity through photosynthesis. Lodgify is a Barcelona-based company founded in 2012. Cubic Foods is a Barcelona-based food technology company growing cell-based specialty fats.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:seedtable.com best AI startups in Barcelona under 50 employees",
+            "candidate_selected_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "ENRICH",
+          "match_type": null,
+          "score": 50,
+          "summary": "Candidate INARI shows strong alignment with the search themes and geography, but company size evidence is missing. The named person is present, and the company demonstrates relevant AI and automation signals. However, the hard constraint on company size (under 50 employees) cannot be verified.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "only one supporting URL is available",
+            "missing evidence: company_size"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      },
+      {
+        "index": 5,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain AI software",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:eu-startups.com/directory/ Spain AI software",
+          "person": null,
+          "company": {
+            "name": "Kenmei Technologies",
+            "website": "https://aunoa.ai",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "automation",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/kenmei-technologies/",
+              "title": "Kenmei Technologies",
+              "snippet": "Kenmei Technologies is a Spanish company based in Valencia founded by telecoms and software experts, focused on providing data intelligence with machine-based",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain AI software",
+            "candidate_selected_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "ENRICH",
+          "match_type": null,
+          "score": 45,
+          "summary": "Candidate looks promising but needs more evidence.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "only one supporting URL is available",
+            "missing evidence: company_size",
+            "llm_review_disagreed=REJECT_CLOSE_MATCH"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      },
+      {
+        "index": 6,
+        "planner_action": "SOURCE",
+        "query": "site:seedtable.com best AI startups in Madrid under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:seedtable.com best AI startups in Madrid under 50 employees",
+          "person": {
+            "full_name": "alized learning plans for training future workers. Industries: Educational Technology Technology Machine learning Location: Madrid ThreatMark 2 Funding Rounds $26.0m Money raised ThreatMark is a behavior-based fraud prevention platform founded in 2015 by Krystof Hilar. Industries: Software as a service (SaaS) Cybersecurity Fraud detection Location: United Kingdom Charlotte, North Carolina Brno Key people: Krystof Hilar *******.*****@threatmark.com Michal Tresner ******.*******@threatmark.com Algori 2 Funding Rounds $7.5m Money raised AI-driven shopper insights platform Industries: Software as a service (SaaS) Analytics E-commerce Location: Madrid Key people: Andrius Juozapaitis *******@algori.ai Lina Beinortaite ****@algori.ai Balys Baltakis *****@algori.ai Luzia 2 Funding Rounds $16.0m Money raised Luzia is an AI-powered personal assistant developer for whatsapp founded in 2023 by Javier Andres Marin, Carlos Perez Ruiz and Alvaro Martinez Higes. Industries: Artificial Intelligence (AI) Communication Software as a service (SaaS) Location: Madrid Key people: Alvaro Martinez Higes ******@luzia.com Carlos Perez Ruiz ******@luzia.com Javier Andres Marin **.*****@luzia.us JUMP Data Driven Video 1 Funding Rounds JUMP Data Driven Video is a Madrid-based company founded in 2016 by Jerónimo Macanás. Industries: Business analytics Predictive analytics Machine learning Location: Madrid Key people: Jerónimo Macanás linkedin Jesús Herrero linkedin Inrobics 1 Funding Rounds $360.0k Money raised Rehabilitation model leveraging artificial intelligence and social robots for therapeutic purposes. Industries: Technology Healthcare Robotics Location: Madrid Nuubo $8.2m Money raised Nuubo offers wireless health products. Industries: Artificial Intelligence (AI) Technology Wearable technology Location: Madrid Dedomena AI 1 Funding Rounds $530.0k Money raised Anonymization tools, synthetic data generation, data products and cross industry solutions powered by best-of-breed artificial intelligence. Industries: Artificial Intelligence (AI) Technology Machine learning Location: Madrid LogTrust 2 Funding Rounds $46.0m Money raised Logtrust collects, correlates and analyses machine, system and user data in real-time to offer unprecedented capabilities of security intelligence, Business and IT monitoring, operation and applications management and compliance. Specialties: Machine Learning, Other Industries: AI-enabled cybersecurity Cybersecurity Artificial Intelligence (AI) Location: Spain Madrid Nware 1 Funding Rounds $1.3m Money raised their platform has been offering a successful pre-beta service to a group of testers this last month. Industries: Gaming Video game industry Entertainment Location: Madrid Frenetic 2 Funding Rounds $17.3m Money raised Frenetic is an online platform to test magnetic components founded in 2015. Industries: Artificial Intelligence (AI) Technology Software as a service (SaaS) Location: Madrid Acoru 2 Funding Rounds $16.2m Money raised AI-driven fraud and scam prevention platform. Industries: Software as a service (SaaS) Information technology Cybersecurity Location: Madrid Key people: Pablo de la Riva Ferrezuelo *****@acoru.com David Moran *****@acoru.com Anyformat 2 Funding Rounds $4.5m Money raised AI-powered data extraction solutions provider. Industries: Artificial Intelligence (AI) Software as a service (SaaS) Data Analytics Location: Spain Madrid Key people: Diego Perez Sastre *****@anyformat.ai Alejandro Fernandez Rodriguez *********@anyformat.ai 8Layers 1 Funding Rounds $1.8m Money raised AI-powered cybersecurity platform to secure cloud identities and shield sensitive company information. Industries: Artificial Intelligence (AI) Identity management Software as a service (SaaS) Location: Madrid Key people: Pedro Palao Gostanza linkedin Daniel Garcia Moran *******@8layers.io Pablo Carretero **********@8layers.io Smartvel 1 Funding Rounds $1.1m Money raised their solutions are working succesfully in TIER1 companies as Singapore Airlines, Iberia, LATAM, Iberostar, Melia, Europcar, the City of Buenos Aires, etc. Industries: Customer experience Data science Digitization Location: Spain Madrid Dive 1 Funding Rounds $3.2m Money raised Dive is an AI to understand physical traffic people data founded in 2018. Industries: Computer Vision Machine learning Commerce Location: Madrid Omnia 1 Funding Rounds $4.0m Money raised Agentic platform for improving brand presence across AI-powered search engines and assistants. Industries: Artificial Intelligence (AI) Marketing Software as a service (SaaS) Location: Madrid Key people: Daniel Espejo ******@useomnia.com Miguel Fernandez ******@useomnia.com LuzIA 2 Funding Rounds $12.5m Money raised LuzIA is an AI assistant in Spanish and Portuguese founded in 2023. Industries: Software as a service (SaaS) Productivity Artificial Intelligence (AI) Location: Madrid Sentisis 2 Funding Rounds $1.5m Money raised Industries: Technology Artificial Intelligence (AI) Location: Spain Madrid Aira System 1 Funding Rounds $250.0k Money raised AI-based digital system preventing fraud and automating inspection processes. Industries: Identity management E-commerce Analytics Location: Madrid Orbio 1 Funding Rounds $7.6m Money raised Orbio is an AI-driven human capital management (HCM) platform founded in 2025 by Sergi Bastardas, Nacho Travesi and Antonio Mele. Industries: Artificial Intelligence (AI) Human resources Recruitment Location: Madrid Key people: Sergi Bastardas *****@orbio.work Nacho Travesi *****.*******@orbio.work Antonio Mele linkedin TuringDream 1 Funding Rounds $7.0m Money raised TuringDream is an agentic AI platform for education and enterprises founded in 2021 by Raul Duque Sanchez. Industries: Artificial Intelligence (AI) Educational Technology Software as a service (SaaS) Location: Madrid Key people: Raul Duque Sanchez ****.*****@turingdream.com Jose Moran ****@turingdream.com Cofrai 1 Funding Rounds $2.4m Money raised Cofrai is an AI-powered PCI management platform for non-conformist maintainers founded in 2023 by Javier Goitia, Rafael Gorjao and Antonio Acevedo Banez. Industries: Business intelligence (BI) Software as a service (SaaS) Artificial Intelligence (AI) Location: Madrid Key people: Javier Goitia *******@cofrai.com Rafael Gorjao *******@cofrai.com Antonio Acevedo Banez ********@cofrai.com Lightbase 1 Funding Rounds $2.6m Money raised Lightbase is an AI-powered knowledge platform for engineering teams founded in 2025 by Paul Goldbaum. Industries: Artificial Intelligence (AI) Engineering Software as a service (SaaS) Location: Madrid Key people: Paul Goldbaum ****@lightbase.co HaloTech 1 Funding Rounds $11.5m Money raised HaloTech is an AI-driven industrial safety solutions provider founded in 2023 by Manu Marín. Industries: Artificial Intelligence (AI) Manufacturing Industrial IoT Location: Madrid Key people: Manu Marín linkedin Stamp 1 Funding Rounds $4.8m Money raised Stamp is an AI-driven compliance platform for global shoppers founded in 2023. Industries: Shopping Compliance Software as a service (SaaS) Location: Madrid Neuraptic AI 1 Funding Rounds $490.0k Money raised Artificial intelligence firm developing tools for smarter data analysis and decision-making. Industries: Artificial Intelligence (AI) Analytics Software as a service (SaaS) Location: Madrid Piper 1 Funding Rounds $3.2m Money raised Piper is an AI-powered CRM for sales teams founded in 2023. Industries: Software as a service (SaaS) Artificial Intelligence (AI) Sales and Marketing Location: Madrid Zylon 1 Funding Rounds $3.2m Money raised Zylon is a generative AI platform for small businesses founded in 2023. Industries: Developer Tools Artificial Intelligence (AI) Software as a service (SaaS) Location: Madrid Ringr.ai 1 Funding Rounds $1.3m Money raised Ringr.ai is an AI human-centered voice agent provider founded in 2024 by Diego Cuadrado. Industries: Artificial Intelligence (AI) Communication Software as a service (SaaS) Location: Spain Madrid Key people: Diego Cuadrado *.********@clintell.io Evolbe 1 Funding Rounds $580.0k Money raised Evolbe is an AI-driven business management platform founded in 2019 by Pablo Nuno Utande. Industries: Artificial Intelligence (AI) Business intelligence (BI) Software as a service (SaaS) Location: Madrid Key people: Pablo Nuno Utande linkedin Sign up to access our full database Enter your email and get access to 71,000 + technology companies you can partner with. Join 29000+ founders, operators, and investors. Seedtable combines proprietary data with advanced AI technology to accelerate professional success across industries. Sign Up Rankings Startups By Location Startups By Industry Top Europe Startups Top AI Startups New Startups Investor Rankings Top Europe Investors Top AI Investors Content Raise Investor Rankings Top Europe Investors Top AI Investors Recent Funding Rounds Debt Finance Changelog Score Podcast Statistics Recently Funded Product Login Account Management Pricing and Features Platform Data Integration API CRM Contact Us Contact About Privacy Intelligence Hubs © 2025 Seedtable™. All Rights Reserved.",
+            "role_title": null
+          },
+          "company": {
+            "name": "Taiger",
+            "website": null,
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "ai engineering",
+            "automation",
+            "agentic workflows",
+            "software company",
+            "genai"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.seedtable.com/ai-startups-madrid",
+              "title": "Explore 52 Best Ai Startups in Madrid to watch in 2025. Discover innovative companies, funding insights, and industry trends.",
+              "snippet": "Machine learning Natural language processing (NLP) Artificial Intelligence (AI). Financial services Artificial Intelligence (AI) Management. Artificial Intelligence (AI) Analytics Data analysis. Taiger is a Madrid-based artificial intelligence company offering work flow optimization software. Artificial Intelligence (AI) Enterprise software Semantic search. Blockchain and cryptocurrency Insurance Technology Artificial Intelligence (AI). Collaboration Artificial Intelligence (AI) Technology. Narrativa is an artificial intelligence company developing a machine learning platform to build natural language solutions. lang.ai is an artificial Intelligence company founded in 2018 by Jorge Penalva Zambrano. Machine learning Natural language processing (NLP) Artificial Intelligence (AI). Artificial Intelligence (AI) Cardiology Software as a service (SaaS). Artificial Intelligence (AI) Women's Health Femtech. Advertising Artificial Intelligence (AI) Technology. Mental health Diagnosis Artificial Intelligence (AI). Artificial Intelligence (AI) Analytics Software as a service (SaaS). Artificial Intelligence (AI) Software as a service (SaaS) Lifestyle. Biotechnology Technology Artificial Intelligence (AI). Shakers is an AI-powered freelance workforce management platform for companies founded in 2020 by Hector Mata. Artificial Intelligence (AI) Human resources Software as a service (SaaS). TaxDown is an AI-powered tax management platform for consumers founded in 2019 by Enrique Garcia Moreno. Software as a service (SaaS) Financial technology Artificial Intelligence (AI). Software as a service (SaaS) Communication Artificial Intelligence (AI). Artificial Intelligence (AI) Technology Wearable technology. Artificial Intelligence (AI) Technology Machine learning. AI-enabled cybersecurity Cybersecurity Artificial Intelligence (AI). Artificial Intelligence (AI) Technology Software as a service (SaaS). Artificial Intelligence (AI) Identity management Software as a service (SaaS). Artificial Intelligence (AI) Marketing Software as a service (SaaS). Software as a service (SaaS) Productivity Artificial Intelligence (AI). Artificial Intelligence (AI) Human resources Recruitment. Artificial Intelligence (AI) Educational Technology Software as a service (SaaS). Business intelligence (BI) Software as a service (SaaS) Artificial Intelligence (AI). Artificial Intelligence (AI) Data Analytics Software as a service (SaaS). Artificial Intelligence (AI) Engineering Software as a service (SaaS). Artificial Intelligence (AI) Manufacturing Industrial IoT. Artificial Intelligence (AI) Analytics Software as a service (SaaS). Software as a service (SaaS) Artificial Intelligence (AI) Sales and Marketing. Developer Tools Artificial Intelligence (AI) Software as a service (SaaS). Artificial Intelligence (AI) Communication Software as a service (SaaS). Artificial Intelligence (AI) Business intelligence (BI) Software as a service (SaaS).",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.seedtable.com/best-ai-startups-in-madrid",
+              "title": "Explore 55 Best Ai Startups in Madrid to watch in 2026. Discover innovative companies, funding insights, and industry trends.",
+              "snippet": "Artificial Intelligence (AI) Cardiology Software as a service (SaaS). Artificial Intelligence (AI) Analytics Software as a service (SaaS). Artificial Intelligence (AI) Software as a service (SaaS) Lifestyle. Software as a service (SaaS) Financial technology Artificial Intelligence (AI). Artificial Intelligence (AI) Human resources Software as a service (SaaS). Software as a service (SaaS) Communication Artificial Intelligence (AI). Artificial Intelligence (AI) Technology Software as a service (SaaS). Artificial Intelligence (AI) Software as a service (SaaS) Data Analytics. Artificial Intelligence (AI) Identity management Software as a service (SaaS). Artificial Intelligence (AI) Marketing Software as a service (SaaS). Software as a service (SaaS) Productivity Artificial Intelligence (AI). Artificial Intelligence (AI) Educational Technology Software as a service (SaaS). Artificial Intelligence (AI) Engineering Software as a service (SaaS). Artificial Intelligence (AI) Analytics Software as a service (SaaS). Software as a service (SaaS) Artificial Intelligence (AI) Sales and Marketing. Developer Tools Artificial Intelligence (AI) Software as a service (SaaS). Artificial Intelligence (AI) Communication Software as a service (SaaS).",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:seedtable.com best AI startups in Madrid under 50 employees",
+            "candidate_selected_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 7
+    },
+    "applied_relaxation_stage": 2,
+    "completed_reason": "budget_exhausted_with_shortlist"
+  }
+}

@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lolo-lead-management"
+version = "0.1.0"
+description = "Deterministic lead management engine for LOLO"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "fastapi>=0.116,<1.0",
+  "pydantic>=2.11,<3.0",
+  "uvicorn>=0.35,<1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.4,<9.0",
+]
+future = [
+  "langgraph>=0.2",
+  "sqlalchemy>=2.0",
+  "httpx>=0.27",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"lolo_lead_management.engine.agents" = ["prompts/*.md"]

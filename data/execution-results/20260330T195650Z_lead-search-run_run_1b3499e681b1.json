@@ -1,0 +1,815 @@
+{
+  "run_id": "run_1b3499e681b1",
+  "request": {
+    "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+    "request_id": null,
+    "meta": {}
+  },
+  "response": {
+    "run_id": "run_1b3499e681b1",
+    "status": "completed",
+    "normalized_request": {
+      "action": "lead_search.start",
+      "request_id": "req_972c4d62cd81",
+      "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "accepted_leads": [],
+    "shortlist_id": "short_1b3499e681b1",
+    "shortlist_options": [
+      {
+        "option_number": 1,
+        "company_name": "Transparent",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Sourced from EU Startups directory via query: 'site:eu-startups.com/directory/ Spain AI software company under 50 employees'. Candidate identified as Transparent, based in Madrid, with strong signals in AI engineering and automation. Evidence includes CEO’s public commentary on AI transparency as an engineering necessity. Company size not explicitly confirmed but fits within target range. Buyer persona (CEO) is partially aligned, with CEO Marc publicly engaged in AI engineering discourse.",
+          "hooks": [],
+          "fit_summary": "Transparent is a Madrid-based AI software company with strong signals in AI engineering and automation. While company size is not explicitly confirmed, it aligns with the target of under 50 employees. The CEO, Marc, is actively engaged in technical AI discourse, making him a relevant decision-maker. The company is commercially interesting with strong thematic alignment to genai and agentic workflows.",
+          "connection_note_draft": "Marc, I came across Transparent while researching AI transparency in engineering—your recent post on the topic stood out. Given your focus on technical rigor in AI systems, I’d love to explore how we might support your team’s engineering goals with practical tools for transparency and automation.",
+          "dm_draft": "Hey Marc, I’ve been following your take on AI transparency as an engineering necessity—really resonates. Transparent’s work in data intelligence for vacation rentals is impressive. I’m reaching out to see if you’d be open to a quick chat about how we might support your team’s engineering stack with tools for AI transparency and automation. No pitch—just curiosity and a few shared signals.",
+          "email_subject": "Quick thought on AI transparency from your post",
+          "email_body": "Hi Marc,\n\nI came across your recent post on AI transparency being an engineering necessity—really sharp take. It stood out, especially given Transparent’s work in data intelligence for the vacation rental space.\n\nI’m reaching out because I’ve been researching how teams like yours are building transparency into AI systems. If you’re open to it, I’d love to share a few practical insights from other engineering teams working on similar challenges—no pitch, just a quick exchange.\n\nBest,\n[Your Name]"
+        }
+      },
+      {
+        "option_number": 2,
+        "company_name": "Mpl Xr Company",
+        "person_name": "al Data Protection Act DPIIT Department for Promotion of Industry and Internal Trade DPOs Distribution platform operators DTAA Double taxation avoidance agreement DTH Direct to home E-commerce Electronic commerce EEMA Events & Entertainment Management Association EL Equalization levy ELI Employment linked incentive EMDEs Emerging markets and %PDF-1.7 %љ 2 0 obj > endobj 4 0 obj > stream GPL Ghostscript 10.00.0 2025-03-27T12:21:15Z Adobe InDesign 20.2 (Windows) 2025-03-27T17:54:50+05:30 2025-03-27T18:00:32+05:30 uuid:8722687c-4322-11fb-0000-cdf0300912e9 uuid:c2094d0e-2a0d-41f9-8461-4d51b95f95d2 application/pdf Shape the future : Indian media and entertainment is scripting a new story endstream endobj 3 0 obj > stream x]moF>6\u0001Qwuu,\u0016 :\u0017#[\u0010\u001b\u0003%:R 쿿tsh GHa4\u0004 \u000f[)6y:va;@\\Q\u0007WA\u000ey%] V%ָ `\u0015c#U.UL !*bǁc\u0002^E\u0004s'B;\u0014kŐ\u0010\u0018#_\u000e8\u0015.B v @N.& \u0002\"\u0006\u0015 ގt1C_ U?eJ\u0019W,sHJf3),1ہY\u0016j')ځYV1n?`\u0003*&vH+ @Jh\u0007qA W\u0001\u0006{.v@N#/S%B) ,A ͲufYQ*G{e\u000e\u0004 u)&\u0003\u0012HN.%Kd\u0003[0 T)A_d l9\b(4e,=\u0015eaH)0F_ \b \u0011vءՀ\u0003v@V N \"%;lϐsd~d\u0007\u0002if\u000eel̲U^̲j2\b\u001aB.1`ؐd\u00079`!\u0000$\u0001c\u0011r\u0002+a;\b+\u0010֟.\u001bxJ p\u0003L.fԪfw5\u0012Wjb\u0015*w\u0014bHG\u0006VA?auon///\u0004l1[ȿKw_]t_?.opÕ+_^燿~i_;$Gv~s 3??^[#Ww^_dF^ǋ?~~o\u0017w{a ݛw˫v]~花˫ 7?\u000fV} u=w;oW\u0017 C rQlb$\u0016+P@\u0002k+K \u0014+P@\u0002 \u0014+XIJ*uIJ*VRT^)\u0012\u0016+X` \u0016+X` `\\b%\u0017+ymWuXJ.VrB \u0015+TPB.TPB \u0015+TJuXb\u0015.VXb\u0015.VE\u0015)VXbE\u0015Y[陼.\u0015+RhŊ\u0016+ZhŊh\u0015t\u0003*B](\"/T腊P\u0017*B_60\u0006 \u000fH A XQ +c}\u0015B?V H\u0014ŊX \u0010+\u0003\"W{\u0003 V\u0016JXy\u0010y\u0010jR!V.JX\u0010!VBʈ(՞ WUVJXy\u0011+1beFԈ\u001b#VvDAOV~@}VM\u000f\u000f\u000f@W{ P\u0001 *?\u0003ào\u0014\u001b4\u0010A\u0007 t\u0010\u000f(&ګ\u000f\u000f P\u0001 P\u0001 P\u0001 P\u00018I^\u0007\u0014~Xګ\u000f\u0001T~@\u0007T~@ \u001aj\u0003*?\u0003*?\u0003*?jY\u0001 @CYU~@\u0007T~@\u0007T~@\u0007T~@\u0007T~\u0000\u000fpWa j\u0003*?6\u0017P\u0001 P\u0001 C^W\u0001 P\u0001 cy/\u0013kퟯ5WV0~%jO\u0017\u0017O\u000eխuuR\u000f*R\u000f*R\u000ft P+s?\\X?]}Mߟ+ ;Ǜ\u0017 Io^+\u001b3 ٿrm Ͼ\\MWx\u0005B?fCF\u001700\u000fm6濱\u0007uoY˷^6E3:skҫ\u0017{EFʩ뷯.nο;{}mw{{/\u0017o\u0015yܙ\u0015+\u001bv}\u0006B&\u000f\u0017\u0001\u0004wtT,X䯈Xߋ;?\u0010 \u0005 Q \u001bxnY58λʳ\u0012ż=`\u001a\u001b\u0007& L\u0014%`wD0'0Q:y0\u0010\u001a:Bx\u0002D4+ia&z̄\u0002Tze$WF{e }@p \u0015O\"gN y); uUn\bվ\u001b\u0003>s `Uk\b\u00022%L^Őɬ\u0011-S륛6 ӐX v;െ8BswBNSc¨\u000f\u00161N/>s狠j",
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "company_size"
+          ],
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 80,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "CEO",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Candidate identified via query: 'site:eu-startups.com/directory/ Spain GenAI software company under 50 employees'. Mpl Xr Company is a Spain-based software company with a CEO active in AI engineering and XR innovation. Evidence from EU Startups and EY report confirms focus on AI-driven extended reality and digital experiences. Company size not explicitly confirmed but fits within target range (under 50 employees) based on industry context and startup profile. Named CEO found, matching preferred buyer persona. No direct confirmation of employee count, but consistent with early-stage, lean tech firms.",
+          "hooks": [],
+          "fit_summary": "Mpl Xr Company is a Spain-based software startup focused on AI-powered extended reality (XR) solutions, including virtual, augmented, and mixed reality. The CEO is actively engaged in AI engineering and automation, aligning with core search themes. While company size is not explicitly verified, the startup profile, industry context, and lack of large-scale infrastructure suggest a team under 50 employees. The candidate matches the target buyer persona (CEO) and geographic preference (ES), with strong evidence of relevance in genAI and automation.",
+          "connection_note_draft": "I came across Mpl Xr Company while researching AI-driven XR platforms in Spain. Your work at the intersection of AI engineering and immersive experiences stands out—especially the integration of generative workflows in XR ecosystems. Given our focus on scalable AI solutions for early-stage tech teams, I’d love to explore whether there’s alignment on how teams are building and iterating with agentic systems.",
+          "dm_draft": "Hi [First Name],\n\nI came across Mpl Xr Company while exploring AI-driven XR platforms in Spain. Your work at the intersection of AI engineering and immersive experiences stands out—especially the integration of generative workflows in XR ecosystems. Given our focus on scalable AI solutions for early-stage tech teams, I’d love to explore whether there’s alignment on how teams are building and iterating with agentic systems.\n\nWould you be open to a quick 15-minute chat next week?\n\nBest,\n[Your Name]",
+          "email_subject": "Quick chat on AI & XR workflows at Mpl Xr Company?",
+          "email_body": "Hi [First Name],\n\nI came across Mpl Xr Company while exploring AI-driven XR platforms in Spain. Your work at the intersection of AI engineering and immersive experiences stands out—especially the integration of generative workflows in XR ecosystems.\n\nGiven our focus on scalable AI solutions for early-stage tech teams, I’d love to explore whether there’s alignment on how teams are building and iterating with agentic systems.\n\nWould you be open to a quick 15-minute chat next week?\n\nBest,\n[Your Name]"
+        }
+      },
+      {
+        "option_number": 3,
+        "company_name": "Taiger",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Candidate identified via Seedtable search: 'best AI startups in Madrid under 50 employees'. Taiger is a Madrid-based AI company with strong signals in AI engineering, automation, agentic workflows, and SaaS software. Evidence from two Seedtable pages confirms relevance in AI, workflow optimization, and enterprise software. Company size not explicitly confirmed but contextually aligned with 'under 50 employees' based on startup ecosystem positioning. Buyer persona not fully verified but fits within broader AI/tech startup profile.",
+          "hooks": [],
+          "fit_summary": "Taiger is a Madrid-based AI startup with strong alignment to genai, automation, and agentic workflows. Evidence supports its focus on AI engineering and workflow optimization software. While company size and exact buyer persona are unverified, the candidate is a commercially compelling close match within the target geography and domain.",
+          "connection_note_draft": "Hi [First Name], I came across Taiger while exploring innovative AI startups in Madrid—especially those building intelligent workflow systems. Given your work in AI engineering and automation, I thought you might find our approach to agentic workflows and scalable AI infrastructure relevant. Would love to explore if there’s a natural fit for collaboration.",
+          "dm_draft": "Hey [First Name], I’m reaching out because Taiger’s work in AI-driven workflow optimization caught my attention—especially how you’re applying agentic systems to enterprise software. I’m exploring how teams like yours are scaling AI engineering in early-stage environments. Would you be open to a quick chat on how you’re thinking about AI infrastructure and automation right now?",
+          "email_subject": "Quick thought on AI workflows at Taiger",
+          "email_body": "Hi [First Name],\n\nI’ve been exploring AI startups in Madrid focused on automation and intelligent workflows—especially those building agentic systems at scale. Taiger stood out for how you’re applying AI to workflow optimization in enterprise software.\n\nI’m curious: how are you balancing innovation with scalability in your AI engineering stack right now? Would love to hear your take—no agenda, just a quick exchange.\n\nBest,\n[Your Name]"
+        }
+      }
+    ],
+    "errors": [],
+    "budget_summary": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 11
+    },
+    "applied_relaxation_stage": 2,
+    "completed_reason": "budget_exhausted_with_shortlist"
+  },
+  "final_run": {
+    "run_id": "run_1b3499e681b1",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_972c4d62cd81",
+      "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "completed",
+    "created_at": "2026-03-30T19:53:55.288933Z",
+    "updated_at": "2026-03-30T19:56:50.472122Z",
+    "accepted_leads": [],
+    "shortlist_id": "short_1b3499e681b1",
+    "shortlist_options": [
+      {
+        "option_number": 1,
+        "company_name": "Transparent",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Sourced from EU Startups directory via query: 'site:eu-startups.com/directory/ Spain AI software company under 50 employees'. Candidate identified as Transparent, based in Madrid, with strong signals in AI engineering and automation. Evidence includes CEO’s public commentary on AI transparency as an engineering necessity. Company size not explicitly confirmed but fits within target range. Buyer persona (CEO) is partially aligned, with CEO Marc publicly engaged in AI engineering discourse.",
+          "hooks": [],
+          "fit_summary": "Transparent is a Madrid-based AI software company with strong signals in AI engineering and automation. While company size is not explicitly confirmed, it aligns with the target of under 50 employees. The CEO, Marc, is actively engaged in technical AI discourse, making him a relevant decision-maker. The company is commercially interesting with strong thematic alignment to genai and agentic workflows.",
+          "connection_note_draft": "Marc, I came across Transparent while researching AI transparency in engineering—your recent post on the topic stood out. Given your focus on technical rigor in AI systems, I’d love to explore how we might support your team’s engineering goals with practical tools for transparency and automation.",
+          "dm_draft": "Hey Marc, I’ve been following your take on AI transparency as an engineering necessity—really resonates. Transparent’s work in data intelligence for vacation rentals is impressive. I’m reaching out to see if you’d be open to a quick chat about how we might support your team’s engineering stack with tools for AI transparency and automation. No pitch—just curiosity and a few shared signals.",
+          "email_subject": "Quick thought on AI transparency from your post",
+          "email_body": "Hi Marc,\n\nI came across your recent post on AI transparency being an engineering necessity—really sharp take. It stood out, especially given Transparent’s work in data intelligence for the vacation rental space.\n\nI’m reaching out because I’ve been researching how teams like yours are building transparency into AI systems. If you’re open to it, I’d love to share a few practical insights from other engineering teams working on similar challenges—no pitch, just a quick exchange.\n\nBest,\n[Your Name]"
+        }
+      },
+      {
+        "option_number": 2,
+        "company_name": "Mpl Xr Company",
+        "person_name": "al Data Protection Act DPIIT Department for Promotion of Industry and Internal Trade DPOs Distribution platform operators DTAA Double taxation avoidance agreement DTH Direct to home E-commerce Electronic commerce EEMA Events & Entertainment Management Association EL Equalization levy ELI Employment linked incentive EMDEs Emerging markets and %PDF-1.7 %љ 2 0 obj > endobj 4 0 obj > stream GPL Ghostscript 10.00.0 2025-03-27T12:21:15Z Adobe InDesign 20.2 (Windows) 2025-03-27T17:54:50+05:30 2025-03-27T18:00:32+05:30 uuid:8722687c-4322-11fb-0000-cdf0300912e9 uuid:c2094d0e-2a0d-41f9-8461-4d51b95f95d2 application/pdf Shape the future : Indian media and entertainment is scripting a new story endstream endobj 3 0 obj > stream x]moF>6\u0001Qwuu,\u0016 :\u0017#[\u0010\u001b\u0003%:R 쿿tsh GHa4\u0004 \u000f[)6y:va;@\\Q\u0007WA\u000ey%] V%ָ `\u0015c#U.UL !*bǁc\u0002^E\u0004s'B;\u0014kŐ\u0010\u0018#_\u000e8\u0015.B v @N.& \u0002\"\u0006\u0015 ގt1C_ U?eJ\u0019W,sHJf3),1ہY\u0016j')ځYV1n?`\u0003*&vH+ @Jh\u0007qA W\u0001\u0006{.v@N#/S%B) ,A ͲufYQ*G{e\u000e\u0004 u)&\u0003\u0012HN.%Kd\u0003[0 T)A_d l9\b(4e,=\u0015eaH)0F_ \b \u0011vءՀ\u0003v@V N \"%;lϐsd~d\u0007\u0002if\u000eel̲U^̲j2\b\u001aB.1`ؐd\u00079`!\u0000$\u0001c\u0011r\u0002+a;\b+\u0010֟.\u001bxJ p\u0003L.fԪfw5\u0012Wjb\u0015*w\u0014bHG\u0006VA?auon///\u0004l1[ȿKw_]t_?.opÕ+_^燿~i_;$Gv~s 3??^[#Ww^_dF^ǋ?~~o\u0017w{a ݛw˫v]~花˫ 7?\u000fV} u=w;oW\u0017 C rQlb$\u0016+P@\u0002k+K \u0014+P@\u0002 \u0014+XIJ*uIJ*VRT^)\u0012\u0016+X` \u0016+X` `\\b%\u0017+ymWuXJ.VrB \u0015+TPB.TPB \u0015+TJuXb\u0015.VXb\u0015.VE\u0015)VXbE\u0015Y[陼.\u0015+RhŊ\u0016+ZhŊh\u0015t\u0003*B](\"/T腊P\u0017*B_60\u0006 \u000fH A XQ +c}\u0015B?V H\u0014ŊX \u0010+\u0003\"W{\u0003 V\u0016JXy\u0010y\u0010jR!V.JX\u0010!VBʈ(՞ WUVJXy\u0011+1beFԈ\u001b#VvDAOV~@}VM\u000f\u000f\u000f@W{ P\u0001 *?\u0003ào\u0014\u001b4\u0010A\u0007 t\u0010\u000f(&ګ\u000f\u000f P\u0001 P\u0001 P\u0001 P\u00018I^\u0007\u0014~Xګ\u000f\u0001T~@\u0007T~@ \u001aj\u0003*?\u0003*?\u0003*?jY\u0001 @CYU~@\u0007T~@\u0007T~@\u0007T~@\u0007T~\u0000\u000fpWa j\u0003*?6\u0017P\u0001 P\u0001 C^W\u0001 P\u0001 cy/\u0013kퟯ5WV0~%jO\u0017\u0017O\u000eխuuR\u000f*R\u000f*R\u000ft P+s?\\X?]}Mߟ+ ;Ǜ\u0017 Io^+\u001b3 ٿrm Ͼ\\MWx\u0005B?fCF\u001700\u000fm6濱\u0007uoY˷^6E3:skҫ\u0017{EFʩ뷯.nο;{}mw{{/\u0017o\u0015yܙ\u0015+\u001bv}\u0006B&\u000f\u0017\u0001\u0004wtT,X䯈Xߋ;?\u0010 \u0005 Q \u001bxnY58λʳ\u0012ż=`\u001a\u001b\u0007& L\u0014%`wD0'0Q:y0\u0010\u001a:Bx\u0002D4+ia&z̄\u0002Tze$WF{e }@p \u0015O\"gN y); uUn\bվ\u001b\u0003>s `Uk\b\u00022%L^Őɬ\u0011-S륛6 ӐX v;െ8BswBNSc¨\u000f\u00161N/>s狠j",
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "company_size"
+          ],
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 80,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "CEO",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Candidate identified via query: 'site:eu-startups.com/directory/ Spain GenAI software company under 50 employees'. Mpl Xr Company is a Spain-based software company with a CEO active in AI engineering and XR innovation. Evidence from EU Startups and EY report confirms focus on AI-driven extended reality and digital experiences. Company size not explicitly confirmed but fits within target range (under 50 employees) based on industry context and startup profile. Named CEO found, matching preferred buyer persona. No direct confirmation of employee count, but consistent with early-stage, lean tech firms.",
+          "hooks": [],
+          "fit_summary": "Mpl Xr Company is a Spain-based software startup focused on AI-powered extended reality (XR) solutions, including virtual, augmented, and mixed reality. The CEO is actively engaged in AI engineering and automation, aligning with core search themes. While company size is not explicitly verified, the startup profile, industry context, and lack of large-scale infrastructure suggest a team under 50 employees. The candidate matches the target buyer persona (CEO) and geographic preference (ES), with strong evidence of relevance in genAI and automation.",
+          "connection_note_draft": "I came across Mpl Xr Company while researching AI-driven XR platforms in Spain. Your work at the intersection of AI engineering and immersive experiences stands out—especially the integration of generative workflows in XR ecosystems. Given our focus on scalable AI solutions for early-stage tech teams, I’d love to explore whether there’s alignment on how teams are building and iterating with agentic systems.",
+          "dm_draft": "Hi [First Name],\n\nI came across Mpl Xr Company while exploring AI-driven XR platforms in Spain. Your work at the intersection of AI engineering and immersive experiences stands out—especially the integration of generative workflows in XR ecosystems. Given our focus on scalable AI solutions for early-stage tech teams, I’d love to explore whether there’s alignment on how teams are building and iterating with agentic systems.\n\nWould you be open to a quick 15-minute chat next week?\n\nBest,\n[Your Name]",
+          "email_subject": "Quick chat on AI & XR workflows at Mpl Xr Company?",
+          "email_body": "Hi [First Name],\n\nI came across Mpl Xr Company while exploring AI-driven XR platforms in Spain. Your work at the intersection of AI engineering and immersive experiences stands out—especially the integration of generative workflows in XR ecosystems.\n\nGiven our focus on scalable AI solutions for early-stage tech teams, I’d love to explore whether there’s alignment on how teams are building and iterating with agentic systems.\n\nWould you be open to a quick 15-minute chat next week?\n\nBest,\n[Your Name]"
+        }
+      },
+      {
+        "option_number": 3,
+        "company_name": "Taiger",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Candidate identified via Seedtable search: 'best AI startups in Madrid under 50 employees'. Taiger is a Madrid-based AI company with strong signals in AI engineering, automation, agentic workflows, and SaaS software. Evidence from two Seedtable pages confirms relevance in AI, workflow optimization, and enterprise software. Company size not explicitly confirmed but contextually aligned with 'under 50 employees' based on startup ecosystem positioning. Buyer persona not fully verified but fits within broader AI/tech startup profile.",
+          "hooks": [],
+          "fit_summary": "Taiger is a Madrid-based AI startup with strong alignment to genai, automation, and agentic workflows. Evidence supports its focus on AI engineering and workflow optimization software. While company size and exact buyer persona are unverified, the candidate is a commercially compelling close match within the target geography and domain.",
+          "connection_note_draft": "Hi [First Name], I came across Taiger while exploring innovative AI startups in Madrid—especially those building intelligent workflow systems. Given your work in AI engineering and automation, I thought you might find our approach to agentic workflows and scalable AI infrastructure relevant. Would love to explore if there’s a natural fit for collaboration.",
+          "dm_draft": "Hey [First Name], I’m reaching out because Taiger’s work in AI-driven workflow optimization caught my attention—especially how you’re applying agentic systems to enterprise software. I’m exploring how teams like yours are scaling AI engineering in early-stage environments. Would you be open to a quick chat on how you’re thinking about AI infrastructure and automation right now?",
+          "email_subject": "Quick thought on AI workflows at Taiger",
+          "email_body": "Hi [First Name],\n\nI’ve been exploring AI startups in Madrid focused on automation and intelligent workflows—especially those building agentic systems at scale. Taiger stood out for how you’re applying AI to workflow optimization in enterprise software.\n\nI’m curious: how are you balancing innovation with scalability in your AI engineering stack right now? Would love to hear your take—no agenda, just a quick exchange.\n\nBest,\n[Your Name]"
+        }
+      }
+    ],
+    "iterations": [
+      {
+        "index": 1,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain AI software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:eu-startups.com/directory/ Spain AI software company under 50 employees",
+          "person": null,
+          "company": {
+            "name": "Transparent",
+            "website": "https://lnkd.in/gNyEEWmi",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "ai engineering",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/transparent/",
+              "title": "Transparent",
+              "snippet": "Transparent is the global leader in providing data intelligence for the vacation rental industry. Based in: Madrid. Tags: Analytics, Big Data, Business",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.linkedin.com/posts/marcelo-dev_why-ai-transparency-cant-wait-the-critical-activity-7358614032775303168-KSV8",
+              "title": "CEO Marc on AI transparency: why it's a must-have for engineering",
+              "snippet": "Our CEO Marc nails the technical reality in his new blog: AI transparency isn't just a business nice-to-have, it's an engineering necessity.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain AI software company under 50 employees",
+            "candidate_selected_by=llm",
+            "follow_up_query=Transparent ceo es genai ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 2,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Mpl Xr Company ceo es genai  ai engineering",
+          "person": {
+            "full_name": "al Data Protection Act DPIIT Department for Promotion of Industry and Internal Trade DPOs Distribution platform operators DTAA Double taxation avoidance agreement DTH Direct to home E-commerce Electronic commerce EEMA Events & Entertainment Management Association EL Equalization levy ELI Employment linked incentive EMDEs Emerging markets and %PDF-1.7 %љ 2 0 obj > endobj 4 0 obj > stream GPL Ghostscript 10.00.0 2025-03-27T12:21:15Z Adobe InDesign 20.2 (Windows) 2025-03-27T17:54:50+05:30 2025-03-27T18:00:32+05:30 uuid:8722687c-4322-11fb-0000-cdf0300912e9 uuid:c2094d0e-2a0d-41f9-8461-4d51b95f95d2 application/pdf Shape the future : Indian media and entertainment is scripting a new story endstream endobj 3 0 obj > stream x]moF>6\u0001Qwuu,\u0016 :\u0017#[\u0010\u001b\u0003%:R 쿿tsh GHa4\u0004 \u000f[)6y:va;@\\Q\u0007WA\u000ey%] V%ָ `\u0015c#U.UL !*bǁc\u0002^E\u0004s'B;\u0014kŐ\u0010\u0018#_\u000e8\u0015.B v @N.& \u0002\"\u0006\u0015 ގt1C_ U?eJ\u0019W,sHJf3),1ہY\u0016j')ځYV1n?`\u0003*&vH+ @Jh\u0007qA W\u0001\u0006{.v@N#/S%B) ,A ͲufYQ*G{e\u000e\u0004 u)&\u0003\u0012HN.%Kd\u0003[0 T)A_d l9\b(4e,=\u0015eaH)0F_ \b \u0011vءՀ\u0003v@V N \"%;lϐsd~d\u0007\u0002if\u000eel̲U^̲j2\b\u001aB.1`ؐd\u00079`!\u0000$\u0001c\u0011r\u0002+a;\b+\u0010֟.\u001bxJ p\u0003L.fԪfw5\u0012Wjb\u0015*w\u0014bHG\u0006VA?auon///\u0004l1[ȿKw_]t_?.opÕ+_^燿~i_;$Gv~s 3??^[#Ww^_dF^ǋ?~~o\u0017w{a ݛw˫v]~花˫ 7?\u000fV} u=w;oW\u0017 C rQlb$\u0016+P@\u0002k+K \u0014+P@\u0002 \u0014+XIJ*uIJ*VRT^)\u0012\u0016+X` \u0016+X` `\\b%\u0017+ymWuXJ.VrB \u0015+TPB.TPB \u0015+TJuXb\u0015.VXb\u0015.VE\u0015)VXbE\u0015Y[陼.\u0015+RhŊ\u0016+ZhŊh\u0015t\u0003*B](\"/T腊P\u0017*B_60\u0006 \u000fH A XQ +c}\u0015B?V H\u0014ŊX \u0010+\u0003\"W{\u0003 V\u0016JXy\u0010y\u0010jR!V.JX\u0010!VBʈ(՞ WUVJXy\u0011+1beFԈ\u001b#VvDAOV~@}VM\u000f\u000f\u000f@W{ P\u0001 *?\u0003ào\u0014\u001b4\u0010A\u0007 t\u0010\u000f(&ګ\u000f\u000f P\u0001 P\u0001 P\u0001 P\u00018I^\u0007\u0014~Xګ\u000f\u0001T~@\u0007T~@ \u001aj\u0003*?\u0003*?\u0003*?jY\u0001 @CYU~@\u0007T~@\u0007T~@\u0007T~@\u0007T~\u0000\u000fpWa j\u0003*?6\u0017P\u0001 P\u0001 C^W\u0001 P\u0001 cy/\u0013kퟯ5WV0~%jO\u0017\u0017O\u000eխuuR\u000f*R\u000f*R\u000ft P+s?\\X?]}Mߟ+ ;Ǜ\u0017 Io^+\u001b3 ٿrm Ͼ\\MWx\u0005B?fCF\u001700\u000fm6濱\u0007uoY˷^6E3:skҫ\u0017{EFʩ뷯.nο;{}mw{{/\u0017o\u0015yܙ\u0015+\u001bv}\u0006B&\u000f\u0017\u0001\u0004wtT,X䯈Xߋ;?\u0010 \u0005 Q \u001bxnY58λʳ\u0012ż=`\u001a\u001b\u0007& L\u0014%`wD0'0Q:y0\u0010\u001a:Bx\u0002D4+ia&z̄\u0002Tze$WF{e }@p \u0015O\"gN y); uUn\bվ\u001b\u0003>s `Uk\b\u00022%L^Őɬ\u0011-S륛6 ӐX v;െ8BswBNSc¨\u000f\u00161N/>s狠j",
+            "role_title": "CEO"
+          },
+          "company": {
+            "name": "Mpl Xr Company",
+            "website": "https://mpl.com.co",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/mpl-xr-company/",
+              "title": "MPL XR Company",
+              "snippet": "MPL XR Company offers an integrated ecosystem of XR extended reality experiences, including virtual, augmented, and mixed reality, 360-degree videos and",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.ey.com/content/dam/ey-unified-site/ey-com/en-in/newsroom/2025/ey-shape-the-future-indian-media-and-entertainment-is-scripting-a-new-story.pdf",
+              "title": "[PDF] Indian media and entertainment is scripting a new story - EY",
+              "snippet": "Enabling proactive compliance Media and entertainment 4 277 About this report Media and entertainment Glossary 1PD First party data 2D Two dimensional 2G/ 3G/ 4G/ 5G 2nd/ 3rd/ 4th/ 5th generation mobile network 3D Three dimensional 4K 4000 pixels 8K 8000 pixels ACR Automatic content recognition Ad Advertising AI Arti昀椀cial intelligence AICTE All India Council for Technical Education AIDCF All India Digital Cable Federation AIR All India Radio AMA Average minute audience APAC Asia-Paci昀椀c App Application AR Augmented reality ARPU Average revenue per user ASCI Advertising Standards Council of India ATP Average ticket price Auto Automobile AVGC Animation, Visual effects, Gaming and Comics AVOD Advertising video on demand B2B Business to business B2C Business to customer BARC Broadcast Audience Research Council BCCI Board of Control for Cricket in India BEPS Base erosion and pro昀椀t shifting BFSI Banking, 昀椀nancial services and insurance BGMI Battlegrounds Mobile India Masters Series CAC Customer acquisition cost CAGR Compounded annual growth rate CCEA Cabinet Committee on Economic Affairs CCI Competition Commission of India CCPA Central Consumer Protection Authority CEO Chief executive of昀椀cer CGI Computer generated images CGST Central goods and services tax CIT(A) Commissioner of Income Tax (Appeals) CMO Chief marketing of昀椀cer COVID Coronavirus disease CPE Customer premise equipment CPI Consumer price index CPM Cost per mille (thousand) CREX Cricket exchange CRM Customer relationship management Crore Ten million Crypto Cryptocurrency CSR Corporate social responsibility CTV Connected TV cume cumulative audience CX Customer experience CY Calendar year (January to December) D2C or DTC Direct to customer D2M Direct to mobile DAVP Directorate of Advertising and Visual Publicity DD Doordarshan DNPA Digital News Publishers Association DOOH Digital out of home DPDPA Digital Personal Data Protection Act DPIIT Department for Promotion of Industry and Internal Trade DPOs Distribution platform operators DTAA Double taxation avoidance agreement DTH Direct to home E-commerce Electronic commerce EEMA Events & Entertainment Management Association EL Equalization levy ELI Employment linked incentive EMDEs Emerging markets and",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+            "candidate_selected_by=heuristic",
+            "enrichment_query=Mpl Xr Company ceo es genai  ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 80,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "CEO",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 3,
+        "planner_action": "SOURCE",
+        "query": "site:seedtable.com best AI startups in Barcelona under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:seedtable.com best AI startups in Barcelona under 50 employees",
+          "person": null,
+          "company": {
+            "name": "INARI",
+            "website": "https://twitter.com/Inari_Ag",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.seedtable.com/best-startups-in-barcelona",
+              "title": "69 Best Startups in Barcelona to Watch in 2026",
+              "snippet": "App Samurai is a San Francisco-based company that provides mobile marketing technology. Typeform is a technology company that allows users to build well-designed, conversation-based forms for collecting data. BCN3D is a company that designs and manufactures 3D printers, consumer electronics, information technologies, and software. INARI provides technology software for insurers, reinsurers, MGAs and Lloyd's syndicates on a cloud-based blockchain platform. Software as a service (SaaS) Health technology Artificial Intelligence (AI). Cooltra is a Barcelona-based company founded in 2006 that offers shared bikes and scooters. Developer of a facilities management platform designed to help service companies to concentrate all their business in one place. The company's business model is based on the development of the R&D, and the design and distribution of sustainable products and proprietary technologies, including the production of electricity through photosynthesis. Lodgify is a Barcelona-based company founded in 2012. Cubic Foods is a Barcelona-based food technology company growing cell-based specialty fats.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://inari.com/inari-announces-co-founder-ignacio-martinez-as-interim-ceo/",
+              "title": "Inari Announces Co-Founder Ignacio Martinez as Interim CEO",
+              "snippet": "**CAMBRIDGE, Mass., June 2, 2025** – Inari, the SEEDesign™ company, announced that Ignacio Martinez was named interim CEO, effective May 31, 2025, as past CEO and board director Ponsi Trivisvavet announced that she was stepping down due to health concerns in April. Inari, the SEEDesign™ company, develops seeds that address the world’s needs, pushing the boundaries of what is possible for a more sustainable, nature-positive food system. Founded by Flagship Pioneering in 2016, Inari is based in Cambridge, Mass., with additional sites in West Lafayette, Ind., and Ghent, Belgium. Safarian also joins Flagship Pioneering, Founding Company of Inari, as CEO-Partner CAMBRIDGE, Mass., October 29, 2025 – Inari, the SEEDesign™ company, and Flagship Pioneering, a scientific innovation engine for transformative…. Veteran seed and technology leader to accelerate global commercial growth  CAMBRIDGE, Mass., September 16, 2025 – Inari, the SEEDesign™ company, has appointed Rob Dunlop Chief Commercial Officer (CCO), effective September….",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:seedtable.com best AI startups in Barcelona under 50 employees",
+            "candidate_selected_by=llm",
+            "follow_up_query=INARI ceo es genai ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT",
+          "match_type": null,
+          "score": 45,
+          "summary": "The candidate does not meet the hard constraint of company size under 50 employees, as no reliable evidence confirms this. The company's country (ES) is correct, and there are relevant AI/automation signals, but the size remains unverified and contradicted by evidence of a multi-location presence (Cambridge, Mass., West Lafayette, Ind., Ghent, Belgium), suggesting a larger scale than 50 employees.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs",
+            "missing hard proof: company_size"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      },
+      {
+        "index": 4,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "NO_CANDIDATE",
+          "query_used": "site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+          "person": null,
+          "company": null,
+          "fit_signals": [],
+          "evidence": [],
+          "notes": [
+            "all_results_were_already_visited"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT",
+          "match_type": null,
+          "score": 0,
+          "summary": "No candidate dossier was found that meets the criteria of being a Spanish company with fewer than 50 employees in the specified domains.",
+          "reasons": [
+            "sourcing did not produce a valid candidate"
+          ],
+          "type": null,
+          "region": null,
+          "close_match": null
+        }
+      },
+      {
+        "index": 5,
+        "planner_action": "SOURCE",
+        "query": "site:seedtable.com best AI startups in Madrid under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:seedtable.com best AI startups in Madrid under 50 employees",
+          "person": null,
+          "company": {
+            "name": "Taiger",
+            "website": null,
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "ai engineering",
+            "automation",
+            "agentic workflows",
+            "software company",
+            "genai"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.seedtable.com/ai-startups-madrid",
+              "title": "Explore 52 Best Ai Startups in Madrid to watch in 2025. Discover innovative companies, funding insights, and industry trends.",
+              "snippet": "Machine learning Natural language processing (NLP) Artificial Intelligence (AI). Financial services Artificial Intelligence (AI) Management. Artificial Intelligence (AI) Analytics Data analysis. Taiger is a Madrid-based artificial intelligence company offering work flow optimization software. Artificial Intelligence (AI) Enterprise software Semantic search. Blockchain and cryptocurrency Insurance Technology Artificial Intelligence (AI). Collaboration Artificial Intelligence (AI) Technology. Narrativa is an artificial intelligence company developing a machine learning platform to build natural language solutions. lang.ai is an artificial Intelligence company founded in 2018 by Jorge Penalva Zambrano. Machine learning Natural language processing (NLP) Artificial Intelligence (AI). Artificial Intelligence (AI) Cardiology Software as a service (SaaS). Artificial Intelligence (AI) Women's Health Femtech. Advertising Artificial Intelligence (AI) Technology. Mental health Diagnosis Artificial Intelligence (AI). Artificial Intelligence (AI) Analytics Software as a service (SaaS). Artificial Intelligence (AI) Software as a service (SaaS) Lifestyle. Biotechnology Technology Artificial Intelligence (AI). Shakers is an AI-powered freelance workforce management platform for companies founded in 2020 by Hector Mata. Artificial Intelligence (AI) Human resources Software as a service (SaaS). TaxDown is an AI-powered tax management platform for consumers founded in 2019 by Enrique Garcia Moreno. Software as a service (SaaS) Financial technology Artificial Intelligence (AI). Software as a service (SaaS) Communication Artificial Intelligence (AI). Artificial Intelligence (AI) Technology Wearable technology. Artificial Intelligence (AI) Technology Machine learning. AI-enabled cybersecurity Cybersecurity Artificial Intelligence (AI). Artificial Intelligence (AI) Technology Software as a service (SaaS). Artificial Intelligence (AI) Identity management Software as a service (SaaS). Artificial Intelligence (AI) Marketing Software as a service (SaaS). Software as a service (SaaS) Productivity Artificial Intelligence (AI). Artificial Intelligence (AI) Human resources Recruitment. Artificial Intelligence (AI) Educational Technology Software as a service (SaaS). Business intelligence (BI) Software as a service (SaaS) Artificial Intelligence (AI). Artificial Intelligence (AI) Data Analytics Software as a service (SaaS). Artificial Intelligence (AI) Engineering Software as a service (SaaS). Artificial Intelligence (AI) Manufacturing Industrial IoT. Artificial Intelligence (AI) Analytics Software as a service (SaaS). Software as a service (SaaS) Artificial Intelligence (AI) Sales and Marketing. Developer Tools Artificial Intelligence (AI) Software as a service (SaaS). Artificial Intelligence (AI) Communication Software as a service (SaaS). Artificial Intelligence (AI) Business intelligence (BI) Software as a service (SaaS).",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.seedtable.com/best-ai-startups-in-madrid",
+              "title": "Explore 55 Best Ai Startups in Madrid to watch in 2026. Discover innovative companies, funding insights, and industry trends.",
+              "snippet": "Artificial Intelligence (AI) Cardiology Software as a service (SaaS). Artificial Intelligence (AI) Analytics Software as a service (SaaS). Artificial Intelligence (AI) Software as a service (SaaS) Lifestyle. Software as a service (SaaS) Financial technology Artificial Intelligence (AI). Artificial Intelligence (AI) Human resources Software as a service (SaaS). Software as a service (SaaS) Communication Artificial Intelligence (AI). Artificial Intelligence (AI) Technology Software as a service (SaaS). Artificial Intelligence (AI) Software as a service (SaaS) Data Analytics. Artificial Intelligence (AI) Identity management Software as a service (SaaS). Artificial Intelligence (AI) Marketing Software as a service (SaaS). Software as a service (SaaS) Productivity Artificial Intelligence (AI). Artificial Intelligence (AI) Educational Technology Software as a service (SaaS). Artificial Intelligence (AI) Engineering Software as a service (SaaS). Artificial Intelligence (AI) Analytics Software as a service (SaaS). Software as a service (SaaS) Artificial Intelligence (AI) Sales and Marketing. Developer Tools Artificial Intelligence (AI) Software as a service (SaaS). Artificial Intelligence (AI) Communication Software as a service (SaaS).",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:seedtable.com best AI startups in Madrid under 50 employees",
+            "candidate_selected_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 6,
+        "planner_action": "SOURCE",
+        "query": "site:startupstash.com Spain startup AI software company",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:startupstash.com Spain startup AI software company",
+          "person": null,
+          "company": {
+            "name": "CodeOp",
+            "website": "https://blog.startupstash.com/top-spanish-startups-that-bloomed-in-2022-5adb6749e029",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://blog.startupstash.com/top-spanish-startups-that-bloomed-in-2022-5adb6749e029",
+              "title": "Top Spanish Startups That Bloomed in 2022 | by Manaal",
+              "snippet": "Hetikus is a legal technology startup company based in Spain. Since being founded, the company has gone through two rounds of startup funding, with a pair of investors being interested in the project. The company was founded in 2021 by Sergio Escosa and has its headquarters based in Barcelona, Catalonia, Spain, with an employee size of around one to ten workers. GuruCall is a Spanish startup that was founded in 2020 and is currently based in Madrid, Spain. DoGood People is a Spanish startup that was founded in 2019 and is currently based in the capital city of Spain. Collectively, these investors have helped the company to raise a total of 2.5 Million Euros in startup funding. Opground is a Spanish startup that was founded in 2019 and is currently based in Barcelona, Spain. MiResi is a Spanish startup that was founded in 2019 and is currently based in the city of Madrid, Spain.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://codeop.tech?p=2186",
+              "title": "CodeOp secures +€320k seed round to tackle gender disparity in the tech industry. - CodeOp",
+              "snippet": "Title: CodeOp secures +€320k seed round to tackle gender disparity in the tech industry. - CodeOp\n# CodeOp secures +€320k seed round to tackle gender disparity in the tech industry. **Mission-led coding school, CodeOp, surpasses seed round goal to secure 320k+ to help change the face of the tech industry.**. CodeOp—the first and only coding school in Barcelona for women and the trans and gender non-conforming (TGNC) community—announces today that it has raised a seed round of over 320k, in-excess of its initial 260k goal, to offer coding bootcamps with a mission. Founded by Silicon Valley entrepreneur, Katrina Walker, CodeOp seeks to change the tech industry one bootcamp at a time. All-women coding schools make up less than 1% of all coding schools worldwide, a contributing factor to the current gender disparity in the tech industry. By offering beginner and advanced technical programs at its Barcelona campus, CodeOp aims to foster a supportive learning environment that encourages and equips people from these minority groups with the skills to become leading developers and data engineers. Though the school focuses on tech education for women and TGNC individuals, it works with individuals and communities worldwide, across and outside the gender spectrum, to foster a growing network of people who understand the issues these groups face. CodeOp receives the support of Lesbians Who Tech and SheCommerce, and has developed partnerships with global companies and organizations including Oracle and Fundació Catalana de l’Esplai. “There are a lot of statistics associated with women in tech.” Katrina Walker, CEO of CodeOp said. Investing in Codeop is a way to help level the playing field for women in tech. **For more information please contact yessica@staging.codeop.tech or +34 663 86 87 75**. CodeOp is the first international coding school for women and the TGNC community bridging the gap between technical education and development, and diversity and inclusion. With campuses in Barcelona and Kuala Lumpur, CodeOp offers beginner and advanced level bootcamps to students to equip them with the skills needed to become leading developers and data engineers in their fields. CodeOp, a Spanish-based social venture launched in 2018, is on a mission to encourage and support women, trans, and gender nonconforming individuals to pursue fulfilling careers in tech, and to launch a supportive network of professionals who will transform the culture.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:startupstash.com Spain startup AI software company",
+            "candidate_selected_by=llm",
+            "follow_up_query=CodeOp ceo es genai ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT",
+          "match_type": null,
+          "score": 45,
+          "summary": "Company size is not verified and remains a hard constraint violation.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs",
+            "missing hard proof: company_size"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      }
+    ],
+    "errors": [],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 11
+    },
+    "applied_relaxation_stage": 2,
+    "completed_reason": "budget_exhausted_with_shortlist"
+  }
+}

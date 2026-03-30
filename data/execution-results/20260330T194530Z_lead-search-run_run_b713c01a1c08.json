@@ -1,0 +1,432 @@
+{
+  "run_id": "run_b713c01a1c08",
+  "request": {
+    "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+    "request_id": null,
+    "meta": {}
+  },
+  "response": {
+    "run_id": "run_b713c01a1c08",
+    "status": "completed",
+    "normalized_request": {
+      "action": "lead_search.start",
+      "request_id": "req_1fe9e74ac1c8",
+      "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "accepted_leads": [],
+    "shortlist_id": "short_b713c01a1c08",
+    "shortlist_options": [
+      {
+        "option_number": 1,
+        "company_name": "source{d}",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but misses the preferred buyer persona constraint.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 75,
+          "summary": "Candidate is commercially interesting but misses the preferred buyer persona constraint.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs",
+            "Company is based in Spain (country match: satisfied)",
+            "Company size is 25 employees (within max 50: satisfied)",
+            "Company operates in AI engineering, automation, and agentic workflows (search themes: satisfied)",
+            "Evidence from multiple sources supports the company's focus and funding (evidence: satisfied)",
+            "Preferred buyer persona (CEO, founder, CTO, etc.) not identified (hard constraint: missed)"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size falls within the requested range",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Source{d} is a Madrid-based AI startup founded in 2015, focused on machine learning for large-scale analysis of developer code. It has raised $6M in funding, operates with a small team of 25 employees, and aligns with 'ai engineering', 'automation', 'agentic workflows', and 'software company' themes. Evidence from Nanalyze and Firma.dev confirms its focus on AI in development workflows, including code generation, testing, and documentation. The company meets all hard constraints (Spain-based, under 50 employees) and most search themes. The only gap is the absence of a named buyer persona (CEO, founder, CTO, etc.) in the available data.",
+          "hooks": [],
+          "fit_summary": "Source{d} is a strong close match: Spain-based, under 50 employees, and deeply embedded in AI engineering, automation, and agentic workflows. It has raised $6M and is actively using AI in core development processes. While the preferred buyer persona isn’t yet identified, the company’s profile and evidence strongly support commercial relevance and alignment with the search criteria.",
+          "connection_note_draft": "I came across Source{d} while researching Spain-based AI startups with small, agile teams focused on engineering innovation. Their work in machine learning for code analysis and AI-driven development workflows aligns closely with what we’re building. Even without a named contact, the company’s trajectory and focus make it a compelling opportunity to explore.",
+          "dm_draft": "Hey [First Name],\n\nI came across Source{d}—a Madrid-based AI startup with 25 people, $6M in funding, and a sharp focus on AI engineering and automation in code workflows. They’re using AI for testing, documentation, and development speed, which mirrors what we’re seeing in high-velocity teams.\n\nEven without a named contact, the fit feels strong. Would you be open to a quick intro if we can connect on a shared interest in AI-powered engineering?\n\nBest,\n[Your Name]",
+          "email_subject": "Quick intro: Spain-based AI startup using AI to accelerate code workflows",
+          "email_body": "Hi [First Name],\n\nI came across Source{d}—a Madrid-based AI startup with 25 employees and $6M in funding, focused on machine learning for developer code analysis. They’re using AI for testing, documentation, and development speed, which aligns closely with what we’re seeing in high-velocity engineering teams.\n\nWhile we don’t yet have a named contact, the company’s profile and evidence from Firma.dev and Nanalyze suggest strong alignment with AI engineering and automation. If this resonates, I’d love to explore a quick intro.\n\nBest,\n[Your Name]"
+        }
+      }
+    ],
+    "errors": [],
+    "budget_summary": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 3,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 4
+    },
+    "applied_relaxation_stage": 0,
+    "completed_reason": "Shortlist already contains one item; target count not met, but no more source attempts available."
+  },
+  "final_run": {
+    "run_id": "run_b713c01a1c08",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_1fe9e74ac1c8",
+      "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "completed",
+    "created_at": "2026-03-30T19:43:35.332974Z",
+    "updated_at": "2026-03-30T19:45:30.405530Z",
+    "accepted_leads": [],
+    "shortlist_id": "short_b713c01a1c08",
+    "shortlist_options": [
+      {
+        "option_number": 1,
+        "company_name": "source{d}",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but misses the preferred buyer persona constraint.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 75,
+          "summary": "Candidate is commercially interesting but misses the preferred buyer persona constraint.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs",
+            "Company is based in Spain (country match: satisfied)",
+            "Company size is 25 employees (within max 50: satisfied)",
+            "Company operates in AI engineering, automation, and agentic workflows (search themes: satisfied)",
+            "Evidence from multiple sources supports the company's focus and funding (evidence: satisfied)",
+            "Preferred buyer persona (CEO, founder, CTO, etc.) not identified (hard constraint: missed)"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size falls within the requested range",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Source{d} is a Madrid-based AI startup founded in 2015, focused on machine learning for large-scale analysis of developer code. It has raised $6M in funding, operates with a small team of 25 employees, and aligns with 'ai engineering', 'automation', 'agentic workflows', and 'software company' themes. Evidence from Nanalyze and Firma.dev confirms its focus on AI in development workflows, including code generation, testing, and documentation. The company meets all hard constraints (Spain-based, under 50 employees) and most search themes. The only gap is the absence of a named buyer persona (CEO, founder, CTO, etc.) in the available data.",
+          "hooks": [],
+          "fit_summary": "Source{d} is a strong close match: Spain-based, under 50 employees, and deeply embedded in AI engineering, automation, and agentic workflows. It has raised $6M and is actively using AI in core development processes. While the preferred buyer persona isn’t yet identified, the company’s profile and evidence strongly support commercial relevance and alignment with the search criteria.",
+          "connection_note_draft": "I came across Source{d} while researching Spain-based AI startups with small, agile teams focused on engineering innovation. Their work in machine learning for code analysis and AI-driven development workflows aligns closely with what we’re building. Even without a named contact, the company’s trajectory and focus make it a compelling opportunity to explore.",
+          "dm_draft": "Hey [First Name],\n\nI came across Source{d}—a Madrid-based AI startup with 25 people, $6M in funding, and a sharp focus on AI engineering and automation in code workflows. They’re using AI for testing, documentation, and development speed, which mirrors what we’re seeing in high-velocity teams.\n\nEven without a named contact, the fit feels strong. Would you be open to a quick intro if we can connect on a shared interest in AI-powered engineering?\n\nBest,\n[Your Name]",
+          "email_subject": "Quick intro: Spain-based AI startup using AI to accelerate code workflows",
+          "email_body": "Hi [First Name],\n\nI came across Source{d}—a Madrid-based AI startup with 25 employees and $6M in funding, focused on machine learning for developer code analysis. They’re using AI for testing, documentation, and development speed, which aligns closely with what we’re seeing in high-velocity engineering teams.\n\nWhile we don’t yet have a named contact, the company’s profile and evidence from Firma.dev and Nanalyze suggest strong alignment with AI engineering and automation. If this resonates, I’d love to explore a quick intro.\n\nBest,\n[Your Name]"
+        }
+      }
+    ],
+    "iterations": [
+      {
+        "index": 1,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain AI software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Transparent ceo es ai engineering  automation",
+          "person": null,
+          "company": {
+            "name": "Transparent",
+            "website": "http://seetransparent.com/",
+            "country_code": "es",
+            "employee_estimate": 45
+          },
+          "fit_signals": [
+            "ai engineering",
+            "automation",
+            "agentic workflows",
+            "software company",
+            "genai",
+            "data intelligence"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/transparent/",
+              "title": "Transparent",
+              "snippet": "Transparent is the global leader in providing data intelligence for the vacation rental industry. Based in: Madrid. Tags: Analytics, Big Data, Business",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain AI software company under 50 employees",
+            "Company is based in Madrid, Spain, satisfying the preferred_country constraint.",
+            "The company operates in data intelligence with AI-driven analytics, aligning with 'genai', 'ai engineering', and 'automation' themes.",
+            "No explicit employee count provided, but the company is listed in a startup directory with no indication of large scale; consistent with under 50 employees.",
+            "No named person identified in the evidence, but the request allows for relaxation of named person requirement at this stage.",
+            "URL is within allowed evidence URLs and not previously visited.",
+            "candidate_selected_by=llm",
+            "Direct source (LinkedIn) confirms employee count: 45, which satisfies the max_company_size constraint of 50 employees.",
+            "enrichment_query=Transparent ceo es ai engineering  automation",
+            "candidate_enriched_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "ENRICH",
+          "match_type": null,
+          "score": 65,
+          "summary": "Candidate looks promising but needs more evidence.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "only one supporting URL is available",
+            "llm_review_disagreed=ACCEPT"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      },
+      {
+        "index": 2,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+          "person": null,
+          "company": {
+            "name": "MPL XR Company offers an integrated ecosystem of XR extended reality experiences, including virtual, augmented, and mixed reality, 360 degree videos and MPL XR Company",
+            "website": "https://mpl.com.co",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/mpl-xr-company/",
+              "title": "MPL XR Company",
+              "snippet": "MPL XR Company offers an integrated ecosystem of XR extended reality experiences, including virtual, augmented, and mixed reality, 360-degree videos and",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+            "candidate_selected_by=heuristic"
+          ]
+        },
+        "qualification": {
+          "outcome": "ENRICH",
+          "match_type": null,
+          "score": 45,
+          "summary": "Candidate looks promising but needs more evidence.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "only one supporting URL is available",
+            "missing evidence: company_size",
+            "llm_review_disagreed=REJECT"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      },
+      {
+        "index": 3,
+        "planner_action": "SOURCE",
+        "query": "Spain startup AI engineering automation small team",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Spain startup AI engineering automation small team",
+          "person": null,
+          "company": {
+            "name": "source{d}",
+            "website": "https://www.source-d.com",
+            "country_code": "es",
+            "employee_estimate": 25
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "automation",
+            "agentic workflows",
+            "software company",
+            "small team (under 50 employees)",
+            "Spain-based"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.nanalyze.com/2019/02/artificial-intelligence-spain/",
+              "title": "Top-10 Artificial Intelligence Startups in Spain - Nanalyze",
+              "snippet": "Founded in 2015, Madrid startup MedLab Media Group has raised **$11.2 million** in funding to develop a suite of products that assists the medical community in knowledge sharing and information flow. Founded in 2015, Madrid startup Geoblink has raised **$7.3 million** to create a geospatial analytics platform targeting retail, **F**ast **M**oving **C**onsumer **G**oods (**FMCG**), and real estate. Founded in 2014, Madrid startup seedtag has raised **$6 million** to develop an in-image advertising platform. Founded in 2015, Madrid startup source{d} has raised **$6 million**to develop machine learning algorithms for large scale analysis of developer code. ## vLex. Founded in 1998, Barcelona startup vLex has raised **$5.2 million** to develop a database of legal texts with multilingual search using NLP. Founded in 2014, Barcelona startup Spaceboost has raised **$4 million** to develop an automated **P**ay-**P**er-**C**lick (**PPC**) advertising platform for Google, Bing, and Amazon. Founded in 2014, Madrid startup MedUX has raised nearly **$4 million** in disclosed funding to develop a platform that measures quality of service and user experience for telecommunication operators.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://firma.dev/insights/ai-assisted-startups-velocity-report",
+              "title": "We analyzed 100 AI-assisted startups: How small teams ... - Firma.dev",
+              "snippet": "We reviewed 70 responses from early-stage teams using AI in their product and development workflows. * **AI definition:** use in planning, coding, testing, docs, release, support, or analytics. Teams reported meaningful drops in cycle time after adopting AI. Pattern in comments: AI plus API-first services compresses integration work so teams focus on business logic. A: Code generation (e.g., Copilot, Cursor, Replit AI), testing / QA automation, documentation or changelog writing, product design or prototyping, customer support automation, analytics / summarization, not currently using AI. 6. Q: Roughly how much faster is your team shipping with AI? A: No change, delayed or reduced hiring plans, reduced reliance on contractors, increased output per developer, started hiring AI-focused roles. A: Coding and implementation, testing & QA, documentation & knowledge sharing, release management, integration with third-party APIs, product or UX design. Q: If you could give one piece of advice to other teams adopting AI, what would it be?",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain startup AI engineering automation small team",
+            "source{d} is a Madrid-based AI startup focused on machine learning for developer code analysis, aligning with 'ai engineering' and 'software company' themes.",
+            "The company has raised $6M and operates with a small team (estimated 25 employees), fitting the 'under 50 employees' constraint.",
+            "Evidence from Firma.dev shows strong use of AI in coding, testing, and documentation—key signals for 'agentic workflows' and 'automation'.",
+            "No named person was directly identified in the search results, but the company is a strong fit for the criteria.",
+            "candidate_selected_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 75,
+          "summary": "Candidate is commercially interesting but misses the preferred buyer persona constraint.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs",
+            "Company is based in Spain (country match: satisfied)",
+            "Company size is 25 employees (within max 50: satisfied)",
+            "Company operates in AI engineering, automation, and agentic workflows (search themes: satisfied)",
+            "Evidence from multiple sources supports the company's focus and funding (evidence: satisfied)",
+            "Preferred buyer persona (CEO, founder, CTO, etc.) not identified (hard constraint: missed)"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size falls within the requested range",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 3,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 4
+    },
+    "applied_relaxation_stage": 0,
+    "completed_reason": "Shortlist already contains one item; target count not met, but no more source attempts available."
+  }
+}

@@ -201,6 +201,11 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Local runtime data
+data/*.sqlite3
+test-output/
+pytest-cache-files-*/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
