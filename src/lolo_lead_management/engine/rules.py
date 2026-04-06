@@ -1,24 +1,38 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from collections.abc import Iterable
 from urllib.parse import urlparse
 
-from lolo_lead_management.domain.enums import MatchType, PlannerAction, QualificationOutcome, RunStatus, SourcingStatus
+from lolo_lead_management.domain.enums import (
+    FieldEvidenceStatus,
+    MatchType,
+    PlannerAction,
+    QualificationOutcome,
+    RunStatus,
+    SourceQuality,
+    SourcingStatus,
+)
 from lolo_lead_management.domain.models import (
+    AssembledFieldEvidence,
+    AssembledLeadDossier,
     CloseMatch,
     CommercialBundle,
     CompanyCandidate,
-    EvidenceItem,
+    EvidenceDocument,
     LeadSearchConstraints,
     NormalizedLeadSearchRequest,
     PersonCandidate,
     QualificationDecision,
+    QualificationRubric,
+    QualificationRubricField,
+    ResearchQuery,
+    ResearchQueryPlan,
     SearchBudget,
-    SourcingDossier,
+    SourcePassResult,
     StageDecision,
 )
-
 
 DEFAULT_BUYER_TARGETS = ["ceo", "founder", "cto", "head_of_engineering", "technical_recruiter"]
 DEFAULT_SEARCH_THEMES = ["genai", "ai engineering", "automation", "agentic workflows", "software company"]
@@ -45,6 +59,7 @@ COUNTRY_ALIASES = {
     "espana": "es",
     "madrid": "es",
     "barcelona": "es",
+    "valencia": "es",
     "europe": "eu",
     "europa": "eu",
     "portugal": "pt",
@@ -66,11 +81,15 @@ COUNTRY_QUERY_TERMS = {
 THEME_ALIASES = {
     "genai": "genai",
     "generative ai": "genai",
+    "llm": "genai",
     "ai engineering": "ai engineering",
+    "machine learning": "ai engineering",
     "automation": "automation",
+    "workflow automation": "automation",
     "workflow": "agentic workflows",
     "agentic": "agentic workflows",
     "software": "software company",
+    "saas": "software company",
     "it": "software company",
     "engineering": "ai engineering",
 }
@@ -83,7 +102,7 @@ THEME_QUERY_TERMS = {
     "software company": ["software company", "B2B software", "SaaS"],
 }
 
-GENERIC_DIRECTORY_DOMAINS = {
+DIRECTORY_DOMAINS = {
     "apollo.io",
     "crunchbase.com",
     "designrush.com",
@@ -98,6 +117,18 @@ GENERIC_DIRECTORY_DOMAINS = {
     "wellfound.com",
 }
 
+PUBLISHER_DOMAINS = {
+    "techcrunch.com",
+    "sifted.eu",
+    "eu-startups.com",
+    "seedtable.com",
+    "startupstash.com",
+    "venturebeat.com",
+    "forbes.com",
+    "tech.eu",
+    "thenextweb.com",
+}
+
 ROLE_PATTERN = re.compile(
     r"\b(ceo|founder|cofounder|cto|chief technology officer|head of engineering|vp engineering|engineering manager|technical recruiter|talent lead|head of talent|recruiter)\b",
     re.IGNORECASE,
@@ -106,15 +137,35 @@ COUNT_PATTERN = re.compile(r"\b(?:find|search|busca|buscar)?\s*(\d+)\s+leads?\b"
 SIZE_RANGE_PATTERN = re.compile(r"(?:entre|between)\s*(\d+)\s*(?:y|and|-)\s*(\d+)\s*(?:empleados|employees)", re.IGNORECASE)
 SIZE_MIN_PATTERN = re.compile(r"(?:more than|over|mas de|más de)\s*(\d+)\s*(?:empleados|employees)", re.IGNORECASE)
 SIZE_MAX_PATTERN = re.compile(r"(?:less than|under|menos de)\s*(\d+)\s*(?:empleados|employees)", re.IGNORECASE)
-EMPLOYEE_VALUE_PATTERN = re.compile(r"(?:employees|empleados)\s*[:\-]?\s*(\d+)", re.IGNORECASE)
+EMPLOYEE_VALUE_PATTERN = re.compile(
+    r"(?:employees|empleados|team size|company size)\s*[:\-]?\s*(\d{1,5})(?:\s*(?:employees|empleados))?",
+    re.IGNORECASE,
+)
+EMPLOYEE_RANGE_VALUE_PATTERN = re.compile(r"\b(\d{1,5})\s*[-–]\s*(\d{1,5})\s*(?:employees|empleados)\b", re.IGNORECASE)
 COUNTRY_PATTERN = re.compile(r"(?:country|pais|país)\s*[:\-]?\s*([A-Za-zñáéíóú ]+)", re.IGNORECASE)
-PERSON_PATTERN = re.compile(r"(?:person|persona|contact)\s*[:\-]?\s*([^\n|]+)", re.IGNORECASE)
-ROLE_VALUE_PATTERN = re.compile(r"(?:role|puesto|title|cargo)\s*[:\-]?\s*([^\n|]+)", re.IGNORECASE)
-COMPANY_PATTERN = re.compile(r"(?:company|empresa)\s*[:\-]?\s*([^\n|]+)", re.IGNORECASE)
+PERSON_PATTERN = re.compile(r"(?:person|persona|contact)\s*[:\-]?\s*([^\n|.]+)", re.IGNORECASE)
+ROLE_VALUE_PATTERN = re.compile(r"(?:role|puesto|title|cargo)\s*[:\-]?\s*([^\n|.]+)", re.IGNORECASE)
+COMPANY_PATTERN = re.compile(r"(?:company|empresa)\s*[:\-]?\s*([^\n|.]+)", re.IGNORECASE)
+NAME_WITH_ROLE_PATTERN = re.compile(
+    r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b.{0,60}\b(ceo|founder|cofounder|cto|head of engineering|vp engineering|engineering manager|technical recruiter|talent lead|head of talent|recruiter)\b",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "").strip().lower())
+
+
+def dedupe_preserve_order(values: Iterable[str]) -> list[str]:
+    seen: set[str] = set()
+    output: list[str] = []
+    for value in values:
+        normalized = normalize_text(value)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        output.append(value)
+    return output
 
 
 def canonicalize_country_code(value: str | None) -> str | None:
@@ -137,9 +188,7 @@ def canonicalize_buyer_targets(values: Iterable[str]) -> list[str]:
     output: list[str] = []
     for value in values:
         normalized = normalize_text(value).replace("-", " ")
-        canonical = BUYER_ALIASES.get(normalized)
-        if canonical is None:
-            canonical = BUYER_ALIASES.get(normalized.replace("_", " "))
+        canonical = BUYER_ALIASES.get(normalized) or BUYER_ALIASES.get(normalized.replace("_", " "))
         if canonical and canonical not in output:
             output.append(canonical)
     return output
@@ -150,12 +199,6 @@ def canonicalize_search_themes(values: Iterable[str]) -> list[str]:
     for value in values:
         normalized = normalize_text(value)
         canonical = THEME_ALIASES.get(normalized)
-        if normalized == "llm":
-            canonical = "genai"
-        elif normalized == "machine learning":
-            canonical = "ai engineering"
-        elif normalized == "workflow":
-            canonical = "automation"
         if canonical and canonical not in output:
             output.append(canonical)
     return output
@@ -202,10 +245,6 @@ def extract_search_themes(text: str) -> list[str]:
     for alias, canonical in THEME_ALIASES.items():
         if alias in normalized and canonical not in themes:
             themes.append(canonical)
-    if "llm" in normalized and "genai" not in themes:
-        themes.append("genai")
-    if "machine learning" in normalized and "ai engineering" not in themes:
-        themes.append("ai engineering")
     return themes
 
 
@@ -213,12 +252,11 @@ def build_constraints(text: str) -> LeadSearchConstraints:
     minimum, maximum = extract_company_size(text)
     preferred_country = extract_country_code(text)
     hard_constraints: list[str] = []
-    relaxable_constraints: list[str] = []
+    relaxable_constraints: list[str] = ["named_person"]
     if preferred_country:
         hard_constraints.append("preferred_country")
     if minimum is not None or maximum is not None:
         hard_constraints.append("company_size")
-    relaxable_constraints.append("named_person")
     return LeadSearchConstraints(
         target_count=extract_target_count(text) or 3,
         preferred_country=preferred_country,
@@ -270,9 +308,7 @@ def repair_normalized_request(
     constraints.min_company_size = constraints.min_company_size or baseline.constraints.min_company_size
     constraints.max_company_size = constraints.max_company_size or baseline.constraints.max_company_size
     constraints.hard_constraints = dedupe_preserve_order(constraints.hard_constraints or baseline.constraints.hard_constraints)
-    constraints.relaxable_constraints = dedupe_preserve_order(
-        constraints.relaxable_constraints or baseline.constraints.relaxable_constraints
-    )
+    constraints.relaxable_constraints = dedupe_preserve_order(constraints.relaxable_constraints or baseline.constraints.relaxable_constraints)
     if constraints.preferred_country and "preferred_country" not in constraints.hard_constraints:
         constraints.hard_constraints.append("preferred_country")
     if (constraints.min_company_size is not None or constraints.max_company_size is not None) and "company_size" not in constraints.hard_constraints:
@@ -293,77 +329,141 @@ def relaxation_stage_from_budget(budget: SearchBudget) -> int:
     return 0
 
 
-def build_query_candidates(request: NormalizedLeadSearchRequest, relaxation_stage: int) -> list[str]:
-    country_terms = COUNTRY_QUERY_TERMS.get(request.constraints.preferred_country or "es", ["Spain", "Madrid", "Barcelona"])
+def decide_planner_action(*, accepted_count: int, target_count: int, budget: SearchBudget, shortlist_count: int) -> StageDecision:
+    if accepted_count >= target_count:
+        return StageDecision(action=PlannerAction.FINISH_ACCEPTED, relaxation_stage=relaxation_stage_from_budget(budget), reason="target_count_reached")
+    if not budget.can_source():
+        if shortlist_count:
+            return StageDecision(action=PlannerAction.FINISH_SHORTLIST, relaxation_stage=relaxation_stage_from_budget(budget), reason="budget_exhausted_with_shortlist")
+        return StageDecision(action=PlannerAction.FINISH_NO_RESULT, relaxation_stage=relaxation_stage_from_budget(budget), reason="budget_exhausted_without_results")
+    return StageDecision(action=PlannerAction.SOURCE, relaxation_stage=relaxation_stage_from_budget(budget), reason="continue_sourcing")
+
+
+def country_terms_for_request(request: NormalizedLeadSearchRequest) -> list[str]:
+    return COUNTRY_QUERY_TERMS.get(request.constraints.preferred_country or "es", ["Spain", "Madrid", "Barcelona"])
+
+
+def deterministic_discovery_queries(request: NormalizedLeadSearchRequest, relaxation_stage: int) -> list[ResearchQuery]:
+    country_terms = country_terms_for_request(request)
     broad_country = country_terms[0]
     city_terms = [term for term in country_terms if term in {"Madrid", "Barcelona", "Valencia", "Lisbon", "Paris", "Berlin", "London"}]
-    size_hint = []
-    if request.constraints.max_company_size is not None:
-        size_hint.append(f'under {request.constraints.max_company_size} employees')
-    elif request.constraints.min_company_size is not None:
-        size_hint.append(f'over {request.constraints.min_company_size} employees')
-
-    buyers = [item.replace("_", " ") for item in (request.buyer_targets or DEFAULT_BUYER_TARGETS)[:3]]
     themes = request.search_themes[:]
     if relaxation_stage >= 1 and "software company" not in themes:
         themes.append("software company")
-    if relaxation_stage >= 2 and "automation" not in themes:
-        themes.append("automation")
-
     theme_terms: list[str] = []
     for theme in themes[:3]:
         theme_terms.extend(THEME_QUERY_TERMS.get(theme, [theme]))
     theme_terms = dedupe_preserve_order(theme_terms or ["AI", "automation", "software company"])
 
-    queries: list[str] = []
+    queries: list[ResearchQuery] = []
     for theme in theme_terms[:3]:
-        queries.append(f"site:eu-startups.com/directory/ {broad_country} {theme} software")
-        queries.append(f"{broad_country} startup {theme} software company")
-        if size_hint:
-            queries.append(f"{broad_country} startup {theme} {size_hint[0]}")
+        queries.append(ResearchQuery(query=f"{broad_country} startup {theme} software company", objective="Find plausible target companies that match the geography and theme.", research_phase="company_discovery", country=request.constraints.preferred_country, expected_source_types=["company_site", "directory", "news"]))
+        queries.append(ResearchQuery(query=f"site:eu-startups.com/directory/ {broad_country} {theme} software", objective="Find startup directory candidates to seed company discovery.", research_phase="company_discovery", country=request.constraints.preferred_country, expected_source_types=["directory"]))
     for city in city_terms[:2]:
-        queries.append(f"site:seedtable.com best AI startups in {city}")
-        queries.append(f"{city} B2B software startup automation")
-    for buyer in buyers[:2]:
-        for theme in theme_terms[:2]:
-            queries.append(f"{broad_country} {buyer} {theme} software startup")
+        queries.append(ResearchQuery(query=f"{city} B2B software startup automation", objective="Find local companies with automation or software signals.", research_phase="company_discovery", country=request.constraints.preferred_country, expected_source_types=["company_site", "directory", "news"]))
     if relaxation_stage >= 1:
-        queries.extend(
-            [
-                f"site:eu-startups.com {broad_country} startup automation",
-                f"site:startupstash.com {broad_country} startup AI",
-                f"{broad_country} AI startup founder software",
-            ]
-        )
-    if relaxation_stage >= 2:
-        queries.extend(
-            [
-                f"{broad_country} software startup AI",
-                f"{broad_country} SaaS automation startup",
-                f"site:techbehemoths.com artificial intelligence companies {broad_country}",
-            ]
-        )
-    return dedupe_preserve_order(queries)
+        queries.append(ResearchQuery(query=f"{broad_country} startup funding AI automation", objective="Find companies showing funding or growth signals.", research_phase="company_discovery", country=request.constraints.preferred_country, expected_source_types=["news", "directory"]))
+        queries.append(ResearchQuery(query=f"{broad_country} hiring AI startup engineering", objective="Find companies showing hiring and team growth signals.", research_phase="company_discovery", country=request.constraints.preferred_country, expected_source_types=["company_site", "job_board", "news"]))
+    return queries
 
 
-def dedupe_preserve_order(values: Iterable[str]) -> list[str]:
+def deterministic_anchor_queries(
+    request: NormalizedLeadSearchRequest,
+    *,
+    anchor_company: str,
+    missing_fields: list[str] | None = None,
+) -> list[ResearchQuery]:
+    missing = set(missing_fields or [])
+    buyers = [item.replace("_", " ") for item in request.buyer_targets[:3] or DEFAULT_BUYER_TARGETS[:3]]
+    themes = dedupe_preserve_order(request.search_themes[:2] or DEFAULT_SEARCH_THEMES[:2])
+    queries: list[ResearchQuery] = [
+        ResearchQuery(query=f'"{anchor_company}" official site', objective="Verify the official website and main company entity.", research_phase="company_anchoring", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site"]),
+        ResearchQuery(query=f'"{anchor_company}" careers jobs team', objective="Find hiring and size-related public signals.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site", "job_board"]),
+        ResearchQuery(query=f'"{anchor_company}" product docs github blog', objective="Find product, docs, GitHub, or blog evidence of fit signals.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site", "docs", "github", "blog"]),
+    ]
+    if "person_name" in missing or "role_title" in missing or not missing:
+        for buyer in buyers[:2]:
+            queries.append(ResearchQuery(query=f'"{anchor_company}" {buyer}', objective="Find a named buyer persona and role title.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site", "news", "event"]))
+    if "employee_estimate" in missing or not missing:
+        queries.append(ResearchQuery(query=f'"{anchor_company}" employees team size', objective="Estimate company size from public information.", research_phase="evidence_closing", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site", "directory", "job_board"]))
+    if "fit_signals" in missing or not missing:
+        for theme in themes:
+            queries.append(ResearchQuery(query=f'"{anchor_company}" {theme}', objective="Collect evidence for AI, automation, or software fit signals.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site", "blog", "docs", "news"]))
+    return queries
+
+
+def build_research_query_plan(
+    request: NormalizedLeadSearchRequest,
+    relaxation_stage: int,
+    *,
+    anchor_company: str | None = None,
+    missing_fields: list[str] | None = None,
+    mode: str = "source",
+) -> ResearchQueryPlan:
+    planned_queries = deterministic_anchor_queries(request, anchor_company=anchor_company, missing_fields=missing_fields) if anchor_company else deterministic_discovery_queries(request, relaxation_stage)
+    return ResearchQueryPlan(planned_queries=planned_queries, notes=[f"mode={mode}", f"relaxation_stage={relaxation_stage}"], stop_conditions=["two strong documents for the same company", "enough evidence for hard constraints"])
+
+
+def dedupe_queries(queries: list[ResearchQuery]) -> list[ResearchQuery]:
     seen: set[str] = set()
-    output: list[str] = []
-    for value in values:
-        normalized = normalize_text(value)
+    output: list[ResearchQuery] = []
+    for item in queries:
+        normalized = normalize_text(item.query)
         if normalized in seen:
             continue
         seen.add(normalized)
-        output.append(value)
+        output.append(item)
     return output
 
 
-def choose_query(candidates: list[str], query_history: list[str]) -> str | None:
+def sanitize_research_query_plan(
+    candidate: ResearchQueryPlan | None,
+    *,
+    fallback: ResearchQueryPlan,
+    anchor_company: str | None = None,
+) -> ResearchQueryPlan:
+    if candidate is None:
+        return fallback
+    sanitized: list[ResearchQuery] = []
+    for item in candidate.planned_queries:
+        query = " ".join(item.query.split()).strip()
+        objective = " ".join(item.objective.split()).strip()
+        phase = " ".join(item.research_phase.split()).strip()
+        if len(query) < 3 or len(objective) < 3 or len(phase) < 3:
+            continue
+        sanitized.append(item.model_copy(update={"query": query, "objective": objective, "research_phase": phase, "candidate_company_name": item.candidate_company_name or anchor_company}))
+    if not sanitized:
+        return fallback
+    return ResearchQueryPlan(planned_queries=dedupe_queries(sanitized)[:6], notes=dedupe_preserve_order(candidate.notes or fallback.notes), stop_conditions=dedupe_preserve_order(candidate.stop_conditions or fallback.stop_conditions))
+
+
+def choose_queries(plan: ResearchQueryPlan, query_history: list[str], *, limit: int) -> list[ResearchQuery]:
     used = {normalize_text(item) for item in query_history}
-    for candidate in candidates:
-        if normalize_text(candidate) not in used:
-            return candidate
-    return None
+    selected: list[ResearchQuery] = []
+    for query in plan.planned_queries:
+        if normalize_text(query.query) in used:
+            continue
+        selected.append(query)
+        if len(selected) >= limit:
+            break
+    return selected
+
+
+def domain_from_url(url: str | None) -> str | None:
+    if not url:
+        return None
+    try:
+        return (urlparse(url).hostname or "").removeprefix("www.") or None
+    except ValueError:
+        return None
+
+
+def domain_is_publisher_like(domain: str | None) -> bool:
+    return bool(domain and domain in PUBLISHER_DOMAINS)
+
+
+def domain_is_directory(domain: str | None) -> bool:
+    return bool(domain and domain in DIRECTORY_DOMAINS)
 
 
 def clean_company_name(value: str | None) -> str | None:
@@ -371,77 +471,68 @@ def clean_company_name(value: str | None) -> str | None:
         return None
     cleaned = re.sub(r"[_\-]+", " ", value)
     cleaned = re.sub(r"[^A-Za-z0-9.& ]+", " ", cleaned)
-    cleaned = re.sub(r"\b(page|directory|startups?|companies?)\b", " ", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\b(page|directory|startups?|companies?|company profile)\b", " ", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" -|")
     if not cleaned or len(cleaned) < 2:
+        return None
+    if len(cleaned.split()) > 8 or len(cleaned) > 80:
         return None
     return cleaned.title() if cleaned.islower() else cleaned.strip()
 
 
 def extract_domain_company_name(url: str) -> str | None:
-    try:
-        parsed = urlparse(url)
-    except ValueError:
+    domain = domain_from_url(url)
+    if not domain or domain_is_publisher_like(domain) or domain_is_directory(domain):
         return None
-    hostname = (parsed.hostname or "").removeprefix("www.")
-    if not hostname:
-        return None
-    if hostname in GENERIC_DIRECTORY_DOMAINS:
-        parts = [segment for segment in parsed.path.split("/") if segment]
-        if "directory" in parts:
-            index = parts.index("directory")
-            if index + 1 < len(parts):
-                return clean_company_name(parts[index + 1])
-        if parts:
-            return clean_company_name(parts[-1])
-        return None
-    return clean_company_name(hostname.split(".")[0])
+    return clean_company_name(domain.split(".")[0])
 
 
 def title_company_name(title: str) -> str | None:
     title = title.strip()
     if not title:
         return None
-    parts = re.split(r"\s+[|\-]\s+", title, maxsplit=1)
-    primary = parts[0].strip()
-    if re.search(r"\b(startups?|companies?|jobs?|rankings?)\b", primary, re.IGNORECASE):
+    primary = re.split(r"\s+[|\-:]\s+", title, maxsplit=1)[0].strip()
+    if re.search(r"\b(startups?|companies?|jobs?|rankings?|funding|raises?)\b", primary, re.IGNORECASE):
         return None
     return clean_company_name(primary)
 
 
 def extract_official_website(text: str, source_url: str) -> str | None:
     urls = re.findall(r"https?://[^\s)]+", text, flags=re.IGNORECASE)
-    try:
-        source_host = (urlparse(source_url).hostname or "").removeprefix("www.")
-    except ValueError:
-        source_host = ""
+    source_host = domain_from_url(source_url) or ""
     for candidate in urls:
-        try:
-            hostname = (urlparse(candidate).hostname or "").removeprefix("www.")
-        except ValueError:
-            continue
-        if not hostname or hostname == source_host or hostname in GENERIC_DIRECTORY_DOMAINS:
+        hostname = domain_from_url(candidate)
+        if not hostname or hostname == source_host or domain_is_directory(hostname):
             continue
         return candidate.rstrip(".,)")
-    if source_host and source_host not in GENERIC_DIRECTORY_DOMAINS:
+    if source_host and not domain_is_directory(source_host) and not domain_is_publisher_like(source_host):
         return source_url
+    return None
+
+
+def extract_employee_estimate_from_text(text: str) -> int | None:
+    if range_match := EMPLOYEE_RANGE_VALUE_PATTERN.search(text):
+        return int(range_match.group(2))
+    if match := EMPLOYEE_VALUE_PATTERN.search(text):
+        return int(match.group(1))
     return None
 
 
 def parse_candidate_from_text(text: str, url: str) -> tuple[PersonCandidate | None, CompanyCandidate | None]:
     person_name = PERSON_PATTERN.search(text).group(1).strip() if PERSON_PATTERN.search(text) else None
     role_title = ROLE_VALUE_PATTERN.search(text).group(1).strip() if ROLE_VALUE_PATTERN.search(text) else None
+    if person_name is None and role_title is None and (match := NAME_WITH_ROLE_PATTERN.search(text)):
+        person_name = match.group(1).strip()
+        role_title = match.group(2).strip()
     if role_title is None:
         for match in ROLE_PATTERN.finditer(text):
             role_title = match.group(1)
             break
     company_name = clean_company_name(COMPANY_PATTERN.search(text).group(1)) if COMPANY_PATTERN.search(text) else None
     country_code = extract_country_code(COUNTRY_PATTERN.search(text).group(1)) if COUNTRY_PATTERN.search(text) else extract_country_code(text)
-    employee_estimate = int(EMPLOYEE_VALUE_PATTERN.search(text).group(1)) if EMPLOYEE_VALUE_PATTERN.search(text) else None
+    employee_estimate = extract_employee_estimate_from_text(text)
     if company_name is None:
-        company_name = extract_domain_company_name(url)
-    if company_name and (len(company_name.split()) > 8 or len(company_name) > 80):
-        company_name = extract_domain_company_name(url) or title_company_name(text.splitlines()[0] if text else "")
+        company_name = title_company_name(text.splitlines()[0] if text else "") or extract_domain_company_name(url)
     person = PersonCandidate(full_name=person_name, role_title=role_title) if person_name or role_title else None
     company = (
         CompanyCandidate(
@@ -465,114 +556,317 @@ def collect_fit_signals(text: str, request: NormalizedLeadSearchRequest) -> list
     return dedupe_preserve_order(signals)
 
 
-def score_candidate(
-    *,
-    request: NormalizedLeadSearchRequest,
-    person: PersonCandidate | None,
-    company: CompanyCandidate | None,
-    fit_signals: list[str],
-    evidence_count: int,
-) -> int:
-    if company is None:
-        return -100
-    score = 20
-    role_exact, role_adjacent = qualifies_role(person.role_title if person else None, request.buyer_targets)
-    if role_exact:
-        score += 20
-    elif role_adjacent:
-        score += 10
-    if request.constraints.preferred_country and company.country_code == request.constraints.preferred_country:
-        score += 15
-    if company.employee_estimate is not None:
-        score += 10
-    if fit_signals:
-        score += min(len(fit_signals) * 8, 16)
-    score += min(evidence_count * 4, 12)
-    if person and person.full_name:
-        score += 8
-    return score
+def _document_text(document: EvidenceDocument) -> str:
+    return " ".join([document.title, document.snippet, document.raw_content])
 
 
-def choose_best_evidence_item(items: list[EvidenceItem], request: NormalizedLeadSearchRequest) -> EvidenceItem | None:
-    scored: list[tuple[int, EvidenceItem]] = []
-    for item in items:
-        combined = f"{item.title} {item.snippet}"
-        person, company = parse_candidate_from_text(combined, item.url)
-        fit_signals = collect_fit_signals(combined, request)
-        scored.append(
-            (
-                score_candidate(
-                    request=request,
-                    person=person,
-                    company=company,
-                    fit_signals=fit_signals,
-                    evidence_count=1,
-                ),
-                item,
-            )
-        )
-    if not scored:
-        return None
-    scored.sort(key=lambda row: row[0], reverse=True)
-    return scored[0][1]
+def source_quality_for_document(document: EvidenceDocument, anchor_company: str | None = None) -> SourceQuality:
+    domain = document.domain or domain_from_url(document.url)
+    if domain_is_publisher_like(domain):
+        return SourceQuality.LOW
+    if domain_is_directory(domain):
+        return SourceQuality.MEDIUM
+    text = _document_text(document).lower()
+    if anchor_company and anchor_company.lower() in text:
+        return SourceQuality.HIGH
+    if any(token in text for token in ["careers", "docs", "github", "blog", "product"]):
+        return SourceQuality.HIGH
+    return SourceQuality.MEDIUM
 
 
-def build_heuristic_dossier(
-    *,
-    request: NormalizedLeadSearchRequest,
-    query: str,
-    evidence_items: list[EvidenceItem],
-    page_texts: dict[str, str],
-) -> SourcingDossier:
-    selected = choose_best_evidence_item(evidence_items, request)
-    if selected is None:
-        return SourcingDossier(
-            sourcing_status=SourcingStatus.NO_CANDIDATE,
-            query_used=query,
-            notes=["no_candidate_from_search_results"],
-        )
-
-    combined_text = " ".join([selected.title, selected.snippet, page_texts.get(selected.url, "")])
-    person, company = parse_candidate_from_text(combined_text, selected.url)
-    if company is None and (title_name := title_company_name(selected.title)):
-        company = CompanyCandidate(
-            name=title_name,
-            website=extract_official_website(page_texts.get(selected.url, ""), selected.url),
-            country_code=extract_country_code(combined_text),
-            employee_estimate=None,
-        )
-    if company is None:
-        return SourcingDossier(
-            sourcing_status=SourcingStatus.NO_CANDIDATE,
-            query_used=query,
-            evidence=evidence_items[:2],
-            notes=["unable_to_extract_company"],
-        )
-
-    fit_signals = collect_fit_signals(
-        " ".join([item.title + " " + item.snippet for item in evidence_items[:2]]) + " " + combined_text,
-        request,
+def enrich_document_metadata(document: EvidenceDocument, *, anchor_company: str | None = None) -> EvidenceDocument:
+    domain = document.domain or domain_from_url(document.url)
+    quality = source_quality_for_document(document, anchor_company)
+    return document.model_copy(
+        update={
+            "domain": domain,
+            "source_quality": quality,
+            "is_publisher_like": domain_is_publisher_like(domain),
+            "is_company_controlled_source": bool(domain and not domain_is_directory(domain) and not domain_is_publisher_like(domain) and anchor_company),
+        }
     )
-    supporting_evidence = [selected] + [item for item in evidence_items if item.url != selected.url][:1]
-    return SourcingDossier(
-        sourcing_status=SourcingStatus.FOUND,
-        query_used=query,
+
+
+def merge_documents(documents: list[EvidenceDocument]) -> list[EvidenceDocument]:
+    by_url: dict[str, EvidenceDocument] = {}
+    for document in documents:
+        existing = by_url.get(document.url)
+        if existing is None or len(document.raw_content) > len(existing.raw_content):
+            by_url[document.url] = document
+    return list(by_url.values())
+
+
+def candidate_company_names_from_document(document: EvidenceDocument) -> list[str]:
+    text = _document_text(document)
+    candidates: list[str] = []
+    _, company = parse_candidate_from_text(text, document.url)
+    if company and company.name:
+        candidates.append(company.name)
+    if title_name := title_company_name(document.title):
+        candidates.append(title_name)
+    if domain_name := extract_domain_company_name(document.url):
+        candidates.append(domain_name)
+    return dedupe_preserve_order([name for name in candidates if name])
+
+
+def select_anchor_company(documents: list[EvidenceDocument], prior_anchor: str | None = None) -> str | None:
+    scores: Counter[str] = Counter()
+    for document in documents:
+        quality_weight = {SourceQuality.HIGH: 5, SourceQuality.MEDIUM: 3, SourceQuality.LOW: 1, SourceQuality.UNKNOWN: 1}[document.source_quality]
+        for candidate in candidate_company_names_from_document(document):
+            scores[candidate] += quality_weight
+            if prior_anchor and candidate.lower() == prior_anchor.lower():
+                scores[candidate] += 4
+    if not scores:
+        return prior_anchor
+    return scores.most_common(1)[0][0]
+
+
+def _field_status_from_values(values: list[str | int], supporting: list[EvidenceDocument]) -> FieldEvidenceStatus:
+    if not values:
+        return FieldEvidenceStatus.UNKNOWN
+    normalized = [str(value).lower() for value in values if value is not None]
+    if not normalized:
+        return FieldEvidenceStatus.UNKNOWN
+    if len(set(normalized)) > 1:
+        return FieldEvidenceStatus.CONTRADICTED
+    if len(supporting) >= 2:
+        return FieldEvidenceStatus.SATISFIED
+    if supporting:
+        return FieldEvidenceStatus.WEAKLY_SUPPORTED
+    return FieldEvidenceStatus.UNKNOWN
+
+
+def _source_quality_from_docs(documents: list[EvidenceDocument]) -> SourceQuality:
+    if not documents:
+        return SourceQuality.UNKNOWN
+    if any(item.source_quality == SourceQuality.HIGH for item in documents):
+        return SourceQuality.HIGH
+    if any(item.source_quality == SourceQuality.MEDIUM for item in documents):
+        return SourceQuality.MEDIUM
+    if any(item.source_quality == SourceQuality.LOW for item in documents):
+        return SourceQuality.LOW
+    return SourceQuality.UNKNOWN
+
+
+def _build_field_evidence(
+    field_name: str,
+    value: str | int | None,
+    supporting: list[EvidenceDocument],
+    contradicting: list[EvidenceDocument],
+    *,
+    note: str,
+) -> AssembledFieldEvidence:
+    return AssembledFieldEvidence(
+        field_name=field_name,
+        value=value,
+        status=_field_status_from_values([value] if value is not None else [], supporting) if not contradicting else FieldEvidenceStatus.CONTRADICTED,
+        supporting_evidence=supporting,
+        contradicting_evidence=contradicting,
+        source_quality=_source_quality_from_docs(supporting or contradicting),
+        reasoning_note=note,
+    )
+
+
+def dedupe_documents(documents: list[EvidenceDocument]) -> list[EvidenceDocument]:
+    by_url: dict[str, EvidenceDocument] = {}
+    for document in documents:
+        if document.url not in by_url:
+            by_url[document.url] = document
+    return list(by_url.values())
+
+
+def build_fallback_assembled_dossier(
+    *,
+    request: NormalizedLeadSearchRequest,
+    source_result: SourcePassResult,
+    prior_dossier: AssembledLeadDossier | None = None,
+) -> AssembledLeadDossier:
+    documents = merge_documents([*(prior_dossier.evidence if prior_dossier else []), *source_result.documents])
+    anchor_company = source_result.anchored_company_name or select_anchor_company(documents, prior_dossier.anchored_company_name if prior_dossier else None)
+    if anchor_company is None:
+        return AssembledLeadDossier(
+            sourcing_status=SourcingStatus.NO_CANDIDATE,
+            query_used=source_result.executed_queries[0].query if source_result.executed_queries else None,
+            notes=dedupe_preserve_order([*source_result.notes, "unable_to_resolve_company"]),
+            evidence=documents,
+            research_trace=source_result.research_trace,
+            documents_considered=sum(trace.documents_considered for trace in source_result.research_trace),
+            documents_selected=len(documents),
+        )
+
+    anchor_lower = anchor_company.lower()
+    relevant_docs: list[EvidenceDocument] = []
+    company_docs: list[EvidenceDocument] = []
+    country_docs: list[EvidenceDocument] = []
+    size_docs: list[EvidenceDocument] = []
+    person_docs: list[EvidenceDocument] = []
+    role_docs: list[EvidenceDocument] = []
+    website_docs: list[EvidenceDocument] = []
+    contradictions: list[str] = []
+    country_values: list[str] = []
+    size_values: list[int] = []
+    website_value: str | None = prior_dossier.company.website if prior_dossier and prior_dossier.company else None
+    country_value: str | None = prior_dossier.company.country_code if prior_dossier and prior_dossier.company else None
+    size_value: int | None = prior_dossier.company.employee_estimate if prior_dossier and prior_dossier.company else None
+    person_name = prior_dossier.person.full_name if prior_dossier and prior_dossier.person else None
+    role_title = prior_dossier.person.role_title if prior_dossier and prior_dossier.person else None
+
+    for original in documents:
+        document = enrich_document_metadata(original, anchor_company=anchor_company)
+        text = _document_text(document)
+        lowered = text.lower()
+        if anchor_lower not in lowered and not document.is_company_controlled_source and not document.is_publisher_like:
+            continue
+        relevant_docs.append(document)
+        person, company = parse_candidate_from_text(text, document.url)
+        for candidate in candidate_company_names_from_document(document):
+            if candidate.lower() == anchor_lower:
+                company_docs.append(document)
+                break
+        if company and company.country_code:
+            country_docs.append(document)
+            country_values.append(company.country_code)
+            country_value = country_values[0]
+        if company and company.employee_estimate is not None:
+            size_docs.append(document)
+            size_values.append(company.employee_estimate)
+            size_value = size_values[0]
+        if company and company.website:
+            website_docs.append(document)
+            website_value = company.website
+        elif document.is_company_controlled_source and website_value is None and document.domain:
+            website_docs.append(document)
+            website_value = document.url.split("/", 3)[0] + "//" + document.domain
+        if person and person.full_name and anchor_lower in lowered:
+            person_docs.append(document)
+            person_name = person.full_name
+        if person and person.role_title and anchor_lower in lowered:
+            role_docs.append(document)
+            role_title = person.role_title
+
+    if len(set(country_values)) > 1:
+        contradictions.append("country has conflicting public evidence")
+    if len(set(size_values)) > 1:
+        contradictions.append("employee estimate has conflicting public evidence")
+
+    evidence_pool = dedupe_documents([*company_docs, *country_docs, *size_docs, *person_docs, *role_docs, *website_docs, *relevant_docs])[:6]
+    company = CompanyCandidate(name=anchor_company, website=website_value, country_code=country_value, employee_estimate=size_value)
+    person = PersonCandidate(full_name=person_name, role_title=role_title) if person_name or role_title else None
+    fit_signals = collect_fit_signals(" ".join(_document_text(item) for item in relevant_docs or documents), request)
+    field_evidence = [
+        _build_field_evidence("company_name", anchor_company, company_docs or evidence_pool[:1], [], note="Resolved company entity from multiple document mentions."),
+        _build_field_evidence("website", website_value, website_docs, [], note="Website inferred from company-controlled or corroborated public pages."),
+        AssembledFieldEvidence(field_name="country", value=country_value, status=FieldEvidenceStatus.CONTRADICTED if len(set(country_values)) > 1 else _field_status_from_values(country_values, country_docs), supporting_evidence=country_docs, contradicting_evidence=[], source_quality=_source_quality_from_docs(country_docs), reasoning_note="Country extracted from corroborated public evidence when available."),
+        AssembledFieldEvidence(field_name="employee_estimate", value=size_value, status=FieldEvidenceStatus.CONTRADICTED if len(set(size_values)) > 1 else _field_status_from_values(size_values, size_docs), supporting_evidence=size_docs, contradicting_evidence=[], source_quality=_source_quality_from_docs(size_docs), reasoning_note="Employee estimate derived from public references to team or company size."),
+        _build_field_evidence("person_name", person_name, person_docs, [], note="Named person kept only when explicitly present in the evidence."),
+        _build_field_evidence("role_title", role_title, role_docs, [], note="Role title kept only when explicitly tied to the named person or company in evidence."),
+        _build_field_evidence("fit_signals", ", ".join(fit_signals) if fit_signals else None, relevant_docs, [], note="Fit signals come from company product, docs, blog, hiring, or public tech references."),
+    ]
+    return AssembledLeadDossier(
+        sourcing_status=SourcingStatus.FOUND if evidence_pool else SourcingStatus.NO_CANDIDATE,
+        query_used=source_result.executed_queries[0].query if source_result.executed_queries else None,
         person=person,
         company=company,
         fit_signals=fit_signals,
-        evidence=supporting_evidence,
-        notes=[f"query_used={query}", "candidate_selected_by=heuristic"],
+        evidence=evidence_pool,
+        notes=dedupe_preserve_order([*source_result.notes, f"anchored_company={anchor_company}", "assembled_by=fallback"]),
+        anchored_company_name=anchor_company,
+        research_trace=source_result.research_trace,
+        field_evidence=field_evidence,
+        contradictions=contradictions,
+        evidence_quality=_source_quality_from_docs(evidence_pool),
+        documents_considered=sum(trace.documents_considered for trace in source_result.research_trace),
+        documents_selected=len(evidence_pool),
     )
 
 
-def decide_planner_action(*, accepted_count: int, target_count: int, budget: SearchBudget, shortlist_count: int) -> StageDecision:
-    if accepted_count >= target_count:
-        return StageDecision(action=PlannerAction.FINISH_ACCEPTED, relaxation_stage=relaxation_stage_from_budget(budget), reason="target_count_reached")
-    if not budget.can_source():
-        if shortlist_count:
-            return StageDecision(action=PlannerAction.FINISH_SHORTLIST, relaxation_stage=relaxation_stage_from_budget(budget), reason="budget_exhausted_with_shortlist")
-        return StageDecision(action=PlannerAction.FINISH_NO_RESULT, relaxation_stage=relaxation_stage_from_budget(budget), reason="budget_exhausted_without_results")
-    return StageDecision(action=PlannerAction.SOURCE, relaxation_stage=relaxation_stage_from_budget(budget), reason="continue_sourcing")
+def sanitize_assembled_dossier(
+    generated: AssembledLeadDossier | None,
+    *,
+    request: NormalizedLeadSearchRequest,
+    source_result: SourcePassResult,
+    prior_dossier: AssembledLeadDossier | None = None,
+) -> AssembledLeadDossier:
+    fallback = build_fallback_assembled_dossier(request=request, source_result=source_result, prior_dossier=prior_dossier)
+    if generated is None:
+        return fallback
+
+    allowed_docs = {item.url: item for item in merge_documents([*(prior_dossier.evidence if prior_dossier else []), *source_result.documents])}
+    evidence = [allowed_docs[item.url] for item in generated.evidence if item.url in allowed_docs] or fallback.evidence
+    company = generated.company.model_copy(deep=True) if generated.company else fallback.company
+    person = generated.person.model_copy(deep=True) if generated.person else fallback.person
+    if company is None:
+        return fallback
+    if company.website and domain_is_publisher_like(domain_from_url(company.website)):
+        company.website = fallback.company.website if fallback.company else None
+    combined_text = " ".join(_document_text(item) for item in evidence)
+    if person and person.full_name and person.full_name.lower() not in combined_text.lower():
+        person = fallback.person if fallback.person and fallback.person.full_name and fallback.person.full_name.lower() in combined_text.lower() else None
+    fit_signals = [item for item in dedupe_preserve_order(generated.fit_signals) if item in request.search_themes] or fallback.fit_signals
+
+    field_evidence: list[AssembledFieldEvidence] = []
+    for item in generated.field_evidence:
+        supporting = [allowed_docs[doc.url] for doc in item.supporting_evidence if doc.url in allowed_docs]
+        contradicting = [allowed_docs[doc.url] for doc in item.contradicting_evidence if doc.url in allowed_docs]
+        field_evidence.append(item.model_copy(update={"supporting_evidence": supporting, "contradicting_evidence": contradicting}))
+    if not field_evidence:
+        field_evidence = fallback.field_evidence
+    return AssembledLeadDossier(
+        sourcing_status=generated.sourcing_status,
+        query_used=source_result.executed_queries[0].query if source_result.executed_queries else generated.query_used or fallback.query_used,
+        person=person,
+        company=company,
+        fit_signals=fit_signals,
+        evidence=evidence,
+        notes=dedupe_preserve_order([*fallback.notes, *generated.notes, "assembled_by=llm"]),
+        anchored_company_name=generated.anchored_company_name or fallback.anchored_company_name or company.name,
+        research_trace=source_result.research_trace,
+        field_evidence=field_evidence,
+        contradictions=dedupe_preserve_order([*fallback.contradictions, *generated.contradictions]),
+        evidence_quality=_source_quality_from_docs(evidence),
+        documents_considered=sum(trace.documents_considered for trace in source_result.research_trace),
+        documents_selected=len(evidence),
+    )
+
+
+def overlay_explicit_dossier_fields(
+    assembled: AssembledLeadDossier,
+    original: AssembledLeadDossier,
+) -> AssembledLeadDossier:
+    support = assembled.evidence[:2] or original.evidence[:2]
+    field_map = {item.field_name: item for item in assembled.field_evidence}
+    company = assembled.company.model_copy(deep=True) if assembled.company else original.company.model_copy(deep=True) if original.company else None
+    person = assembled.person.model_copy(deep=True) if assembled.person else original.person.model_copy(deep=True) if original.person else None
+    fit_signals = assembled.fit_signals or original.fit_signals
+
+    if company and original.company:
+        current_country = field_map.get("country")
+        if original.company.country_code and (current_country is None or current_country.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
+            company.country_code = original.company.country_code
+            field_map["country"] = AssembledFieldEvidence(field_name="country", value=original.company.country_code, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Country provided explicitly in the dossier and accepted as legacy support.")
+        current_size = field_map.get("employee_estimate")
+        if original.company.employee_estimate is not None and (current_size is None or current_size.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
+            company.employee_estimate = original.company.employee_estimate
+            field_map["employee_estimate"] = AssembledFieldEvidence(field_name="employee_estimate", value=original.company.employee_estimate, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Employee estimate provided explicitly in the dossier and accepted as legacy support.")
+        if original.company.website and not company.website:
+            company.website = original.company.website
+
+    if person and original.person:
+        current_person = field_map.get("person_name")
+        if original.person.full_name and (current_person is None or current_person.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
+            person.full_name = original.person.full_name
+            field_map["person_name"] = AssembledFieldEvidence(field_name="person_name", value=original.person.full_name, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Person name provided explicitly in the dossier and accepted as legacy support.")
+        current_role = field_map.get("role_title")
+        if original.person.role_title and (current_role is None or current_role.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
+            person.role_title = original.person.role_title
+            field_map["role_title"] = AssembledFieldEvidence(field_name="role_title", value=original.person.role_title, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Role title provided explicitly in the dossier and accepted as legacy support.")
+
+    current_fit = field_map.get("fit_signals")
+    if fit_signals and (current_fit is None or current_fit.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
+        field_map["fit_signals"] = AssembledFieldEvidence(field_name="fit_signals", value=", ".join(fit_signals), status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Fit signals provided explicitly in the dossier and accepted as legacy support.")
+
+    return assembled.model_copy(update={"company": company, "person": person, "fit_signals": fit_signals, "field_evidence": list(field_map.values())})
 
 
 def qualifies_role(role_title: str | None, buyer_targets: list[str]) -> tuple[bool, bool]:
@@ -584,6 +878,68 @@ def qualifies_role(role_title: str | None, buyer_targets: list[str]) -> tuple[bo
     return exact, adjacent
 
 
+def field_evidence_map(dossier: AssembledLeadDossier) -> dict[str, AssembledFieldEvidence]:
+    return {item.field_name: item for item in dossier.field_evidence}
+
+
+def _rubric_field_from_field_evidence(item: AssembledFieldEvidence | None, *, field_name: str, fallback_note: str) -> QualificationRubricField:
+    if item is None:
+        return QualificationRubricField(field_name=field_name, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note=fallback_note)
+    return QualificationRubricField(field_name=field_name, status=item.status, supporting_evidence=item.supporting_evidence, contradicting_evidence=item.contradicting_evidence, source_quality=item.source_quality, reasoning_note=item.reasoning_note)
+
+
+def derive_meddicc_signals(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> list[str]:
+    text = " ".join([_document_text(item) for item in dossier.evidence]).lower()
+    signals: list[str] = []
+    if dossier.fit_signals:
+        signals.append("identified_pain_or_priority")
+    if any(term in text for term in ["pricing", "roi", "revenue", "cost", "efficiency", "time saved"]):
+        signals.append("metrics_or_business_case")
+    if dossier.person and dossier.person.role_title:
+        signals.append("possible_champion_or_buyer")
+    if any(term in text for term in ["compliance", "security", "integration", "workflow", "decision"]):
+        signals.append("decision_criteria_context")
+    _ = request
+    return dedupe_preserve_order(signals)
+
+
+def derive_score_from_rubric(rubric: QualificationRubric, dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> int:
+    score = 0
+    for field in rubric.fields:
+        if field.status == FieldEvidenceStatus.SATISFIED:
+            score += 15
+        elif field.status == FieldEvidenceStatus.WEAKLY_SUPPORTED:
+            score += 8
+        elif field.status == FieldEvidenceStatus.CONTRADICTED:
+            score -= 15
+    if dossier.fit_signals:
+        score += min(len(dossier.fit_signals) * 6, 18)
+    if dossier.person and dossier.person.full_name:
+        score += 6
+    if rubric.meddicc_signals:
+        score += min(len(rubric.meddicc_signals) * 4, 12)
+    _ = request
+    return max(0, min(score, 100))
+
+
+def build_qualification_rubric(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> QualificationRubric:
+    fields = field_evidence_map(dossier)
+    rubric_fields = [
+        _rubric_field_from_field_evidence(fields.get("company_name"), field_name="company_name", fallback_note="Main company entity could not be resolved."),
+        _rubric_field_from_field_evidence(fields.get("website"), field_name="website", fallback_note="Official website is not yet proven."),
+        _rubric_field_from_field_evidence(fields.get("country"), field_name="country", fallback_note="Company geography is not yet proven."),
+        _rubric_field_from_field_evidence(fields.get("employee_estimate"), field_name="employee_estimate", fallback_note="Company size is not yet proven."),
+        _rubric_field_from_field_evidence(fields.get("person_name"), field_name="person_name", fallback_note="Named person is not yet proven."),
+        _rubric_field_from_field_evidence(fields.get("role_title"), field_name="role_title", fallback_note="Role title is not yet proven."),
+        _rubric_field_from_field_evidence(fields.get("fit_signals"), field_name="fit_signals", fallback_note="Fit signals are weak or absent."),
+    ]
+    meddicc = derive_meddicc_signals(dossier, request)
+    contradictions = dedupe_preserve_order(dossier.contradictions)
+    rubric = QualificationRubric(fields=rubric_fields, contradictions=contradictions, meddicc_signals=meddicc, overall_confidence=0)
+    rubric.overall_confidence = derive_score_from_rubric(rubric, dossier, request)
+    return rubric
+
+
 def build_close_match_decision(
     *,
     score: int,
@@ -592,6 +948,7 @@ def build_close_match_decision(
     region: str,
     missed_filters: list[str],
     summary: str,
+    qualification_rubric: QualificationRubric,
 ) -> QualificationDecision:
     unique_misses = dedupe_preserve_order(missed_filters)
     return QualificationDecision(
@@ -602,179 +959,146 @@ def build_close_match_decision(
         reasons=reasons,
         type=lead_type,
         region=region,
-        close_match=CloseMatch(
-            summary="Commercially interesting candidate with exact-match gaps.",
-            missed_filters=unique_misses or ["strict exact match"],
-            reasons=reasons,
-        ),
+        close_match=CloseMatch(summary="Commercially interesting candidate with exact-match gaps.", missed_filters=unique_misses or ["strict exact match"], reasons=reasons),
+        qualification_rubric=qualification_rubric,
     )
 
 
-def merge_qualification_decisions(
-    deterministic: QualificationDecision,
-    llm_review: QualificationDecision | None,
-) -> QualificationDecision:
-    if llm_review is None:
-        return deterministic
-    merged = deterministic.model_copy(deep=True)
-    if llm_review.outcome == deterministic.outcome:
-        if llm_review.summary:
-            merged.summary = llm_review.summary
-        merged.type = merged.type or llm_review.type
-        merged.region = merged.region or llm_review.region
-        if merged.outcome == QualificationOutcome.REJECT_CLOSE_MATCH and merged.close_match and llm_review.close_match is not None:
-            merged.close_match.summary = llm_review.close_match.summary or merged.close_match.summary
-    else:
-        merged.reasons = dedupe_preserve_order([*deterministic.reasons, f"llm_review_disagreed={llm_review.outcome.value}"])
-    return merged
-
-
-def evaluate_dossier(dossier: SourcingDossier, request: NormalizedLeadSearchRequest) -> QualificationDecision:
+def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> QualificationDecision:
+    if dossier.field_evidence == [] and dossier.evidence:
+        dossier = overlay_explicit_dossier_fields(build_fallback_assembled_dossier(
+            request=request,
+            source_result=SourcePassResult(
+                sourcing_status=dossier.sourcing_status,
+                documents=dossier.evidence,
+                anchored_company_name=dossier.company.name if dossier.company else None,
+                notes=dossier.notes,
+            ),
+            prior_dossier=dossier,
+        ), dossier)
     if dossier.sourcing_status != SourcingStatus.FOUND or dossier.company is None:
-        return QualificationDecision(
-            outcome=QualificationOutcome.REJECT,
-            score=0,
-            summary="No candidate dossier was found.",
-            reasons=["sourcing did not produce a valid candidate"],
-        )
+        return QualificationDecision(outcome=QualificationOutcome.REJECT, score=0, summary="No candidate dossier was assembled.", reasons=["sourcing and assembly did not produce a valid candidate"], qualification_rubric=QualificationRubric())
 
+    rubric = build_qualification_rubric(dossier, request)
+    field_map = {item.field_name: item for item in rubric.fields}
     reasons: list[str] = []
-    score = 0
-    hard_misses: list[str] = []
-    hard_unknowns: list[str] = []
-    close_misses: list[str] = []
+    missed_filters: list[str] = []
+    hard_failure = False
+    lead_type = dossier.person.role_title if dossier.person and dossier.person.role_title else "unknown"
+    region = dossier.company.country_code or request.constraints.preferred_country or "unknown"
 
     role_exact, role_adjacent = qualifies_role(dossier.person.role_title if dossier.person else None, request.buyer_targets)
     if role_exact:
-        score += 30
-        reasons.append("buyer persona matches the preferred targets")
+        reasons.append("role matches the preferred buyer persona")
     elif role_adjacent:
-        score += 15
-        close_misses.append("preferred buyer persona")
         reasons.append("role is adjacent to the preferred buyer persona")
+        missed_filters.append("preferred buyer persona")
     else:
-        close_misses.append("preferred buyer persona")
-        reasons.append("preferred buyer persona is not yet fully matched")
+        reasons.append("preferred buyer persona is still weakly supported or unknown")
+        missed_filters.append("preferred buyer persona")
 
-    country = request.constraints.preferred_country
-    if country:
-        if dossier.company.country_code == country:
-            score += 20
-            reasons.append("company geography matches the requested country")
-        elif dossier.company.country_code:
-            hard_misses.append("preferred_country")
+    country_field = field_map["country"]
+    size_field = field_map["employee_estimate"]
+    person_field = field_map["person_name"]
+    company_field = field_map["company_name"]
+    fit_field = field_map["fit_signals"]
+
+    if company_field.status == FieldEvidenceStatus.CONTRADICTED or domain_is_publisher_like(domain_from_url(dossier.company.website)):
+        hard_failure = True
+        reasons.append("main company entity is contradictory or still looks like a publisher/aggregator artifact")
+
+    if request.constraints.preferred_country:
+        if country_field.status == FieldEvidenceStatus.CONTRADICTED:
+            hard_failure = True
+            reasons.append("company geography contradicts the requested country")
+        elif country_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED} and dossier.company.country_code != request.constraints.preferred_country:
+            reasons.append("company geography is not yet firmly proven")
+        elif dossier.company.country_code != request.constraints.preferred_country:
+            hard_failure = True
+            reasons.append("company geography does not match the requested country")
         else:
-            hard_unknowns.append("preferred_country")
-            reasons.append("company geography is not fully evidenced yet")
+            reasons.append("company geography matches the requested country")
 
     if request.constraints.min_company_size is not None or request.constraints.max_company_size is not None:
         size = dossier.company.employee_estimate
-        if size is None:
-            hard_unknowns.append("company_size")
-            reasons.append("company size is not fully evidenced yet")
+        if size_field.status == FieldEvidenceStatus.CONTRADICTED:
+            hard_failure = True
+            reasons.append("public evidence for company size is contradictory")
+        elif size is None:
+            reasons.append("company size is not yet proven")
         else:
             minimum = request.constraints.min_company_size
             maximum = request.constraints.max_company_size
             if minimum is not None and size < minimum:
-                hard_misses.append("company_size")
+                hard_failure = True
+                reasons.append("company size falls below the requested range")
             elif maximum is not None and size > maximum:
-                hard_misses.append("company_size")
+                hard_failure = True
+                reasons.append("company size exceeds the requested range")
             else:
-                score += 20
-                reasons.append("company size falls within the requested range")
+                reasons.append("company size fits the requested range")
 
-    if dossier.fit_signals:
-        score += min(len(dossier.fit_signals) * 10, 20)
+    if person_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        reasons.append("named person is still weak or missing")
+    elif dossier.person and dossier.person.full_name:
+        reasons.append("named person is supported by the evidence")
+
+    if fit_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and dossier.fit_signals:
         reasons.append("company shows relevant automation or AI signals")
+    else:
+        reasons.append("fit signals remain weak")
 
-    if dossier.person and dossier.person.full_name:
-        score += 5
-        reasons.append("named person found")
+    score = derive_score_from_rubric(rubric, dossier, request)
+    hard_unknown = False
+    if request.constraints.preferred_country and country_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        hard_unknown = True
+    if (request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and size_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        hard_unknown = True
 
-    evidence_count = len(dossier.evidence)
-    if evidence_count >= 2:
-        score += 15
-        reasons.append("evidence is supported by multiple URLs")
-    elif evidence_count == 1:
-        score += 5
-        reasons.append("only one supporting URL is available")
+    if hard_failure:
+        return QualificationDecision(outcome=QualificationOutcome.REJECT, score=score, summary="Candidate fails a hard constraint or the company entity is unreliable.", reasons=dedupe_preserve_order(reasons + rubric.contradictions), type=lead_type, region=region, qualification_rubric=rubric)
+    if hard_unknown:
+        return QualificationDecision(outcome=QualificationOutcome.ENRICH, score=score, summary="Candidate is plausible but still needs stronger proof for one or more hard constraints.", reasons=dedupe_preserve_order(reasons), type=lead_type, region=region, qualification_rubric=rubric)
+    if role_exact and person_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and field_map["role_title"].status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and fit_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        return QualificationDecision(outcome=QualificationOutcome.ACCEPT, match_type=MatchType.EXACT, score=score, summary="Candidate is a strong exact match backed by structured public evidence.", reasons=dedupe_preserve_order(reasons), type=lead_type, region=region, qualification_rubric=rubric)
+    return build_close_match_decision(score=score, reasons=dedupe_preserve_order(reasons), lead_type=lead_type, region=region, missed_filters=missed_filters or ["exact buyer persona"], summary="Candidate is commercially interesting but still misses part of the preferred fit.", qualification_rubric=rubric)
 
-    score = min(score, 100)
-    region = dossier.company.country_code or request.constraints.preferred_country or "unknown"
-    lead_type = dossier.person.role_title if dossier.person and dossier.person.role_title else "unknown"
 
-    if hard_misses:
-        return QualificationDecision(
-            outcome=QualificationOutcome.REJECT,
-            score=score,
-            summary="Candidate fails at least one hard constraint.",
-            reasons=reasons + [f"hard miss: {item}" for item in hard_misses],
-            type=lead_type,
-            region=region,
-        )
+def merge_qualification_decisions(deterministic: QualificationDecision, llm_review: QualificationDecision | None) -> QualificationDecision:
+    if llm_review is None:
+        return deterministic
+    if deterministic.outcome == QualificationOutcome.REJECT:
+        return deterministic
+    if deterministic.outcome == QualificationOutcome.ENRICH and llm_review.outcome == QualificationOutcome.ACCEPT:
+        return deterministic
+    if deterministic.outcome == QualificationOutcome.REJECT_CLOSE_MATCH and llm_review.outcome == QualificationOutcome.ACCEPT:
+        return deterministic
+    merged = llm_review.model_copy(deep=True)
+    if merged.qualification_rubric is None:
+        merged.qualification_rubric = deterministic.qualification_rubric
+    if merged.score == 0:
+        merged.score = deterministic.score
+    if deterministic.outcome == QualificationOutcome.ACCEPT and merged.outcome != QualificationOutcome.ACCEPT:
+        merged.match_type = deterministic.match_type
+    return merged
 
-    if evidence_count < 2 and score >= 35:
-        return QualificationDecision(
-            outcome=QualificationOutcome.ENRICH,
-            score=score,
-            summary="Candidate looks promising but needs more evidence.",
-            reasons=reasons + [f"missing evidence: {item}" for item in dedupe_preserve_order(hard_unknowns)],
-            type=lead_type,
-            region=region,
-        )
 
-    if hard_unknowns:
-        if score >= 55:
-            return build_close_match_decision(
-                score=score,
-                reasons=reasons,
-                lead_type=lead_type,
-                region=region,
-                missed_filters=[*close_misses, *hard_unknowns],
-                summary="Candidate is commercially interesting but cannot be confirmed as an exact match.",
-            )
-        return QualificationDecision(
-            outcome=QualificationOutcome.REJECT,
-            score=score,
-            summary="Candidate lacks proof for one or more hard constraints.",
-            reasons=reasons + [f"missing hard proof: {item}" for item in dedupe_preserve_order(hard_unknowns)],
-            type=lead_type,
-            region=region,
-        )
-
-    if score >= 70 and not close_misses:
-        return QualificationDecision(
-            outcome=QualificationOutcome.ACCEPT,
-            match_type=MatchType.EXACT,
-            score=score,
-            summary="Candidate is a strong exact match.",
-            reasons=reasons,
-            type=lead_type,
-            region=region,
-        )
-
-    if score >= 55:
-        return build_close_match_decision(
-            score=score,
-            reasons=reasons,
-            lead_type=lead_type,
-            region=region,
-            missed_filters=close_misses,
-            summary="Candidate is commercially interesting but misses part of the preferred fit.",
-        )
-
-    return QualificationDecision(
-        outcome=QualificationOutcome.REJECT,
-        score=score,
-        summary="Candidate is not strong enough for this request.",
-        reasons=reasons or ["not enough relevant fit signals"],
-        type=lead_type,
-        region=region,
-    )
+def collect_missing_fields_for_enrichment(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> list[str]:
+    field_map = field_evidence_map(dossier)
+    missing: list[str] = []
+    if request.constraints.preferred_country and field_map.get("country", AssembledFieldEvidence(field_name="country", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="country missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        missing.append("country")
+    if (request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and field_map.get("employee_estimate", AssembledFieldEvidence(field_name="employee_estimate", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="size missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        missing.append("employee_estimate")
+    if field_map.get("person_name", AssembledFieldEvidence(field_name="person_name", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="person missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        missing.append("person_name")
+    if field_map.get("role_title", AssembledFieldEvidence(field_name="role_title", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="role missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        missing.append("role_title")
+    return dedupe_preserve_order(missing)
 
 
 def build_fallback_commercial_bundle(
-    dossier: SourcingDossier,
+    dossier: AssembledLeadDossier,
     qualification: QualificationDecision,
     request: NormalizedLeadSearchRequest,
 ) -> CommercialBundle:

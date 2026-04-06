@@ -15,6 +15,7 @@ from lolo_lead_management.adapters.stores.sqlite import (
 from lolo_lead_management.config.settings import Settings
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.main import LeadManagementEngine
+from lolo_lead_management.engine.stages.assemble import AssembleStage
 from lolo_lead_management.engine.stages.continue_or_finish import ContinueOrFinishStage
 from lolo_lead_management.engine.stages.crm_write import CrmWriteStage
 from lolo_lead_management.engine.stages.draft import DraftStage
@@ -69,6 +70,7 @@ def build_container(settings: Settings) -> ServiceContainer:
         load_state_stage=LoadStateStage(memory_store),
         plan_stage=PlanStage(agent_executor),
         source_stage=SourceStage(search_port=search_port, agent_executor=agent_executor, max_results=settings.search_max_results),
+        assemble_stage=AssembleStage(agent_executor),
         qualify_stage=QualifyStage(agent_executor),
         enrich_stage=EnrichStage(search_port=search_port, agent_executor=agent_executor, max_results=settings.search_max_results),
         draft_stage=DraftStage(agent_executor),

@@ -6,7 +6,17 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .enums import MatchType, PlannerAction, QualificationOutcome, RunStatus, SearchAction, SourcingStatus, StageName
+from .enums import (
+    FieldEvidenceStatus,
+    MatchType,
+    PlannerAction,
+    QualificationOutcome,
+    RunStatus,
+    SearchAction,
+    SourceQuality,
+    SourcingStatus,
+    StageName,
+)
 
 
 def utc_now() -> datetime:
@@ -50,13 +60,6 @@ class LeadSearchStartRequest(StrictModel):
     wait_for_completion: bool = True
 
 
-class EvidenceItem(StrictModel):
-    url: str
-    title: str
-    snippet: str
-    source_type: str
-
-
 class PersonCandidate(StrictModel):
     full_name: str | None = None
     role_title: str | None = None
@@ -69,13 +72,110 @@ class CompanyCandidate(StrictModel):
     employee_estimate: int | None = None
 
 
-class SourcingDossier(StrictModel):
+class EvidenceItem(StrictModel):
+    url: str
+    title: str
+    snippet: str
+    source_type: str
+    raw_content: str = ""
+    domain: str | None = None
+    query_planned: str | None = None
+    query_executed: str | None = None
+    research_phase: str | None = None
+    objective: str | None = None
+    source_quality: SourceQuality = SourceQuality.UNKNOWN
+    company_anchor: str | None = None
+    is_company_controlled_source: bool = False
+    is_publisher_like: bool = False
+
+
+class EvidenceDocument(EvidenceItem):
+    pass
+
+
+class ResearchQuery(StrictModel):
+    query: str = Field(min_length=3)
+    objective: str = Field(min_length=3)
+    research_phase: str = Field(min_length=3)
+    candidate_company_name: str | None = None
+    preferred_domains: list[str] = Field(default_factory=list)
+    excluded_domains: list[str] = Field(default_factory=list)
+    exact_match: bool = False
+    country: str | None = None
+    expected_source_types: list[str] = Field(default_factory=list)
+
+
+class ResearchQueryPlan(StrictModel):
+    planned_queries: list[ResearchQuery] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    stop_conditions: list[str] = Field(default_factory=list)
+
+
+class ResearchTraceEntry(StrictModel):
+    query_planned: str
+    query_executed: str
+    research_phase: str
+    objective: str
+    candidate_company_name: str | None = None
+    documents_considered: int = Field(default=0, ge=0)
+    documents_selected: int = Field(default=0, ge=0)
+    selected_urls: list[str] = Field(default_factory=list)
+
+
+class AssembledFieldEvidence(StrictModel):
+    field_name: str
+    value: str | int | None = None
+    status: FieldEvidenceStatus
+    supporting_evidence: list[EvidenceItem] = Field(default_factory=list)
+    contradicting_evidence: list[EvidenceItem] = Field(default_factory=list)
+    source_quality: SourceQuality = SourceQuality.UNKNOWN
+    reasoning_note: str
+
+
+class QualificationRubricField(StrictModel):
+    field_name: str
+    status: FieldEvidenceStatus
+    supporting_evidence: list[EvidenceItem] = Field(default_factory=list)
+    contradicting_evidence: list[EvidenceItem] = Field(default_factory=list)
+    source_quality: SourceQuality = SourceQuality.UNKNOWN
+    reasoning_note: str
+
+
+class QualificationRubric(StrictModel):
+    fields: list[QualificationRubricField] = Field(default_factory=list)
+    contradictions: list[str] = Field(default_factory=list)
+    meddicc_signals: list[str] = Field(default_factory=list)
+    overall_confidence: int = Field(default=0, ge=0, le=100)
+
+
+class AssembledLeadDossier(StrictModel):
     sourcing_status: SourcingStatus
     query_used: str | None = None
     person: PersonCandidate | None = None
     company: CompanyCandidate | None = None
     fit_signals: list[str] = Field(default_factory=list)
     evidence: list[EvidenceItem] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    anchored_company_name: str | None = None
+    research_trace: list[ResearchTraceEntry] = Field(default_factory=list)
+    field_evidence: list[AssembledFieldEvidence] = Field(default_factory=list)
+    contradictions: list[str] = Field(default_factory=list)
+    evidence_quality: SourceQuality = SourceQuality.UNKNOWN
+    documents_considered: int = Field(default=0, ge=0)
+    documents_selected: int = Field(default=0, ge=0)
+
+
+class SourcingDossier(AssembledLeadDossier):
+    pass
+
+
+class SourcePassResult(StrictModel):
+    sourcing_status: SourcingStatus
+    query_plan: ResearchQueryPlan | None = None
+    executed_queries: list[ResearchQuery] = Field(default_factory=list)
+    documents: list[EvidenceItem] = Field(default_factory=list)
+    anchored_company_name: str | None = None
+    research_trace: list[ResearchTraceEntry] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
 
@@ -94,6 +194,7 @@ class QualificationDecision(StrictModel):
     type: str | None = None
     region: str | None = None
     close_match: CloseMatch | None = None
+    qualification_rubric: QualificationRubric | None = None
 
 
 class CommercialBundle(StrictModel):
@@ -116,6 +217,10 @@ class AcceptedLeadRecord(StrictModel):
     evidence: list[EvidenceItem] = Field(default_factory=list)
     qualification: QualificationDecision
     commercial: CommercialBundle
+    research_trace: list[ResearchTraceEntry] = Field(default_factory=list)
+    field_evidence: list[AssembledFieldEvidence] = Field(default_factory=list)
+    contradictions: list[str] = Field(default_factory=list)
+    evidence_quality: SourceQuality = SourceQuality.UNKNOWN
 
 
 class ShortlistOption(StrictModel):
@@ -130,6 +235,10 @@ class ShortlistOption(StrictModel):
     qualification: QualificationDecision
     commercial: CommercialBundle
     evidence: list[EvidenceItem] = Field(default_factory=list)
+    research_trace: list[ResearchTraceEntry] = Field(default_factory=list)
+    field_evidence: list[AssembledFieldEvidence] = Field(default_factory=list)
+    contradictions: list[str] = Field(default_factory=list)
+    evidence_quality: SourceQuality = SourceQuality.UNKNOWN
 
 
 class ShortlistRecord(StrictModel):
@@ -166,8 +275,11 @@ class RunIteration(StrictModel):
     index: int = Field(ge=1)
     planner_action: PlannerAction
     query: str | None = None
-    dossier: SourcingDossier | None = None
+    dossier: AssembledLeadDossier | None = None
     qualification: QualificationDecision | None = None
+    research_trace: list[ResearchTraceEntry] = Field(default_factory=list)
+    documents_considered: int = Field(default=0, ge=0)
+    documents_selected: int = Field(default=0, ge=0)
 
 
 class SearchRunSnapshot(StrictModel):

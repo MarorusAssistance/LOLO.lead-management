@@ -14,6 +14,7 @@ from lolo_lead_management.domain.models import (
 from lolo_lead_management.engine.stages.continue_or_finish import ContinueOrFinishStage
 from lolo_lead_management.engine.stages.crm_write import CrmWriteStage
 from lolo_lead_management.engine.stages.draft import DraftStage
+from lolo_lead_management.engine.stages.assemble import AssembleStage
 from lolo_lead_management.engine.stages.enrich import EnrichStage
 from lolo_lead_management.engine.stages.load_state import LoadStateStage
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
@@ -32,6 +33,7 @@ class LeadManagementEngine:
         load_state_stage: LoadStateStage,
         plan_stage: PlanStage,
         source_stage: SourceStage,
+        assemble_stage: AssembleStage,
         qualify_stage: QualifyStage,
         enrich_stage: EnrichStage,
         draft_stage: DraftStage,
@@ -47,6 +49,7 @@ class LeadManagementEngine:
         self._load_state_stage = load_state_stage
         self._plan_stage = plan_stage
         self._source_stage = source_stage
+        self._assemble_stage = assemble_stage
         self._qualify_stage = qualify_stage
         self._enrich_stage = enrich_stage
         self._draft_stage = draft_stage
@@ -113,18 +116,29 @@ class LeadManagementEngine:
                     break
 
                 active_stage = StageName.SOURCE
+                state.current_dossier = None
+                state.current_source_result = None
                 self._update_progress(
                     state.run,
                     stage=StageName.SOURCE,
                     message=self._sourcing_message(state.run),
                 )
-                query, dossier = self._source_stage.execute(state)
+                source_result = self._source_stage.execute(state)
+                query = source_result.executed_queries[0].query if source_result.executed_queries else None
                 if query is None:
                     state.run.budget.source_attempts_used = state.run.budget.source_attempt_budget
                 else:
                     state.run.budget.source_attempts_used += 1
                 state.current_query = query
-                state.current_dossier = dossier
+                state.current_source_result = source_result
+
+                active_stage = StageName.ASSEMBLE
+                self._update_progress(
+                    state.run,
+                    stage=StageName.ASSEMBLE,
+                    message="Compacting public web evidence into a structured lead dossier.",
+                )
+                state.current_dossier = self._assemble_stage.execute(state)
 
                 active_stage = StageName.QUALIFY
                 self._update_progress(
@@ -134,7 +148,7 @@ class LeadManagementEngine:
                 )
                 state.current_qualification = self._qualify_stage.execute(
                     request_payload=state.run.request.model_dump(mode="json"),
-                    dossier_payload=dossier.model_dump(mode="json"),
+                    dossier_payload=state.current_dossier.model_dump(mode="json"),
                 )
 
                 if state.current_qualification.outcome == QualificationOutcome.ENRICH and state.run.budget.can_enrich():
@@ -145,7 +159,15 @@ class LeadManagementEngine:
                         message="Collecting extra evidence for a promising candidate.",
                     )
                     state.run.budget.enrich_attempts_used += 1
-                    state.current_dossier = self._enrich_stage.execute(state)
+                    state.current_source_result = self._enrich_stage.execute(state)
+
+                    active_stage = StageName.ASSEMBLE
+                    self._update_progress(
+                        state.run,
+                        stage=StageName.ASSEMBLE,
+                        message="Merging newly found evidence into the current lead dossier.",
+                    )
+                    state.current_dossier = self._assemble_stage.execute(state)
 
                     active_stage = StageName.REQUALIFY
                     self._update_progress(
@@ -183,6 +205,9 @@ class LeadManagementEngine:
                         query=query,
                         dossier=state.current_dossier,
                         qualification=state.current_qualification,
+                        research_trace=state.current_dossier.research_trace if state.current_dossier else [],
+                        documents_considered=state.current_dossier.documents_considered if state.current_dossier else 0,
+                        documents_selected=state.current_dossier.documents_selected if state.current_dossier else 0,
                     )
                 )
 
@@ -275,6 +300,10 @@ class LeadManagementEngine:
             evidence=option.evidence,
             qualification=option.qualification,
             commercial=option.commercial,
+            research_trace=option.research_trace,
+            field_evidence=option.field_evidence,
+            contradictions=option.contradictions,
+            evidence_quality=option.evidence_quality,
         )
         run.accepted_leads.append(accepted_record)
         remaining_options = [item for item in shortlist.options if item.option_number != option_number]

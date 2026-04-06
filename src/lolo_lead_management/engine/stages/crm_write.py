@@ -51,6 +51,10 @@ class CrmWriteStage:
                 evidence=dossier.evidence,
                 qualification=qualification,
                 commercial=commercial,
+                research_trace=dossier.research_trace,
+                field_evidence=dossier.field_evidence,
+                contradictions=dossier.contradictions,
+                evidence_quality=dossier.evidence_quality,
             )
             state.run.accepted_leads.append(accepted)
             state.memory.searched_company_names.append(dossier.company.name)
@@ -72,6 +76,10 @@ class CrmWriteStage:
                     qualification=qualification,
                     commercial=commercial,
                     evidence=dossier.evidence,
+                    research_trace=dossier.research_trace,
+                    field_evidence=dossier.field_evidence,
+                    contradictions=dossier.contradictions,
+                    evidence_quality=dossier.evidence_quality,
                 )
                 state.run.shortlist_options.append(option)
             state.memory.searched_company_names.append(dossier.company.name)

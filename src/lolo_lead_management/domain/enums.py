@@ -46,9 +46,24 @@ class StageName(str, Enum):
     LOAD_STATE = "load_state"
     PLAN = "plan"
     SOURCE = "source"
+    ASSEMBLE = "assemble"
     QUALIFY = "qualify"
     ENRICH = "enrich"
     REQUALIFY = "requalify"
     DRAFT = "draft"
     CRM_WRITE = "crm_write"
     CONTINUE_OR_FINISH = "continue_or_finish"
+
+
+class FieldEvidenceStatus(str, Enum):
+    SATISFIED = "satisfied"
+    WEAKLY_SUPPORTED = "weakly_supported"
+    UNKNOWN = "unknown"
+    CONTRADICTED = "contradicted"
+
+
+class SourceQuality(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    UNKNOWN = "unknown"

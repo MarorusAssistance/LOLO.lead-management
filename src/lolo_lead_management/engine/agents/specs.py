@@ -24,6 +24,7 @@ STAGE_AGENT_SPECS: dict[StageName, StageAgentSpec] = {
     StageName.LOAD_STATE: StageAgentSpec(StageName.LOAD_STATE, "StateLoaderAgent", "state_loader.md", False),
     StageName.PLAN: StageAgentSpec(StageName.PLAN, "PlannerAgent", "planner.md", True),
     StageName.SOURCE: StageAgentSpec(StageName.SOURCE, "SourcerAgent", "sourcer.md", True),
+    StageName.ASSEMBLE: StageAgentSpec(StageName.ASSEMBLE, "AssemblerAgent", "assemble.md", True),
     StageName.QUALIFY: StageAgentSpec(StageName.QUALIFY, "QualifierAgent", "qualifier.md", True),
     StageName.ENRICH: StageAgentSpec(StageName.ENRICH, "EnrichmentAgent", "enricher.md", True),
     StageName.REQUALIFY: StageAgentSpec(StageName.REQUALIFY, "QualifierAgent", "qualifier.md", True),

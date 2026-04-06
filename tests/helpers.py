@@ -13,9 +13,10 @@ from lolo_lead_management.adapters.stores.sqlite import (
 )
 from lolo_lead_management.application.container import ServiceContainer
 from lolo_lead_management.config.settings import Settings
-from lolo_lead_management.domain.models import EvidenceItem
+from lolo_lead_management.domain.models import EvidenceDocument
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.main import LeadManagementEngine
+from lolo_lead_management.engine.stages.assemble import AssembleStage
 from lolo_lead_management.engine.stages.continue_or_finish import ContinueOrFinishStage
 from lolo_lead_management.engine.stages.crm_write import CrmWriteStage
 from lolo_lead_management.engine.stages.draft import DraftStage
@@ -40,7 +41,7 @@ def workspace_tmp_dir(name: str) -> Path:
 def build_test_container(
     tmp_path: Path,
     *,
-    search_index: dict[str, list[EvidenceItem]] | None = None,
+    search_index: dict[str, list[EvidenceDocument]] | None = None,
     pages: dict[str, str] | None = None,
 ) -> ServiceContainer:
     settings = Settings(database_path=str(tmp_path / "lead_management.sqlite3"))
@@ -58,6 +59,7 @@ def build_test_container(
         load_state_stage=LoadStateStage(memory_store),
         plan_stage=PlanStage(agent_executor),
         source_stage=SourceStage(search_port=search_port, agent_executor=agent_executor, max_results=5),
+        assemble_stage=AssembleStage(agent_executor),
         qualify_stage=QualifyStage(agent_executor),
         enrich_stage=EnrichStage(search_port=search_port, agent_executor=agent_executor, max_results=5),
         draft_stage=DraftStage(agent_executor),
@@ -91,21 +93,23 @@ def build_test_container(
     )
 
 
-def accepted_candidate_fixture() -> tuple[dict[str, list[EvidenceItem]], dict[str, str]]:
-    query = "site:eu-startups.com/directory/ Spain AI software"
+def accepted_candidate_fixture() -> tuple[dict[str, list[EvidenceDocument]], dict[str, str]]:
+    query = "Spain startup AI software company"
     search_index = {
         query: [
-            EvidenceItem(
+            EvidenceDocument(
                 url="https://acme.ai/about",
                 title="Acme AI leadership",
                 snippet="Company: Acme AI | Person: Laura Martin | Role: CTO | Country: Spain",
                 source_type="fixture",
+                raw_content="Company: Acme AI\nCountry: Spain\nEmployees: 25\nPerson: Laura Martin\nRole: CTO\nGenAI automation engineering",
             ),
-            EvidenceItem(
+            EvidenceDocument(
                 url="https://acme.ai/blog/agentic-workflows",
                 title="Acme AI on agentic workflows",
                 snippet="Company: Acme AI | Country: Spain | Employees: 25 | GenAI automation",
                 source_type="fixture",
+                raw_content="Company: Acme AI\nCountry: Spain\nEmployees: 25\nAutomation and GenAI workflows for IT teams",
             ),
         ]
     }
@@ -116,21 +120,23 @@ def accepted_candidate_fixture() -> tuple[dict[str, list[EvidenceItem]], dict[st
     return search_index, pages
 
 
-def close_match_candidate_fixture() -> tuple[dict[str, list[EvidenceItem]], dict[str, str]]:
-    query = "site:eu-startups.com/directory/ Spain AI software"
+def close_match_candidate_fixture() -> tuple[dict[str, list[EvidenceDocument]], dict[str, str]]:
+    query = "Spain startup AI software company"
     search_index = {
         query: [
-            EvidenceItem(
+            EvidenceDocument(
                 url="https://bravo.dev/team",
                 title="Bravo Dev engineering team",
                 snippet="Company: Bravo Dev | Person: Marta Diaz | Role: Engineering Manager | Country: Spain",
                 source_type="fixture",
+                raw_content="Company: Bravo Dev\nCountry: Spain\nEmployees: 30\nPerson: Marta Diaz\nRole: Engineering Manager\nGenAI automation engineering",
             ),
-            EvidenceItem(
+            EvidenceDocument(
                 url="https://bravo.dev/blog/genai",
                 title="Bravo Dev exploring GenAI automation",
                 snippet="Company: Bravo Dev | Country: Spain | Employees: 30 | GenAI automation",
                 source_type="fixture",
+                raw_content="Company: Bravo Dev\nCountry: Spain\nEmployees: 30\nAutomation and GenAI workflows for engineering teams",
             ),
         ]
     }
