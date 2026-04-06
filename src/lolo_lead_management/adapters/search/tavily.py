@@ -19,7 +19,7 @@ class TavilySearchPort(SearchPort):
         payload = {
             "query": query.query,
             "topic": "general",
-            "search_depth": "basic",
+            "search_depth": query.search_depth,
             "max_results": max_results,
             "include_answer": False,
             "include_raw_content": "text",
@@ -27,6 +27,8 @@ class TavilySearchPort(SearchPort):
             "include_usage": False,
             "auto_parameters": False,
         }
+        if query.search_depth == "advanced":
+            payload["chunks_per_source"] = 3
         if query.country:
             payload["country"] = self._country_name(query.country)
         if query.preferred_domains:
@@ -52,6 +54,9 @@ class TavilySearchPort(SearchPort):
         results = raw.get("results", [])
         documents: list[EvidenceDocument] = []
         for item in results[:max_results]:
+            score = item.get("score")
+            if score is not None and score < query.min_score:
+                continue
             url = item.get("url", "")
             domain = self._domain_from_url(url)
             raw_content = item.get("raw_content", "") or ""
@@ -63,6 +68,7 @@ class TavilySearchPort(SearchPort):
                     source_type="tavily_search",
                     raw_content=raw_content,
                     domain=domain,
+                    search_score=score,
                     query_planned=query.query,
                     query_executed=query.query,
                     research_phase=query.research_phase,

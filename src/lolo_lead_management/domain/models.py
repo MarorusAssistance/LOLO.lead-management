@@ -79,6 +79,7 @@ class EvidenceItem(StrictModel):
     source_type: str
     raw_content: str = ""
     domain: str | None = None
+    search_score: float | None = Field(default=None, ge=0, le=1)
     query_planned: str | None = None
     query_executed: str | None = None
     research_phase: str | None = None
@@ -98,6 +99,8 @@ class ResearchQuery(StrictModel):
     objective: str = Field(min_length=3)
     research_phase: str = Field(min_length=3)
     candidate_company_name: str | None = None
+    search_depth: str = Field(default="basic", pattern="^(basic|advanced|fast|ultra-fast)$")
+    min_score: float = Field(default=0, ge=0, le=1)
     preferred_domains: list[str] = Field(default_factory=list)
     excluded_domains: list[str] = Field(default_factory=list)
     exact_match: bool = False

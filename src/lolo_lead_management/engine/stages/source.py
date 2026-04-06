@@ -12,8 +12,10 @@ from lolo_lead_management.engine.rules import (
     choose_queries,
     dedupe_preserve_order,
     enrich_document_metadata,
+    merge_research_query_plans,
     merge_documents,
     sanitize_research_query_plan,
+    select_anchor_company,
 )
 from lolo_lead_management.engine.state import EngineRuntimeState
 from lolo_lead_management.ports.search import SearchPort
@@ -37,7 +39,7 @@ class SourceStage:
                 spec=STAGE_AGENT_SPECS[StageName.SOURCE],
                 payload={
                     "request": request.model_dump(mode="json"),
-                    "memory": state.memory.model_dump(mode="json"),
+                    "memory": self._memory_payload(state),
                     "relaxation_stage": state.run.applied_relaxation_stage,
                     "fallback_plan": fallback_plan.model_dump(mode="json"),
                 },
@@ -46,12 +48,15 @@ class SourceStage:
         except Exception:
             generated_plan = None
 
-        plan = sanitize_research_query_plan(generated_plan, fallback=fallback_plan)
-        selected_queries = choose_queries(plan, state.memory.query_history + ([state.current_query] if state.current_query else []), limit=4)
+        sanitized_plan = sanitize_research_query_plan(generated_plan, fallback=fallback_plan, request=request)
+        plan = merge_research_query_plans(sanitized_plan, fallback_plan)
+        query_history = state.memory.query_history + ([state.current_query] if state.current_query else [])
+        selected_queries = choose_queries(plan, query_history, limit=2)
         if not selected_queries:
             return SourcePassResult(sourcing_status=SourcingStatus.NO_CANDIDATE, query_plan=plan, notes=["no_unused_queries_left"])
 
         documents = []
+        executed_queries = []
         research_trace: list[ResearchTraceEntry] = []
         for query in selected_queries:
             state.run.budget.search_calls_used += 1
@@ -74,14 +79,53 @@ class SourceStage:
                 )
             )
             documents.extend(selected)
+            executed_queries.append(query)
 
         documents = merge_documents(documents)
-        anchored_company = next((item.candidate_company_name for item in selected_queries if item.candidate_company_name), None)
+        anchored_company = next((item.candidate_company_name for item in executed_queries if item.candidate_company_name), None)
+        if anchored_company is None and documents:
+            anchored_company = select_anchor_company(documents)
+
+        if anchored_company:
+            anchor_plan = build_research_query_plan(
+                request,
+                state.run.applied_relaxation_stage,
+                anchor_company=anchored_company,
+                mode="source_anchor_followup",
+            )
+            anchor_queries = self._choose_anchor_queries(
+                anchor_plan,
+                query_history + [item.query for item in executed_queries],
+            )
+            for query in anchor_queries:
+                state.run.budget.search_calls_used += 1
+                results = self._search_port.web_search(query, max_results=self._max_results)
+                filtered = [
+                    item for item in results if item.url not in state.memory.visited_urls and self._is_usable_search_result(item.url)
+                ]
+                enriched = self._enrich_missing_content(filtered, query.query)
+                selected = merge_documents(enriched[: self._max_results])
+                research_trace.append(
+                    ResearchTraceEntry(
+                        query_planned=query.query,
+                        query_executed=query.query,
+                        research_phase=query.research_phase,
+                        objective=query.objective,
+                        candidate_company_name=query.candidate_company_name,
+                        documents_considered=len(filtered),
+                        documents_selected=len(selected),
+                        selected_urls=[item.url for item in selected],
+                    )
+                )
+                documents.extend(selected)
+                executed_queries.append(query)
+            documents = merge_documents(documents)
+
         if not documents:
             return SourcePassResult(
                 sourcing_status=SourcingStatus.NO_CANDIDATE,
                 query_plan=plan,
-                executed_queries=selected_queries,
+                executed_queries=executed_queries,
                 anchored_company_name=anchored_company,
                 research_trace=research_trace,
                 notes=["no_documents_selected"],
@@ -90,12 +134,41 @@ class SourceStage:
         return SourcePassResult(
             sourcing_status=SourcingStatus.FOUND,
             query_plan=plan,
-            executed_queries=selected_queries,
+            executed_queries=executed_queries,
             documents=documents,
             anchored_company_name=anchored_company,
             research_trace=research_trace,
-            notes=[f"queries_executed={len(selected_queries)}"],
+            notes=[f"queries_executed={len(executed_queries)}"],
         )
+
+    def _choose_anchor_queries(self, plan: ResearchQueryPlan, query_history: list[str]):
+        selected = []
+        selected_queries = set()
+        priority_groups = [
+            lambda item: item.research_phase == "company_anchoring",
+            lambda item: "buyer persona" in item.objective.lower() or "role title" in item.objective.lower(),
+            lambda item: item.research_phase == "evidence_closing" or "company size" in item.objective.lower(),
+            lambda item: item.research_phase == "field_acquisition" and "fit signals" in item.objective.lower(),
+        ]
+        for predicate in priority_groups:
+            for query in choose_queries(plan, query_history + [item.query for item in selected], limit=6):
+                if query.query in selected_queries:
+                    continue
+                if predicate(query):
+                    selected.append(query)
+                    selected_queries.add(query.query)
+                    break
+            if len(selected) >= 3:
+                break
+        if len(selected) < 3:
+            for query in choose_queries(plan, query_history + [item.query for item in selected], limit=6):
+                if query.query in selected_queries:
+                    continue
+                selected.append(query)
+                selected_queries.add(query.query)
+                if len(selected) >= 3:
+                    break
+        return selected
 
     def _enrich_missing_content(self, documents, query_text: str):
         pending = [item for item in documents if not item.raw_content]
@@ -119,6 +192,16 @@ class SourceStage:
                 )
             )
         return enriched
+
+    def _memory_payload(self, state: EngineRuntimeState) -> dict:
+        return {
+            "scope": state.memory.scope,
+            "query_history": state.memory.query_history[-20:],
+            "visited_urls": state.memory.visited_urls[-30:],
+            "searched_company_names": state.memory.searched_company_names[-25:],
+            "registered_lead_names": state.memory.registered_lead_names[-15:],
+            "consecutive_hard_miss_runs": state.memory.consecutive_hard_miss_runs,
+        }
 
     def _safe_fetch_page(self, url: str) -> str:
         try:

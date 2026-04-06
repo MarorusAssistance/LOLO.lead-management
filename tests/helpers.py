@@ -94,7 +94,7 @@ def build_test_container(
 
 
 def accepted_candidate_fixture() -> tuple[dict[str, list[EvidenceDocument]], dict[str, str]]:
-    query = "Spain startup AI software company"
+    query = "Spain AI startup"
     search_index = {
         query: [
             EvidenceDocument(
@@ -121,7 +121,7 @@ def accepted_candidate_fixture() -> tuple[dict[str, list[EvidenceDocument]], dic
 
 
 def close_match_candidate_fixture() -> tuple[dict[str, list[EvidenceDocument]], dict[str, str]]:
-    query = "Spain startup AI software company"
+    query = "Spain AI startup"
     search_index = {
         query: [
             EvidenceDocument(

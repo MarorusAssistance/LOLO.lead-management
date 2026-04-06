@@ -11,6 +11,7 @@ from lolo_lead_management.engine.rules import (
     choose_queries,
     collect_missing_fields_for_enrichment,
     enrich_document_metadata,
+    merge_research_query_plans,
     merge_documents,
     sanitize_research_query_plan,
 )
@@ -42,8 +43,15 @@ class EnrichStage:
                 spec=STAGE_AGENT_SPECS[StageName.ENRICH],
                 payload={
                     "request": state.run.request.model_dump(mode="json"),
-                    "current_dossier": dossier.model_dump(mode="json"),
-                    "memory": state.memory.model_dump(mode="json"),
+                    "current_dossier": self._compact_dossier_payload(dossier.model_dump(mode="json")),
+                    "memory": {
+                        "scope": state.memory.scope,
+                        "query_history": state.memory.query_history[-20:],
+                        "visited_urls": state.memory.visited_urls[-30:],
+                        "searched_company_names": state.memory.searched_company_names[-25:],
+                        "registered_lead_names": state.memory.registered_lead_names[-15:],
+                        "consecutive_hard_miss_runs": state.memory.consecutive_hard_miss_runs,
+                    },
                     "missing_fields": missing_fields,
                     "fallback_plan": fallback_plan.model_dump(mode="json"),
                 },
@@ -51,7 +59,13 @@ class EnrichStage:
             )
         except Exception:
             generated_plan = None
-        plan = sanitize_research_query_plan(generated_plan, fallback=fallback_plan, anchor_company=dossier.company.name)
+        sanitized_plan = sanitize_research_query_plan(
+            generated_plan,
+            fallback=fallback_plan,
+            request=state.run.request,
+            anchor_company=dossier.company.name,
+        )
+        plan = merge_research_query_plans(sanitized_plan, fallback_plan)
         selected_queries = choose_queries(plan, state.memory.query_history + ([state.current_query] if state.current_query else []), limit=3)
         if not selected_queries:
             return SourcePassResult(sourcing_status=SourcingStatus.NO_CANDIDATE, query_plan=plan, notes=["no_unused_queries_left_for_enrichment"])
@@ -113,3 +127,22 @@ class EnrichStage:
             return self._search_port.fetch_page(url)
         except Exception:
             return ""
+
+    def _compact_dossier_payload(self, payload: dict) -> dict:
+        compact = dict(payload)
+        compact["evidence"] = [self._compact_evidence_item(item) for item in payload.get("evidence", [])[:6]]
+        compact["field_evidence"] = [
+            {
+                **item,
+                "supporting_evidence": [self._compact_evidence_item(doc) for doc in item.get("supporting_evidence", [])[:3]],
+                "contradicting_evidence": [self._compact_evidence_item(doc) for doc in item.get("contradicting_evidence", [])[:2]],
+            }
+            for item in payload.get("field_evidence", [])
+        ]
+        return compact
+
+    def _compact_evidence_item(self, payload: dict) -> dict:
+        compact = dict(payload)
+        compact["snippet"] = (compact.get("snippet") or "")[:400]
+        compact["raw_content"] = (compact.get("raw_content") or "")[:1800]
+        return compact

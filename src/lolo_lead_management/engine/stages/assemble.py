@@ -23,8 +23,8 @@ class AssembleStage:
                 spec=STAGE_AGENT_SPECS[StageName.ASSEMBLE],
                 payload={
                     "request": state.run.request.model_dump(mode="json"),
-                    "source_result": source_result.model_dump(mode="json"),
-                    "prior_dossier": prior_dossier.model_dump(mode="json") if prior_dossier else None,
+                    "source_result": self._compact_source_result_payload(source_result.model_dump(mode="json")),
+                    "prior_dossier": self._compact_dossier_payload(prior_dossier.model_dump(mode="json")) if prior_dossier else None,
                 },
                 output_model=AssembledLeadDossier,
             )
@@ -36,3 +36,27 @@ class AssembleStage:
             source_result=source_result,
             prior_dossier=prior_dossier,
         )
+
+    def _compact_source_result_payload(self, payload: dict) -> dict:
+        compact = dict(payload)
+        compact["documents"] = [self._compact_evidence_item(item) for item in payload.get("documents", [])[:6]]
+        return compact
+
+    def _compact_dossier_payload(self, payload: dict) -> dict:
+        compact = dict(payload)
+        compact["evidence"] = [self._compact_evidence_item(item) for item in payload.get("evidence", [])[:6]]
+        compact["field_evidence"] = [
+            {
+                **item,
+                "supporting_evidence": [self._compact_evidence_item(doc) for doc in item.get("supporting_evidence", [])[:3]],
+                "contradicting_evidence": [self._compact_evidence_item(doc) for doc in item.get("contradicting_evidence", [])[:2]],
+            }
+            for item in payload.get("field_evidence", [])
+        ]
+        return compact
+
+    def _compact_evidence_item(self, payload: dict) -> dict:
+        compact = dict(payload)
+        compact["snippet"] = (compact.get("snippet") or "")[:400]
+        compact["raw_content"] = (compact.get("raw_content") or "")[:1800]
+        return compact

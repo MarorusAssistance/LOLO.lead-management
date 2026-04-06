@@ -129,6 +129,77 @@ PUBLISHER_DOMAINS = {
     "thenextweb.com",
 }
 
+DISCOVERY_INCLUDE_DOMAINS = ["seedtable.com", "f6s.com", "eu-startups.com"]
+BARCELONA_DISCOVERY_INCLUDE_DOMAINS = ["startupshub.catalonia.com", "techbarcelona.com", "eu-startups.com"]
+MADRID_DISCOVERY_INCLUDE_DOMAINS = ["f6s.com", "seedtable.com", "eu-startups.com"]
+DISCOVERY_EXCLUDED_DOMAINS = [
+    "github.com",
+    "linkedin.com",
+    "twitter.com",
+    "x.com",
+    "facebook.com",
+    "instagram.com",
+    "youtube.com",
+    "techcrunch.com",
+    "sifted.eu",
+    "revistaidees.cat",
+    "app.zefyron.com",
+]
+ANCHOR_EXCLUDED_DOMAINS = [
+    "linkedin.com",
+    "twitter.com",
+    "x.com",
+    "facebook.com",
+    "instagram.com",
+    "youtube.com",
+]
+BLOCKED_DISCOVERY_QUERY_TOKENS = [
+    "github",
+    "repository",
+    "repo",
+    "pull request",
+    "linkedin",
+    "youtube",
+    "twitter",
+    "facebook",
+    "instagram",
+]
+GENERIC_COMPANY_NAME_TOKENS = {
+    "ai",
+    "annual",
+    "annually",
+    "artificial",
+    "automation",
+    "barcelona",
+    "best",
+    "business",
+    "companies",
+    "company",
+    "data",
+    "directory",
+    "ecosystem",
+    "energy",
+    "finance",
+    "focused",
+    "for",
+    "founded",
+    "has",
+    "intelligence",
+    "launched",
+    "madrid",
+    "manufacturing",
+    "of",
+    "on",
+    "rankings",
+    "report",
+    "software",
+    "spain",
+    "startups",
+    "the",
+    "top",
+    "watch",
+}
+
 ROLE_PATTERN = re.compile(
     r"\b(ceo|founder|cofounder|cto|chief technology officer|head of engineering|vp engineering|engineering manager|technical recruiter|talent lead|head of talent|recruiter)\b",
     re.IGNORECASE,
@@ -150,6 +221,7 @@ NAME_WITH_ROLE_PATTERN = re.compile(
     r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b.{0,60}\b(ceo|founder|cofounder|cto|head of engineering|vp engineering|engineering manager|technical recruiter|talent lead|head of talent|recruiter)\b",
     re.IGNORECASE | re.DOTALL,
 )
+KEY_PEOPLE_PATTERN = re.compile(r"Key people:\s*([A-Z][A-Za-zÁÉÍÓÚÑáéíóúñ.-]+(?:\s+[A-Z][A-Za-zÁÉÍÓÚÑáéíóúñ.-]+){1,3})", re.IGNORECASE)
 
 
 def normalize_text(text: str) -> str:
@@ -343,6 +415,15 @@ def country_terms_for_request(request: NormalizedLeadSearchRequest) -> list[str]
     return COUNTRY_QUERY_TERMS.get(request.constraints.preferred_country or "es", ["Spain", "Madrid", "Barcelona"])
 
 
+def discovery_domains_for_request(*, city: str | None = None) -> list[str]:
+    normalized_city = normalize_text(city or "")
+    if normalized_city == "barcelona":
+        return BARCELONA_DISCOVERY_INCLUDE_DOMAINS[:]
+    if normalized_city == "madrid":
+        return MADRID_DISCOVERY_INCLUDE_DOMAINS[:]
+    return DISCOVERY_INCLUDE_DOMAINS[:]
+
+
 def deterministic_discovery_queries(request: NormalizedLeadSearchRequest, relaxation_stage: int) -> list[ResearchQuery]:
     country_terms = country_terms_for_request(request)
     broad_country = country_terms[0]
@@ -351,19 +432,67 @@ def deterministic_discovery_queries(request: NormalizedLeadSearchRequest, relaxa
     if relaxation_stage >= 1 and "software company" not in themes:
         themes.append("software company")
     theme_terms: list[str] = []
-    for theme in themes[:3]:
+    for theme in themes[:2]:
         theme_terms.extend(THEME_QUERY_TERMS.get(theme, [theme]))
     theme_terms = dedupe_preserve_order(theme_terms or ["AI", "automation", "software company"])
 
     queries: list[ResearchQuery] = []
-    for theme in theme_terms[:3]:
-        queries.append(ResearchQuery(query=f"{broad_country} startup {theme} software company", objective="Find plausible target companies that match the geography and theme.", research_phase="company_discovery", country=request.constraints.preferred_country, expected_source_types=["company_site", "directory", "news"]))
-        queries.append(ResearchQuery(query=f"site:eu-startups.com/directory/ {broad_country} {theme} software", objective="Find startup directory candidates to seed company discovery.", research_phase="company_discovery", country=request.constraints.preferred_country, expected_source_types=["directory"]))
+    discovery_domains = discovery_domains_for_request()
+    for theme in theme_terms[:2]:
+        queries.append(
+            ResearchQuery(
+                query=f"{broad_country} {theme} startup",
+                objective="Find plausible startup companies in the requested geography and theme using high-value public startup directories.",
+                research_phase="company_discovery",
+                country=request.constraints.preferred_country,
+                search_depth="advanced",
+                min_score=0.68,
+                preferred_domains=discovery_domains,
+                excluded_domains=DISCOVERY_EXCLUDED_DOMAINS,
+                expected_source_types=["directory", "company_site"],
+            )
+        )
     for city in city_terms[:2]:
-        queries.append(ResearchQuery(query=f"{city} B2B software startup automation", objective="Find local companies with automation or software signals.", research_phase="company_discovery", country=request.constraints.preferred_country, expected_source_types=["company_site", "directory", "news"]))
+        queries.append(
+            ResearchQuery(
+                query=f"{city} AI startup",
+                objective="Find city-specific AI startups from regional startup hubs and directories.",
+                research_phase="company_discovery",
+                country=request.constraints.preferred_country,
+                search_depth="advanced",
+                min_score=0.68,
+                preferred_domains=discovery_domains_for_request(city=city),
+                excluded_domains=DISCOVERY_EXCLUDED_DOMAINS,
+                expected_source_types=["directory", "company_site"],
+            )
+        )
     if relaxation_stage >= 1:
-        queries.append(ResearchQuery(query=f"{broad_country} startup funding AI automation", objective="Find companies showing funding or growth signals.", research_phase="company_discovery", country=request.constraints.preferred_country, expected_source_types=["news", "directory"]))
-        queries.append(ResearchQuery(query=f"{broad_country} hiring AI startup engineering", objective="Find companies showing hiring and team growth signals.", research_phase="company_discovery", country=request.constraints.preferred_country, expected_source_types=["company_site", "job_board", "news"]))
+        queries.append(
+            ResearchQuery(
+                query=f"{broad_country} AI startup funding",
+                objective="Find AI startups showing public growth or funding signals while staying inside trusted startup sources.",
+                research_phase="company_discovery",
+                country=request.constraints.preferred_country,
+                search_depth="advanced",
+                min_score=0.65,
+                preferred_domains=discovery_domains,
+                excluded_domains=DISCOVERY_EXCLUDED_DOMAINS,
+                expected_source_types=["directory", "news"],
+            )
+        )
+        queries.append(
+            ResearchQuery(
+                query=f"{broad_country} automation startup hiring",
+                objective="Find companies with hiring or expansion signals relevant to automation and AI services.",
+                research_phase="company_discovery",
+                country=request.constraints.preferred_country,
+                search_depth="advanced",
+                min_score=0.62,
+                preferred_domains=["eu-startups.com", "f6s.com", "startupshub.catalonia.com"],
+                excluded_domains=DISCOVERY_EXCLUDED_DOMAINS,
+                expected_source_types=["directory", "job_board", "news"],
+            )
+        )
     return queries
 
 
@@ -377,18 +506,18 @@ def deterministic_anchor_queries(
     buyers = [item.replace("_", " ") for item in request.buyer_targets[:3] or DEFAULT_BUYER_TARGETS[:3]]
     themes = dedupe_preserve_order(request.search_themes[:2] or DEFAULT_SEARCH_THEMES[:2])
     queries: list[ResearchQuery] = [
-        ResearchQuery(query=f'"{anchor_company}" official site', objective="Verify the official website and main company entity.", research_phase="company_anchoring", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site"]),
-        ResearchQuery(query=f'"{anchor_company}" careers jobs team', objective="Find hiring and size-related public signals.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site", "job_board"]),
-        ResearchQuery(query=f'"{anchor_company}" product docs github blog', objective="Find product, docs, GitHub, or blog evidence of fit signals.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site", "docs", "github", "blog"]),
+        ResearchQuery(query=f'"{anchor_company}" official site', objective="Verify the official website and the main company entity.", research_phase="company_anchoring", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.62, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
+        ResearchQuery(query=f'"{anchor_company}" careers team jobs about', objective="Find company-controlled pages with hiring, team, and headcount clues.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.58, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "job_board"]),
+        ResearchQuery(query=f'"{anchor_company}" product docs github blog', objective="Find product, docs, GitHub, or blog evidence of AI, automation, or software fit.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.55, excluded_domains=["linkedin.com", "twitter.com", "x.com", "facebook.com", "instagram.com"], expected_source_types=["company_site", "docs", "github", "blog"]),
     ]
     if "person_name" in missing or "role_title" in missing or not missing:
         for buyer in buyers[:2]:
-            queries.append(ResearchQuery(query=f'"{anchor_company}" {buyer}', objective="Find a named buyer persona and role title.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site", "news", "event"]))
+            queries.append(ResearchQuery(query=f'"{anchor_company}" {buyer} founder team leadership', objective="Find a named buyer persona and role title tied to the company.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.58, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "news", "event"]))
     if "employee_estimate" in missing or not missing:
-        queries.append(ResearchQuery(query=f'"{anchor_company}" employees team size', objective="Estimate company size from public information.", research_phase="evidence_closing", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site", "directory", "job_board"]))
+        queries.append(ResearchQuery(query=f'"{anchor_company}" employees team size', objective="Estimate company size from public information and business directories.", research_phase="evidence_closing", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.52, preferred_domains=["crunchbase.com", "f6s.com", "rocketreach.co", "wellfound.com"], excluded_domains=["linkedin.com"], expected_source_types=["company_site", "directory", "job_board"]))
     if "fit_signals" in missing or not missing:
         for theme in themes:
-            queries.append(ResearchQuery(query=f'"{anchor_company}" {theme}', objective="Collect evidence for AI, automation, or software fit signals.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, expected_source_types=["company_site", "blog", "docs", "news"]))
+            queries.append(ResearchQuery(query=f'"{anchor_company}" {theme}', objective="Collect evidence for AI, automation, or software fit signals.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.55, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "blog", "docs", "news"]))
     return queries
 
 
@@ -416,10 +545,42 @@ def dedupe_queries(queries: list[ResearchQuery]) -> list[ResearchQuery]:
     return output
 
 
+def query_contains_blocked_discovery_terms(query: str) -> bool:
+    normalized = normalize_text(query)
+    return any(token in normalized for token in BLOCKED_DISCOVERY_QUERY_TOKENS)
+
+
+def query_selection_score(query: ResearchQuery) -> int:
+    normalized = normalize_text(query.query)
+    score = 0
+    if query.research_phase == "company_discovery":
+        score += 30
+    if query.candidate_company_name:
+        score += 25
+    if query.search_depth == "advanced":
+        score += 12
+    if query.preferred_domains:
+        score += 10
+    if query.exact_match:
+        score += 8
+    if "company_site" in query.expected_source_types:
+        score += 6
+    if "directory" in query.expected_source_types:
+        score += 4
+    if "job_board" in query.expected_source_types:
+        score += 2
+    if query_contains_blocked_discovery_terms(normalized) and query.research_phase == "company_discovery":
+        score -= 100
+    if "under 50 employees" in normalized and query.research_phase == "company_discovery":
+        score -= 8
+    return score
+
+
 def sanitize_research_query_plan(
     candidate: ResearchQueryPlan | None,
     *,
     fallback: ResearchQueryPlan,
+    request: NormalizedLeadSearchRequest,
     anchor_company: str | None = None,
 ) -> ResearchQueryPlan:
     if candidate is None:
@@ -431,22 +592,50 @@ def sanitize_research_query_plan(
         phase = " ".join(item.research_phase.split()).strip()
         if len(query) < 3 or len(objective) < 3 or len(phase) < 3:
             continue
-        sanitized.append(item.model_copy(update={"query": query, "objective": objective, "research_phase": phase, "candidate_company_name": item.candidate_company_name or anchor_company}))
+        if phase == "company_discovery" and query_contains_blocked_discovery_terms(query):
+            continue
+        update: dict[str, object] = {
+            "query": query,
+            "objective": objective,
+            "research_phase": phase,
+            "candidate_company_name": item.candidate_company_name or anchor_company,
+            "excluded_domains": dedupe_preserve_order([*item.excluded_domains, *(DISCOVERY_EXCLUDED_DOMAINS if phase == "company_discovery" else ANCHOR_EXCLUDED_DOMAINS)]),
+        }
+        if phase == "company_discovery":
+            preferred_domains = item.preferred_domains or discovery_domains_for_request()
+            update["preferred_domains"] = preferred_domains[:3]
+            update["search_depth"] = "advanced"
+            update["min_score"] = max(item.min_score, 0.65)
+            update["exact_match"] = False
+        elif item.candidate_company_name or anchor_company:
+            update["search_depth"] = "advanced"
+            update["min_score"] = max(item.min_score, 0.55)
+        update["country"] = item.country or request.constraints.preferred_country
+        sanitized.append(item.model_copy(update=update))
     if not sanitized:
         return fallback
-    return ResearchQueryPlan(planned_queries=dedupe_queries(sanitized)[:6], notes=dedupe_preserve_order(candidate.notes or fallback.notes), stop_conditions=dedupe_preserve_order(candidate.stop_conditions or fallback.stop_conditions))
+    return ResearchQueryPlan(planned_queries=dedupe_queries(sorted(sanitized, key=query_selection_score, reverse=True))[:6], notes=dedupe_preserve_order(candidate.notes or fallback.notes), stop_conditions=dedupe_preserve_order(candidate.stop_conditions or fallback.stop_conditions))
 
 
 def choose_queries(plan: ResearchQueryPlan, query_history: list[str], *, limit: int) -> list[ResearchQuery]:
     used = {normalize_text(item) for item in query_history}
     selected: list[ResearchQuery] = []
-    for query in plan.planned_queries:
+    ranked = sorted(plan.planned_queries, key=query_selection_score, reverse=True)
+    for query in ranked:
         if normalize_text(query.query) in used:
             continue
         selected.append(query)
         if len(selected) >= limit:
             break
     return selected
+
+
+def merge_research_query_plans(primary: ResearchQueryPlan, fallback: ResearchQueryPlan) -> ResearchQueryPlan:
+    return ResearchQueryPlan(
+        planned_queries=dedupe_queries(sorted([*primary.planned_queries, *fallback.planned_queries], key=query_selection_score, reverse=True)),
+        notes=dedupe_preserve_order([*primary.notes, *fallback.notes]),
+        stop_conditions=dedupe_preserve_order([*primary.stop_conditions, *fallback.stop_conditions]),
+    )
 
 
 def domain_from_url(url: str | None) -> str | None:
@@ -480,11 +669,44 @@ def clean_company_name(value: str | None) -> str | None:
     return cleaned.title() if cleaned.islower() else cleaned.strip()
 
 
+def is_plausible_company_name(value: str | None, *, source_domain: str | None = None) -> bool:
+    cleaned = clean_company_name(value)
+    if cleaned is None:
+        return False
+    normalized = normalize_text(cleaned)
+    tokens = [token for token in re.split(r"\s+", normalized) if token]
+    if not tokens:
+        return False
+    if normalized in {"spain", "madrid", "barcelona", "valencia", "github"}:
+        return False
+    if source_domain and normalized == normalize_text((source_domain or "").split(".")[0]) and (domain_is_publisher_like(source_domain) or domain_is_directory(source_domain)):
+        return False
+    if len(tokens) > 5:
+        return False
+    generic_tokens = sum(1 for token in tokens if token in GENERIC_COMPANY_NAME_TOKENS)
+    if generic_tokens >= max(2, len(tokens)):
+        return False
+    return True
+
+
+def company_name_key(value: str | None) -> str:
+    return re.sub(r"[^a-z0-9]+", "", normalize_text(value or ""))
+
+
+def company_name_matches_anchor(candidate: str | None, anchor_company: str | None) -> bool:
+    candidate_key = company_name_key(candidate)
+    anchor_key = company_name_key(anchor_company)
+    if not candidate_key or not anchor_key:
+        return False
+    return candidate_key == anchor_key or (len(candidate_key) >= 5 and candidate_key in anchor_key) or (len(anchor_key) >= 5 and anchor_key in candidate_key)
+
+
 def extract_domain_company_name(url: str) -> str | None:
     domain = domain_from_url(url)
     if not domain or domain_is_publisher_like(domain) or domain_is_directory(domain):
         return None
-    return clean_company_name(domain.split(".")[0])
+    candidate = clean_company_name(domain.split(".")[0])
+    return candidate if is_plausible_company_name(candidate, source_domain=domain) else None
 
 
 def title_company_name(title: str) -> str | None:
@@ -494,7 +716,22 @@ def title_company_name(title: str) -> str | None:
     primary = re.split(r"\s+[|\-:]\s+", title, maxsplit=1)[0].strip()
     if re.search(r"\b(startups?|companies?|jobs?|rankings?|funding|raises?)\b", primary, re.IGNORECASE):
         return None
-    return clean_company_name(primary)
+    candidate = clean_company_name(primary)
+    return candidate if is_plausible_company_name(candidate) else None
+
+
+def extract_company_candidates_from_list_text(text: str, *, source_domain: str | None = None) -> list[str]:
+    candidates: list[str] = []
+    patterns = [
+        re.compile(r"###\s*([A-Z][A-Za-z0-9&+.'/-]{1,40}(?:\s+[A-Z][A-Za-z0-9&+.'/-]{1,40}){0,3})"),
+        re.compile(r"\b([A-Z][A-Za-z0-9&+.'/-]{1,40}(?:\s+[A-Z][A-Za-z0-9&+.'/-]{1,40}){0,3})\s+(?:is|specialises|specializes|focuses|develops|provides)\b"),
+    ]
+    for pattern in patterns:
+        for match in pattern.finditer(text):
+            candidate = clean_company_name(match.group(1))
+            if candidate and is_plausible_company_name(candidate, source_domain=source_domain):
+                candidates.append(candidate)
+    return dedupe_preserve_order(candidates)
 
 
 def extract_official_website(text: str, source_url: str) -> str | None:
@@ -505,7 +742,9 @@ def extract_official_website(text: str, source_url: str) -> str | None:
         if not hostname or hostname == source_host or domain_is_directory(hostname):
             continue
         return candidate.rstrip(".,)")
-    if source_host and not domain_is_directory(source_host) and not domain_is_publisher_like(source_host):
+    lowered_source = source_url.lower()
+    noisy_path_tokens = ["/case-studies/", "/company/", "/directory/", "/jobs/", "/job/", "/profile", "/articles/", "/blog/"]
+    if source_host and not domain_is_directory(source_host) and not domain_is_publisher_like(source_host) and not any(token in lowered_source for token in noisy_path_tokens):
         return source_url
     return None
 
@@ -518,16 +757,51 @@ def extract_employee_estimate_from_text(text: str) -> int | None:
     return None
 
 
+def clean_person_name(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = re.sub(r"https?://\S+", " ", value)
+    cleaned = re.sub(r"[/=_+(){}\[\]]+", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -|,.;:")
+    if len(cleaned) < 4 or len(cleaned) > 60:
+        return None
+    if any(token in cleaned.lower() for token in ["report abuse", "repository", "pull request", "administrative boundaries", "enviado"]):
+        return None
+    tokens = cleaned.split()
+    if not 2 <= len(tokens) <= 4:
+        return None
+    if not all(token[:1].isalpha() for token in tokens):
+        return None
+    if sum(1 for token in tokens if token[:1].isupper()) < 2:
+        return None
+    return cleaned
+
+
+def clean_role_title(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = re.sub(r"\s+", " ", value).strip(" -|,.;:")
+    if len(cleaned) < 2 or len(cleaned) > 80:
+        return None
+    if any(token in cleaned.lower() for token in ["administrative boundaries", "enviado", "report abuse", "repository"]):
+        return None
+    return cleaned
+
+
 def parse_candidate_from_text(text: str, url: str) -> tuple[PersonCandidate | None, CompanyCandidate | None]:
     person_name = PERSON_PATTERN.search(text).group(1).strip() if PERSON_PATTERN.search(text) else None
     role_title = ROLE_VALUE_PATTERN.search(text).group(1).strip() if ROLE_VALUE_PATTERN.search(text) else None
     if person_name is None and role_title is None and (match := NAME_WITH_ROLE_PATTERN.search(text)):
         person_name = match.group(1).strip()
         role_title = match.group(2).strip()
+    if person_name is None and (match := KEY_PEOPLE_PATTERN.search(text)):
+        person_name = match.group(1).strip()
     if role_title is None:
         for match in ROLE_PATTERN.finditer(text):
             role_title = match.group(1)
             break
+    person_name = clean_person_name(person_name)
+    role_title = clean_role_title(role_title)
     company_name = clean_company_name(COMPANY_PATTERN.search(text).group(1)) if COMPANY_PATTERN.search(text) else None
     country_code = extract_country_code(COUNTRY_PATTERN.search(text).group(1)) if COUNTRY_PATTERN.search(text) else extract_country_code(text)
     employee_estimate = extract_employee_estimate_from_text(text)
@@ -577,12 +851,22 @@ def source_quality_for_document(document: EvidenceDocument, anchor_company: str 
 def enrich_document_metadata(document: EvidenceDocument, *, anchor_company: str | None = None) -> EvidenceDocument:
     domain = document.domain or domain_from_url(document.url)
     quality = source_quality_for_document(document, anchor_company)
+    anchor_normalized = normalize_text(anchor_company) if anchor_company else ""
+    domain_root = normalize_text((domain or "").split(".")[0].replace("-", " "))
+    text = normalize_text(_document_text(document))
+    is_company_controlled = bool(
+        anchor_company
+        and domain
+        and not domain_is_directory(domain)
+        and not domain_is_publisher_like(domain)
+        and (anchor_normalized in text or anchor_normalized in domain_root)
+    )
     return document.model_copy(
         update={
             "domain": domain,
             "source_quality": quality,
             "is_publisher_like": domain_is_publisher_like(domain),
-            "is_company_controlled_source": bool(domain and not domain_is_directory(domain) and not domain_is_publisher_like(domain) and anchor_company),
+            "is_company_controlled_source": is_company_controlled,
         }
     )
 
@@ -599,13 +883,17 @@ def merge_documents(documents: list[EvidenceDocument]) -> list[EvidenceDocument]
 def candidate_company_names_from_document(document: EvidenceDocument) -> list[str]:
     text = _document_text(document)
     candidates: list[str] = []
-    _, company = parse_candidate_from_text(text, document.url)
-    if company and company.name:
-        candidates.append(company.name)
-    if title_name := title_company_name(document.title):
-        candidates.append(title_name)
-    if domain_name := extract_domain_company_name(document.url):
-        candidates.append(domain_name)
+    source_domain = document.domain or domain_from_url(document.url)
+    if document.is_publisher_like or domain_is_directory(source_domain):
+        candidates.extend(extract_company_candidates_from_list_text(text, source_domain=source_domain))
+    else:
+        _, company = parse_candidate_from_text(text, document.url)
+        if company and company.name and is_plausible_company_name(company.name, source_domain=source_domain):
+            candidates.append(company.name)
+        if title_name := title_company_name(document.title):
+            candidates.append(title_name)
+        if domain_name := extract_domain_company_name(document.url):
+            candidates.append(domain_name)
     return dedupe_preserve_order([name for name in candidates if name])
 
 
@@ -617,6 +905,8 @@ def select_anchor_company(documents: list[EvidenceDocument], prior_anchor: str |
             scores[candidate] += quality_weight
             if prior_anchor and candidate.lower() == prior_anchor.lower():
                 scores[candidate] += 4
+            if document.company_anchor and candidate.lower() == document.company_anchor.lower():
+                scores[candidate] += 5
     if not scores:
         return prior_anchor
     return scores.most_common(1)[0][0]
@@ -720,28 +1010,37 @@ def build_fallback_assembled_dossier(
             continue
         relevant_docs.append(document)
         person, company = parse_candidate_from_text(text, document.url)
+        company_matches_anchor = False
         for candidate in candidate_company_names_from_document(document):
-            if candidate.lower() == anchor_lower:
+            if company_name_matches_anchor(candidate, anchor_company):
                 company_docs.append(document)
+                company_matches_anchor = True
                 break
-        if company and company.country_code:
+        if not company_matches_anchor and company and company.name:
+            company_matches_anchor = company_name_matches_anchor(company.name, anchor_company)
+        if company_matches_anchor and company and company.country_code:
             country_docs.append(document)
             country_values.append(company.country_code)
             country_value = country_values[0]
-        if company and company.employee_estimate is not None:
+        if company_matches_anchor and company and company.employee_estimate is not None:
             size_docs.append(document)
             size_values.append(company.employee_estimate)
             size_value = size_values[0]
-        if company and company.website:
+        if company_matches_anchor and company and company.website:
             website_docs.append(document)
-            website_value = company.website
+            if website_value is None or document.is_company_controlled_source:
+                website_value = company.website
         elif document.is_company_controlled_source and website_value is None and document.domain:
             website_docs.append(document)
             website_value = document.url.split("/", 3)[0] + "//" + document.domain
-        if person and person.full_name and anchor_lower in lowered:
+        if person and person.full_name and company_matches_anchor and (
+            document.is_company_controlled_source
+            or not domain_is_directory(document.domain)
+            or document.source_quality in {SourceQuality.HIGH, SourceQuality.MEDIUM}
+        ):
             person_docs.append(document)
             person_name = person.full_name
-        if person and person.role_title and anchor_lower in lowered:
+        if person and person.role_title and company_matches_anchor and (document.is_company_controlled_source or not domain_is_directory(document.domain)):
             role_docs.append(document)
             role_title = person.role_title
 
@@ -866,7 +1165,15 @@ def overlay_explicit_dossier_fields(
     if fit_signals and (current_fit is None or current_fit.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
         field_map["fit_signals"] = AssembledFieldEvidence(field_name="fit_signals", value=", ".join(fit_signals), status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Fit signals provided explicitly in the dossier and accepted as legacy support.")
 
-    return assembled.model_copy(update={"company": company, "person": person, "fit_signals": fit_signals, "field_evidence": list(field_map.values())})
+    return assembled.model_copy(
+        update={
+            "sourcing_status": original.sourcing_status,
+            "company": company,
+            "person": person,
+            "fit_signals": fit_signals,
+            "field_evidence": list(field_map.values()),
+        }
+    )
 
 
 def qualifies_role(role_title: str | None, buyer_targets: list[str]) -> tuple[bool, bool]:

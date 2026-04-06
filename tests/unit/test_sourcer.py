@@ -29,7 +29,7 @@ def test_sourcer_collects_documents_and_assembler_resolves_company() -> None:
     dossier = assemble_stage.execute(state)
 
     assert source_result.sourcing_status.value == "FOUND"
-    assert source_result.executed_queries[0].query == "Spain startup AI software company"
+    assert source_result.executed_queries[0].query == "Spain AI startup"
     assert len(source_result.documents) >= 2
     assert dossier.sourcing_status.value == "FOUND"
     assert dossier.company is not None
