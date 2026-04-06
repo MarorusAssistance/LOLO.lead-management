@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .enums import MatchType, PlannerAction, QualificationOutcome, RunStatus, SearchAction, SourcingStatus
+from .enums import MatchType, PlannerAction, QualificationOutcome, RunStatus, SearchAction, SourcingStatus, StageName
 
 
 def utc_now() -> datetime:
@@ -47,6 +47,7 @@ class LeadSearchStartRequest(StrictModel):
     user_text: str = Field(min_length=1)
     request_id: str | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
+    wait_for_completion: bool = True
 
 
 class EvidenceItem(StrictModel):
@@ -121,10 +122,14 @@ class ShortlistOption(StrictModel):
     option_number: int = Field(ge=1)
     company_name: str
     person_name: str | None = None
+    role_title: str | None = None
+    website: str | None = None
+    country_code: str | None = None
     summary: str
     close_match: CloseMatch
     qualification: QualificationDecision
     commercial: CommercialBundle
+    evidence: list[EvidenceItem] = Field(default_factory=list)
 
 
 class ShortlistRecord(StrictModel):
@@ -171,6 +176,9 @@ class SearchRunSnapshot(StrictModel):
     status: RunStatus = RunStatus.RUNNING
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+    current_stage: StageName | None = None
+    progress_message: str | None = None
+    last_heartbeat_at: datetime | None = None
     accepted_leads: list[AcceptedLeadRecord] = Field(default_factory=list)
     shortlist_id: str | None = None
     shortlist_options: list[ShortlistOption] = Field(default_factory=list)
@@ -191,6 +199,9 @@ class LeadSearchStartResponse(StrictModel):
     run_id: str
     status: RunStatus
     normalized_request: NormalizedLeadSearchRequest
+    current_stage: StageName | None = None
+    progress_message: str | None = None
+    last_heartbeat_at: datetime | None = None
     accepted_leads: list[AcceptedLeadRecord] = Field(default_factory=list)
     shortlist_id: str | None = None
     shortlist_options: list[ShortlistOption] = Field(default_factory=list)

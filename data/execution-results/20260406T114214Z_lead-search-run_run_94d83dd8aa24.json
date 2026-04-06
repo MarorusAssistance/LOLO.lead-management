@@ -1,0 +1,145 @@
+{
+  "run_id": "run_94d83dd8aa24",
+  "response": {
+    "run_id": "run_94d83dd8aa24",
+    "status": "no_result",
+    "normalized_request": {
+      "action": "lead_search.start",
+      "request_id": "req_edc199bba248",
+      "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "current_stage": "continue_or_finish",
+    "progress_message": "Search completed with no suitable results.",
+    "last_heartbeat_at": "2026-04-06T11:42:14.013708Z",
+    "accepted_leads": [],
+    "shortlist_id": null,
+    "shortlist_options": [],
+    "errors": [],
+    "budget_summary": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 0,
+      "search_calls_used": 0
+    },
+    "applied_relaxation_stage": 0,
+    "completed_reason": "budget_exhausted_without_results"
+  },
+  "final_run": {
+    "run_id": "run_94d83dd8aa24",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_edc199bba248",
+      "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "no_result",
+    "created_at": "2026-04-06T11:42:06.203504Z",
+    "updated_at": "2026-04-06T11:42:14.013708Z",
+    "current_stage": "continue_or_finish",
+    "progress_message": "Search completed with no suitable results.",
+    "last_heartbeat_at": "2026-04-06T11:42:14.013708Z",
+    "accepted_leads": [],
+    "shortlist_id": null,
+    "shortlist_options": [],
+    "iterations": [
+      {
+        "index": 1,
+        "planner_action": "SOURCE",
+        "query": null,
+        "dossier": {
+          "sourcing_status": "NO_CANDIDATE",
+          "query_used": null,
+          "person": null,
+          "company": null,
+          "fit_signals": [],
+          "evidence": [],
+          "notes": [
+            "no_unused_queries_left"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT",
+          "match_type": null,
+          "score": 0,
+          "summary": "No candidate dossier was found due to lack of available queries or valid results matching the criteria.",
+          "reasons": [
+            "sourcing did not produce a valid candidate"
+          ],
+          "type": null,
+          "region": null,
+          "close_match": null
+        }
+      }
+    ],
+    "errors": [],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 0,
+      "search_calls_used": 0
+    },
+    "applied_relaxation_stage": 0,
+    "completed_reason": "budget_exhausted_without_results"
+  }
+}

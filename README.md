@@ -56,9 +56,24 @@ Los prompts estan en [src/lolo_lead_management/engine/agents/prompts](/c:/Users/
 
 - `POST /lead-search/start`
 - `GET /runs/{id}`
+- `GET /shortlists/{id}`
+- `GET /shortlists/{id}/options/{option_number}`
 - `POST /shortlists/{id}/select`
 - `POST /query-memory/reset`
 - `GET /health`
+
+`POST /lead-search/start` admite dos modos:
+
+- sincronico por defecto: espera hasta que el run termina
+- asincrono: si envias `"wait_for_completion": false`, devuelve `202 Accepted` con `run_id`, `status=running`, `current_stage` y `progress_message`
+
+En modo asincrono, el caller debe hacer polling sobre `GET /runs/{id}` hasta que el `status` deje de ser `running`.
+
+Shortlist:
+
+- `GET /shortlists/{id}` devuelve la shortlist pendiente completa con razones, filtros perdidos y bundle comercial por opcion.
+- `GET /shortlists/{id}/options/{option_number}` devuelve el detalle de una opcion concreta para explicar por que es `close match`.
+- `POST /shortlists/{id}/select` promociona una opcion al CRM temporal sin borrar automaticamente las demas opciones pendientes.
 
 ## Persistencia
 
@@ -103,6 +118,26 @@ uvicorn lolo_lead_management.api.app:app --reload
 ```
 
 Si cambias `.env`, reinicia el proceso para que `get_settings()` recargue la configuracion.
+
+Ejemplo para gateway o OpenClaw en modo asincrono:
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/lead-search/start `
+  -ContentType 'application/json' `
+  -Body '{"user_text":"encuentra 3 leads que trabajen en empresas españolas de menos de 50 empleados","wait_for_completion":false}'
+```
+
+El JSON de respuesta ya incluye:
+
+- `run_id`
+- `status`
+- `current_stage`
+- `progress_message`
+- `last_heartbeat_at`
+
+Con eso el gateway puede enviar un acuse corto al usuario y consultar luego `GET /runs/{run_id}` para mandar la respuesta final.
 
 ## Test
 

@@ -1,0 +1,679 @@
+{
+  "run_id": "run_c25d626548d8",
+  "shortlist_id": "short_c25d626548d8",
+  "option_number": 2,
+  "final_run": {
+    "run_id": "run_c25d626548d8",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_370ae53b72a1",
+      "user_text": "encuentra 3 leads que trabajen en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "completed",
+    "created_at": "2026-03-30T20:02:10.801240Z",
+    "updated_at": "2026-04-06T11:57:59.110900Z",
+    "current_stage": "continue_or_finish",
+    "progress_message": "Shortlist option selected and promoted to accepted lead. 2 shortlist options remain.",
+    "last_heartbeat_at": "2026-04-06T11:57:59.110900Z",
+    "accepted_leads": [
+      {
+        "lead_id": "lead_0d8fcdb06399",
+        "person_name": null,
+        "role_title": null,
+        "company_name": "Transparent",
+        "website": null,
+        "country_code": null,
+        "evidence": [],
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Transparent (https://www.eu-startups.com/directory/transparent/); Optimizing AI Spend with Agentic Workflow Transparency - LinkedIn (https://www.linkedin.com/posts/edwardctaylor_the-agentic-workflow-has-exposed-me-acting-activity-7419332812169969664-aGLc)",
+          "hooks": [
+            "Transparent appears active around agentic workflows, software company.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Transparent está trabajando temas de agentic workflows, software company. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Transparent y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Transparent",
+          "email_body": "Hola there,\n\nHe revisado Transparent y veo señales útiles en torno a agentic workflows, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "lead_id": "lead_fa5b94a0f718",
+        "person_name": null,
+        "role_title": null,
+        "company_name": "MPL XR Company",
+        "website": null,
+        "country_code": null,
+        "evidence": [],
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 65,
+          "summary": "Candidate is commercially interesting but misses the preferred buyer persona constraint.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size falls within the requested range",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "MPL XR Company (https://www.eu-startups.com/directory/mpl-xr-company/); MPL XR Company - Tech Barcelona (https://www.techbarcelona.com/en/company/mpl-xr-company-2/)",
+          "hooks": [
+            "MPL XR Company appears active around software company.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but misses the preferred buyer persona constraint.",
+          "connection_note_draft": "Hola there, he visto varias señales de que MPL XR Company está trabajando temas de software company. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando MPL XR Company y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para MPL XR Company",
+          "email_body": "Hola there,\n\nHe revisado MPL XR Company y veo señales útiles en torno a software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      }
+    ],
+    "shortlist_id": "short_c25d626548d8",
+    "shortlist_options": [
+      {
+        "option_number": 3,
+        "company_name": "Optimus Price",
+        "person_name": null,
+        "role_title": null,
+        "website": null,
+        "country_code": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "50 Best Ecommerce Startups in Barcelona to Watch in 2026 (https://www.seedtable.com/best-ecommerce-startups-in-barcelona); About us - Optimus Price (https://www.optimusprice.ai/en/quienes-somos)",
+          "hooks": [
+            "Optimus Price appears active around genai, ai engineering.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Optimus Price está trabajando temas de genai, ai engineering. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Optimus Price y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Optimus Price",
+          "email_body": "Hola there,\n\nHe revisado Optimus Price y veo señales útiles en torno a genai, ai engineering, automation. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        },
+        "evidence": []
+      },
+      {
+        "option_number": 4,
+        "company_name": "Aunoa",
+        "person_name": null,
+        "role_title": null,
+        "website": null,
+        "country_code": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "aunoa (https://www.eu-startups.com/directory/aunoa/); Horizon Europe Cluster 4 Digital - Face2Face Brokerage 2025 (https://www.b2match.com/e/cl4-digital-2025/components/53910?participantFilters=%7B%22userCountryIds%22%3A%5B202%5D%7D)",
+          "hooks": [
+            "Aunoa appears active around genai, automation.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Aunoa está trabajando temas de genai, automation. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Aunoa y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Aunoa",
+          "email_body": "Hola there,\n\nHe revisado Aunoa y veo señales útiles en torno a genai, automation, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        },
+        "evidence": []
+      }
+    ],
+    "iterations": [
+      {
+        "index": 1,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain AI software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:eu-startups.com/directory/ Spain AI software company under 50 employees",
+          "person": null,
+          "company": {
+            "name": "Transparent",
+            "website": "https://lnkd.in/eXa5nqWK",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/transparent/",
+              "title": "Transparent",
+              "snippet": "Transparent is the global leader in providing data intelligence for the vacation rental industry. Based in: Madrid. Tags: Analytics, Big Data, Business",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.linkedin.com/posts/edwardctaylor_the-agentic-workflow-has-exposed-me-acting-activity-7419332812169969664-aGLc",
+              "title": "Optimizing AI Spend with Agentic Workflow Transparency - LinkedIn",
+              "snippet": "tying agentic workflows to CAC makes the cost conversation legible to non-technical leaders without oversimplifying it. Everyone is building agents, but almost nobody is thinking about how they actually get work done. An agent cannot complete a complex task without:. The agent with systems works 35 hours, closed 24 deals, and actually took a vacation without their business falling apart. In practice, a large number of business use cases can be modelled with single-agent, linear chaining workflows, rather than adaptive and complex patterns like reflection loops or multi-agent generator–optimizer setups. Here’s what decisions I’ve consistently seen work well when moving agentic projects from lab to production:. None of them said \"I need AI.\" They said things like \"I just want to know if I'm making money on this job\" and \"we only use a fraction of what we're paying for.\" And they all had an inkling that there may be a more AI-centric approach to improving their relationship to their business.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain AI software company under 50 employees",
+            "candidate_selected_by=llm",
+            "follow_up_query=Transparent ceo es automation agentic workflows"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 2,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+          "person": null,
+          "company": {
+            "name": "MPL XR Company",
+            "website": "https://mpl.com.co",
+            "country_code": "es",
+            "employee_estimate": 12
+          },
+          "fit_signals": [
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/mpl-xr-company/",
+              "title": "MPL XR Company",
+              "snippet": "MPL XR Company offers an integrated ecosystem of XR extended reality experiences, including virtual, augmented, and mixed reality, 360-degree videos and",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.techbarcelona.com/en/company/mpl-xr-company-2/",
+              "title": "MPL XR Company - Tech Barcelona",
+              "snippet": "Fabio Uribe, CEO & CoFounder of mpl with more than 20 years in the IT and Training industry. Marisol Cepeda, CEO & CoFounder, is a consultant and",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain GenAI software company under 50 employees",
+            "candidate_selected_by=llm",
+            "follow_up_query=MPL XR Company ceo es software company"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 65,
+          "summary": "Candidate is commercially interesting but misses the preferred buyer persona constraint.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size falls within the requested range",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 3,
+        "planner_action": "SOURCE",
+        "query": "site:seedtable.com best AI startups in Barcelona Spain",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:seedtable.com best AI startups in Barcelona Spain",
+          "person": null,
+          "company": {
+            "name": "Optimus Price",
+            "website": "https://engine.meetzy.io/meetzy.js\"",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "automation",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.seedtable.com/best-ecommerce-startups-in-barcelona",
+              "title": "50 Best Ecommerce Startups in Barcelona to Watch in 2026",
+              "snippet": "Optimus Price is an artificial Intelligence company founded in 2017 by Carlos Fenollosa. Industries: Technology Analytics Big data. Location: Barcelona. Key",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.optimusprice.ai/en/quienes-somos",
+              "title": "About us - Optimus Price",
+              "snippet": "Optimus Price is an award-winning artificial intelligence company applied to pricing, founded by scientists from the Barcelona Supercomputing Center and",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:seedtable.com best AI startups in Barcelona Spain",
+            "candidate_selected_by=llm",
+            "follow_up_query=Optimus Price ceo es genai ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 4,
+        "planner_action": "SOURCE",
+        "query": "site:startupstash.com Spain startup AI engineering under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:startupstash.com Spain startup AI engineering under 50 employees",
+          "person": null,
+          "company": {
+            "name": "CodeOp",
+            "website": "https://blog.startupstash.com/top-spanish-startups-that-bloomed-in-2022-5adb6749e029",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://blog.startupstash.com/top-spanish-startups-that-bloomed-in-2022-5adb6749e029",
+              "title": "Top Spanish Startups That Bloomed in 2022 | by Manaal",
+              "snippet": "Hetikus is a legal technology startup company based in Spain. Since being founded, the company has gone through two rounds of startup funding, with a pair of investors being interested in the project. The company was founded in 2021 by Sergio Escosa and has its headquarters based in Barcelona, Catalonia, Spain, with an employee size of around one to ten workers. GuruCall is a Spanish startup that was founded in 2020 and is currently based in Madrid, Spain. DoGood People is a Spanish startup that was founded in 2019 and is currently based in the capital city of Spain. Collectively, these investors have helped the company to raise a total of 2.5 Million Euros in startup funding. Opground is a Spanish startup that was founded in 2019 and is currently based in Barcelona, Spain. MiResi is a Spanish startup that was founded in 2019 and is currently based in the city of Madrid, Spain.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://codeop.tech?p=2186",
+              "title": "CodeOp secures +€320k seed round to tackle gender disparity in the tech industry. - CodeOp",
+              "snippet": "Title: CodeOp secures +€320k seed round to tackle gender disparity in the tech industry. - CodeOp\n# CodeOp secures +€320k seed round to tackle gender disparity in the tech industry. **Mission-led coding school, CodeOp, surpasses seed round goal to secure 320k+ to help change the face of the tech industry.**. CodeOp—the first and only coding school in Barcelona for women and the trans and gender non-conforming (TGNC) community—announces today that it has raised a seed round of over 320k, in-excess of its initial 260k goal, to offer coding bootcamps with a mission. Founded by Silicon Valley entrepreneur, Katrina Walker, CodeOp seeks to change the tech industry one bootcamp at a time. All-women coding schools make up less than 1% of all coding schools worldwide, a contributing factor to the current gender disparity in the tech industry. By offering beginner and advanced technical programs at its Barcelona campus, CodeOp aims to foster a supportive learning environment that encourages and equips people from these minority groups with the skills to become leading developers and data engineers. Though the school focuses on tech education for women and TGNC individuals, it works with individuals and communities worldwide, across and outside the gender spectrum, to foster a growing network of people who understand the issues these groups face. CodeOp receives the support of Lesbians Who Tech and SheCommerce, and has developed partnerships with global companies and organizations including Oracle and Fundació Catalana de l’Esplai. “There are a lot of statistics associated with women in tech.” Katrina Walker, CEO of CodeOp said. Investing in Codeop is a way to help level the playing field for women in tech. **For more information please contact yessica@staging.codeop.tech or +34 663 86 87 75**. CodeOp is the first international coding school for women and the TGNC community bridging the gap between technical education and development, and diversity and inclusion. With campuses in Barcelona and Kuala Lumpur, CodeOp offers beginner and advanced level bootcamps to students to equip them with the skills needed to become leading developers and data engineers in their fields. CodeOp, a Spanish-based social venture launched in 2018, is on a mission to encourage and support women, trans, and gender nonconforming individuals to pursue fulfilling careers in tech, and to launch a supportive network of professionals who will transform the culture.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:startupstash.com Spain startup AI engineering under 50 employees",
+            "candidate_selected_by=llm",
+            "follow_up_query=CodeOp ceo es genai ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT",
+          "match_type": null,
+          "score": 45,
+          "summary": "Company size is not verified despite being a hard constraint; no explicit evidence of employee count within the required limit of 50 or fewer employees.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs",
+            "missing hard proof: company_size"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      },
+      {
+        "index": 5,
+        "planner_action": "SOURCE",
+        "query": "site:seedtable.com best AI startups in Barcelona Spain under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:seedtable.com best AI startups in Barcelona Spain under 50 employees",
+          "person": null,
+          "company": {
+            "name": "Pitch",
+            "website": "https://www.techbuzz.ai/articles/uber-engineers-built-ai-clone-of-ceo-for-pitch-practice",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.seedtable.com/best-startups-in-europe",
+              "title": "41 Best Startups in Europe to Watch in 2026",
+              "snippet": "Pitch is an artificial intelligence company developing a platform for voice coaching. An artificial Intelligence company that develops software to sort through music data for business purposes. Entertainment Technology Artificial Intelligence (AI). BlueConic is a company founded in 2010 by Martijn van Berkum. Amper Music is a New York City-based artificial intelligence company offering systems for composing, performing, and producing synthetic music. Madvertise is a Europe-based company. Artificial Intelligence (AI) Software Music. Tech Services Artificial Intelligence (AI) Technology. Sellfy is a company founded in 2011 by Maris Dagis. Artificial Intelligence (AI) Technology Deep learning. Amadeus Code is a Tokyo-based synthetic media company developing an artificially intelligent songwriting assistant. Artificial Intelligence (AI) Technology AI music generation. Nomadesk is a company founded in 2004 by Filip Tack. Exacaster is a company founded in 2011 by Sarunas Chomentauskas. Transmetrics is a company founded in 2013. Artificial Intelligence (AI) Technology Logistics. CanvasPop is a company founded in 2009. Bijk.com is a Europe-based company founded in 2010.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.techbuzz.ai/articles/uber-engineers-built-ai-clone-of-ceo-for-pitch-practice",
+              "title": "Uber Engineers Built AI Clone of CEO for Pitch Practice",
+              "snippet": "Uber engineers built an AI chatbot mimicking CEO Dara Khosrowshahi that employees use to rehearse pitches, according to TechCrunch.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:seedtable.com best AI startups in Barcelona Spain under 50 employees",
+            "candidate_selected_by=llm",
+            "follow_up_query=Pitch ceo es genai ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT",
+          "match_type": null,
+          "score": 45,
+          "summary": "The candidate does not provide sufficient evidence to confirm compliance with the hard constraint on company size (max 50 employees), despite matching the preferred country (ES) and showing relevant AI/automation signals. The absence of verified employee count prevents acceptance.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs",
+            "missing hard proof: company_size"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      },
+      {
+        "index": 6,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain AI software",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:eu-startups.com/directory/ Spain AI software",
+          "person": null,
+          "company": {
+            "name": "Aunoa",
+            "website": "https://eurecat.org/en/field-of-knowledge/it-ot-security/",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "automation",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/aunoa/",
+              "title": "aunoa",
+              "snippet": "aunoa. aunoa. Category: Spain. Business Description: Aunoa is Artificial Intelligence Software company focused on providing automation tools to improve customer",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.b2match.com/e/cl4-digital-2025/components/53910?participantFilters=%7B%22userCountryIds%22%3A%5B202%5D%7D",
+              "title": "Horizon Europe Cluster 4 Digital - Face2Face Brokerage 2025",
+              "snippet": "Aunoa AI Software. AUNOA is dedicated to automate management, processing and customer service processes through conversational channels, using GenAI techniques.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain AI software",
+            "candidate_selected_by=llm",
+            "follow_up_query=Aunoa ceo es genai ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 0,
+      "search_calls_used": 12
+    },
+    "applied_relaxation_stage": 2,
+    "completed_reason": "budget_exhausted_with_shortlist"
+  }
+}

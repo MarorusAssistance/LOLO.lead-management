@@ -1,0 +1,674 @@
+{
+  "run_id": "run_f930613376ac",
+  "shortlist_id": "short_f930613376ac",
+  "option_number": 2,
+  "final_run": {
+    "run_id": "run_f930613376ac",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_62d761738569",
+      "user_text": "encuentra 3 leads que trabajen en empresas españolas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "completed",
+    "created_at": "2026-04-06T09:30:28.993644Z",
+    "updated_at": "2026-04-06T11:55:22.329644Z",
+    "current_stage": "continue_or_finish",
+    "progress_message": "Shortlist option selected and promoted to accepted lead. 2 shortlist options remain.",
+    "last_heartbeat_at": "2026-04-06T11:55:22.329644Z",
+    "accepted_leads": [
+      {
+        "lead_id": "lead_3807242ad06b",
+        "person_name": null,
+        "role_title": null,
+        "company_name": "PREDICTIVA",
+        "website": null,
+        "country_code": null,
+        "evidence": [],
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "36 Best Ai Startups in Spain to Watch in 2026 - Seedtable (https://www.seedtable.com/best-ai-startups-in-spain); Tom Arc - Head of AI @ Key Prediction | GenAI & ML Product Leader (https://mx.linkedin.com/in/tom-arc); What Do CEOs (Really) Think About GenAI? - YouTube (https://www.youtube.com/watch?v=tUu2l3g2sOI)",
+          "hooks": [
+            "PREDICTIVA appears active around genai, software company.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "connection_note_draft": "Hola there, he visto varias señales de que PREDICTIVA está trabajando temas de genai, software company. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando PREDICTIVA y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para PREDICTIVA",
+          "email_body": "Hola there,\n\nHe revisado PREDICTIVA y veo señales útiles en torno a genai, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "lead_id": "lead_c0ce9b548f2a",
+        "person_name": null,
+        "role_title": null,
+        "company_name": "Mediktor",
+        "website": null,
+        "country_code": null,
+        "evidence": [],
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Top startups in Artificial Intelligence in Spain (Jan, 2026) - Tracxn (https://tracxn.com/d/explore/artificial-intelligence-startups-in-spain/__PbuLbXhwRQZgFaP878DrL8N1hstaRHPFo3eaHsS5z3U/companies); Top-10 Artificial Intelligence Startups in Spain - Nanalyze (https://www.nanalyze.com/2019/02/artificial-intelligence-spain/)",
+          "hooks": [
+            "Mediktor appears active around genai, ai engineering.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Mediktor está trabajando temas de genai, ai engineering. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Mediktor y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Mediktor",
+          "email_body": "Hola there,\n\nHe revisado Mediktor y veo señales útiles en torno a genai, ai engineering, agentic workflows. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      }
+    ],
+    "shortlist_id": "short_f930613376ac",
+    "shortlist_options": [
+      {
+        "option_number": 3,
+        "company_name": "Doc Peter",
+        "person_name": null,
+        "role_title": null,
+        "website": null,
+        "country_code": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "company_size"
+          ],
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 85,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "CEO",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Doc Peter | EU-Startups (https://www.eu-startups.com/directory/doc-peter/); Luxembourg | Page 4 of 21 - EU-Startups (https://www.eu-startups.com/directory/wpbdp_category/luxembourg-based-startups/page/4/)",
+          "hooks": [
+            "Doc Peter appears active around genai, automation.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Doc Peter está trabajando temas de genai, automation. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Doc Peter y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Doc Peter",
+          "email_body": "Hola there,\n\nHe revisado Doc Peter y veo señales útiles en torno a genai, automation, agentic workflows. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        },
+        "evidence": []
+      },
+      {
+        "option_number": 4,
+        "company_name": "Magnific",
+        "person_name": null,
+        "role_title": null,
+        "website": null,
+        "country_code": null,
+        "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Top startups in Generative AI in Spain (Jan, 2026) (https://tracxn.com/d/explore/generative-ai-startups-in-spain/__JYvohyOZikljlt5x5bz6FK2GznnZzaL3NYLSOujLlvE/companies); Meet Spain's most innovative generative AI and SaaS ... (https://milkspace.ai/ai-startups-companies/ai-companies-spain/); Top 100 Generative AI Companies in Spain (2026) (https://ensun.io/search/generative-ai/spain)",
+          "hooks": [
+            "Magnific appears active around genai, ai engineering.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Magnific está trabajando temas de genai, ai engineering. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Magnific y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Magnific",
+          "email_body": "Hola there,\n\nHe revisado Magnific y veo señales útiles en torno a genai, ai engineering, automation. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        },
+        "evidence": []
+      }
+    ],
+    "iterations": [
+      {
+        "index": 1,
+        "planner_action": "SOURCE",
+        "query": "Spain startup AI engineering company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "PREDICTIVA ceo es genai  ai engineering",
+          "person": {
+            "full_name": "ar Creadores Publicidad Desarrolladores Términos Privacidad Política y seguridad Cómo funciona YouTube Probar funciones nuevas &copy; 2026 Google LLC YouTube, una empresa de Google",
+            "role_title": null
+          },
+          "company": {
+            "name": "PREDICTIVA",
+            "website": "https://mx.linkedin.com/in/tom-arc",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.seedtable.com/best-ai-startups-in-spain",
+              "title": "36 Best Ai Startups in Spain to Watch in 2026 - Seedtable",
+              "snippet": "Digital marketing Artificial Intelligence (AI) Big data. Cien is an artificial intelligence company providing a data analysis application for sales and productivity. Software as a service (SaaS) Artificial Intelligence (AI) Customer relationship management (CRM). Taiger is a Madrid-based artificial intelligence company offering work flow optimization software. Narrativa is an artificial intelligence company developing a machine learning platform to build natural language solutions. Technology Artificial Intelligence (AI) Software. ec2ce is an artificial Intelligence company that provides analytic data for farmers. Artificial Intelligence (AI) Software Data mining. Technology Artificial Intelligence (AI) Hardware. Artificial Intelligence (AI) Software as a service (SaaS) Data Analytics. Artificial Intelligence (AI) Communication Software as a service (SaaS). PREDICTIVA is a research-led artificial intelligence (AI) company based in Malaga, Spain. Information technology Software as a service (SaaS) Artificial Intelligence (AI). Artificial Intelligence (AI) Software as a service (SaaS) Sales and Marketing. Artificial Intelligence (AI) Software as a service (SaaS) Sales and Marketing. Artificial Intelligence (AI) Software as a service (SaaS).",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://mx.linkedin.com/in/tom-arc",
+              "title": "Tom Arc - Head of AI @ Key Prediction | GenAI & ML Product Leader",
+              "snippet": "Tom Arc\nKey Prediction\nChihuahua, Chihuahua, Mexico\n500 connections, 512 followers\n\n\nAbout\nI lead the development of enterprise-grade AI systems that combine machine learning…\n\n\nExperience\nN/A\n\n\nEducation\nTecnológico de Monterrey\nN/A\n2020 - 2024\nNone",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.youtube.com/watch?v=tUu2l3g2sOI",
+              "title": "What Do CEOs (Really) Think About GenAI? - YouTube",
+              "snippet": "CEOs are much more comfortable seeing the value of generative AI in terms of productivity improvements than in terms of customer value proposition.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain startup AI engineering company under 50 employees",
+            "candidate_selected_by=llm",
+            "enrichment_query=PREDICTIVA ceo es genai  ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 2,
+        "planner_action": "SOURCE",
+        "query": "Spain startup AI software company",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Spain startup AI software company",
+          "person": null,
+          "company": {
+            "name": "Mediktor",
+            "website": "https://www.nanalyze.com/2019/02/artificial-intelligence-spain/",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://tracxn.com/d/explore/artificial-intelligence-startups-in-spain/__PbuLbXhwRQZgFaP878DrL8N1hstaRHPFo3eaHsS5z3U/companies",
+              "title": "Top startups in Artificial Intelligence in Spain (Jan, 2026) - Tracxn",
+              "snippet": "Out of these, 76 startups are funded, with 17 having secured Series A+ funding. ### Here is the list of top Artificial Intelligence startups in Spain. It offers an AI-based medical chatbot to provide triage and pre-diagnosis services, guiding patients to the appropriate level of care based on their symptoms. * **Latest Funding Round:** Series B, Oct 03, 2021, $\\*\\*\\*\\*\\*. Provider of AI-powered data anonymization and pseudonymization software platform. * **Latest Funding Round:** Series A, Sep 19, 2025, $\\*\\*\\*\\*\\*. Provider of facial recognition based biometric verification solution. It offers solutions such as facial recognition based digital onboarding, eye based biometric recognition, voice based identity recognition, and e signature based recognition. * **Latest Funding Round:** Post IPO, May 15, 2024, $\\*\\*\\*\\*\\*. * **Investors:** K Fund, BITKRAFT Ventures and 5 Others. * **Latest Funding Round:** Series B, Feb 24, 2023, $\\*\\*\\*\\*\\*. Provider of a RAG-as-a-Service platform, offering AI search and answers. * **Latest Funding Round:** Seed, Apr 20, 2022, $\\*\\*\\*\\*\\*.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.nanalyze.com/2019/02/artificial-intelligence-spain/",
+              "title": "Top-10 Artificial Intelligence Startups in Spain - Nanalyze",
+              "snippet": "Founded in 2015, Madrid startup MedLab Media Group has raised **$11.2 million** in funding to develop a suite of products that assists the medical community in knowledge sharing and information flow. Founded in 2015, Madrid startup Geoblink has raised **$7.3 million** to create a geospatial analytics platform targeting retail, **F**ast **M**oving **C**onsumer **G**oods (**FMCG**), and real estate. Founded in 2014, Madrid startup seedtag has raised **$6 million** to develop an in-image advertising platform. Founded in 2015, Madrid startup source{d} has raised **$6 million**to develop machine learning algorithms for large scale analysis of developer code. ## vLex. Founded in 1998, Barcelona startup vLex has raised **$5.2 million** to develop a database of legal texts with multilingual search using NLP. Founded in 2014, Barcelona startup Spaceboost has raised **$4 million** to develop an automated **P**ay-**P**er-**C**lick (**PPC**) advertising platform for Google, Bing, and Amazon. Founded in 2014, Madrid startup MedUX has raised nearly **$4 million** in disclosed funding to develop a platform that measures quality of service and user experience for telecommunication operators.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain startup AI software company",
+            "candidate_selected_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 3,
+        "planner_action": "SOURCE",
+        "query": "Spain startup AI under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Spain startup AI under 50 employees",
+          "person": null,
+          "company": {
+            "name": "Quibim",
+            "website": "https://www.highlighttherapeutics.com/?ref=failory",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.failory.com/startups/spain",
+              "title": "Top 100 Spain Startups to Watch in 2026 - Failory",
+              "snippet": "[E-Commerce](https://www.failory.com/startups/e-commerce). | [Highlight Therapeutics](https://www.highlighttherapeutics.com/?ref=failory) | Biotech | 2010 | $37.6M | Venture Round |. | [Workfully](https://www.workfully.com/?ref=failory) | Enterprise | 2022 | $5.2M | Seed |. | [011h](https://www.011h.com/?ref=failory) | Design | 2020 | $40.4M | Venture Round |. | [Quibim](https://www.quibim.com/?ref=failory) | AI | 2012 | $69.6M | Series A |. | [Veridas](https://www.veridas.com/?ref=failory) | AI | 2017 | $19M | Series A |. | [Lodgify](https://www.lodgify.com/?ref=failory) | Travel | 2012 | $36.6M | Series B |. | [Brickken](https://www.brickken.com/?ref=failory) | Crypto | 2020 | $5.2M | Seed |. | [X1 Wind](https://www.x1wind.com/?ref=failory) | Environment | 2017 | $7.5M | Venture Round |. | [Imperia](https://www.imperiascm.com/?ref=failory) | SaaS | 2019 | €13.3M | Series A |. | [Criptan](https://www.criptan.com/?ref=failory) | Crypto | 2017 | €7.5M | Venture Round |. | [FitnessKPI](https://www.fitness-kpi.com/es?ref=failory) | Analytics | 2017 | $1M | Venture Round |. | [EGoGames](https://www.egogames.com/?ref=failory) | Gaming | 2017 | $8M | Series A |. | [Games for a living](https://www.gamesforaliving.com/?ref=failory) | Crypto | 2021 | $8.9M | Seed |.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.fmai-hub.com/quibim-ceo-interview-ai-for-medical-imaging-and-the-future-of-healthcare/",
+              "title": "AI for Medical Imaging and the Future of Healthcare | Quibim CEO",
+              "snippet": "Ángel Alberich-Bayarri, the CEO and co-founder of Quibim (Valencia, Spain), shares his journey from a biomedical engineer, to leading a pioneering company.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain startup AI under 50 employees",
+            "candidate_selected_by=llm",
+            "follow_up_query=Quibim ceo es genai ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT",
+          "match_type": null,
+          "score": 45,
+          "summary": "Company size is not verified and remains a hard constraint violation.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs",
+            "missing hard proof: company_size"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      },
+      {
+        "index": 4,
+        "planner_action": "SOURCE",
+        "query": "site:seedtable.com best GenAI startups in Barcelona Spain under 50 employees",
+        "dossier": {
+          "sourcing_status": "NO_CANDIDATE",
+          "query_used": "site:seedtable.com best GenAI startups in Barcelona Spain under 50 employees",
+          "person": null,
+          "company": null,
+          "fit_signals": [],
+          "evidence": [],
+          "notes": [
+            "all_results_were_already_visited"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT",
+          "match_type": null,
+          "score": 0,
+          "summary": "No candidate dossier was found despite sourcing efforts targeting Spanish startups in Barcelona with fewer than 50 employees.",
+          "reasons": [
+            "sourcing did not produce a valid candidate"
+          ],
+          "type": null,
+          "region": null,
+          "close_match": null
+        }
+      },
+      {
+        "index": 5,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain GenAI software",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:eu-startups.com/directory/ Spain GenAI software",
+          "person": {
+            "full_name": null,
+            "role_title": "CEO"
+          },
+          "company": {
+            "name": "Doc Peter",
+            "website": "https://www.docpeter.it",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "automation",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/doc-peter/",
+              "title": "Doc Peter | EU-Startups",
+              "snippet": "February 3, 2025 AI software Semeris raises €4 million to meet demand for GenAI in FinTech; December 20, 2024 From startup to superstar: European startups",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.eu-startups.com/directory/wpbdp_category/luxembourg-based-startups/page/4/",
+              "title": "Luxembourg | Page 4 of 21 - EU-Startups",
+              "snippet": "ElleQuant · ElleQuant. Business Name: ElleQuant. Category: Luxembourg. Based in: Differdange. Tags: GenAI ... Software, smart home, Digitization consulting.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain GenAI software",
+            "candidate_selected_by=heuristic"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 85,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "CEO",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 6,
+        "planner_action": "SOURCE",
+        "query": "Spain startup GenAI software company",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Spain startup GenAI software company",
+          "person": null,
+          "company": {
+            "name": "Magnific",
+            "website": "https://www.beuc.eu/sites/default/files/publications/beuc-x-2020-078\\\\_artificial\\\\_intelligence\\\\_what\\\\_consumers\\\\_say\\\\_report.pdf\"",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "automation",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://tracxn.com/d/explore/generative-ai-startups-in-spain/__JYvohyOZikljlt5x5bz6FK2GznnZzaL3NYLSOujLlvE/companies",
+              "title": "Top startups in Generative AI in Spain (Jan, 2026)",
+              "snippet": "Discover the top emerging companies in the Generative AI Startups in Spain, their funding activity, key investors, company highlights, and",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://milkspace.ai/ai-startups-companies/ai-companies-spain/",
+              "title": "Meet Spain's most innovative generative AI and SaaS ...",
+              "snippet": "Discover the most innovative AI companies in Spain, from generative AI startups to SaaS leaders. Explore how Spanish firms are shaping the",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://ensun.io/search/generative-ai/spain",
+              "title": "Top 100 Generative AI Companies in Spain (2026)",
+              "snippet": "# Top Generative AI Companies in Spain. ## 100 companies for Generative AI in Spain. The company, M47 Labs, emphasizes its leadership in the AI solutions sector, particularly highlighting the importance of generative models and large language models in enhancing and automating business operations. Tensorway is a specialized service provider in Generative AI development, offering innovative solutions that enhance creativity and efficiency across various industries. Generative AI Development Services | Tensorway. Explore the future of creativity and efficiency with our Generative AI development services. ## Related searches for Generative AI. ## Products and services for Generative AI. Product: Generative AI Virtual Agent. Some interesting numbers and facts about your company results for Generative AI. ### What are related technologies to Generative AI? What are related technologies to Generative AI? ### Which industries are mostly working on Generative AI? Which industries are mostly working on Generative AI? ### How does ensun find these Generative AI Companies? How does ensun find these Generative AI Companies?",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain startup GenAI software company",
+            "candidate_selected_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 9
+    },
+    "applied_relaxation_stage": 2,
+    "completed_reason": "budget_exhausted_with_shortlist"
+  }
+}

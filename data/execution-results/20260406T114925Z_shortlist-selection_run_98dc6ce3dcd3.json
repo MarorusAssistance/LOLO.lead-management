@@ -1,0 +1,761 @@
+{
+  "run_id": "run_98dc6ce3dcd3",
+  "shortlist_id": "short_98dc6ce3dcd3",
+  "option_number": 4,
+  "final_run": {
+    "run_id": "run_98dc6ce3dcd3",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_1624e199bcf0",
+      "user_text": "encuentra 1 lead en empresas españolas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 1,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "completed",
+    "created_at": "2026-04-06T10:52:59.668071Z",
+    "updated_at": "2026-04-06T11:49:25.229077Z",
+    "current_stage": "continue_or_finish",
+    "progress_message": "Shortlist option selected and promoted to accepted lead. 1 shortlist options remain.",
+    "last_heartbeat_at": "2026-04-06T11:49:25.229077Z",
+    "accepted_leads": [
+      {
+        "lead_id": "lead_92f5721ec194",
+        "person_name": null,
+        "role_title": null,
+        "company_name": "Best Ai In Barcelona",
+        "website": null,
+        "country_code": null,
+        "evidence": [],
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "69 Best Ai Startups in Barcelona to Watch in 2026 - Seedtable (https://www.seedtable.com/best-ai-startups-in-barcelona); Complete Implementation Guide for Companies with 1-50 Employees (https://francescostara.com/genai-business-intelligence-complete-implementation-guide/)",
+          "hooks": [
+            "Best Ai In Barcelona appears active around genai, ai engineering.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Best Ai In Barcelona está trabajando temas de genai, ai engineering. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Best Ai In Barcelona y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Best Ai In Barcelona",
+          "email_body": "Hola there,\n\nHe revisado Best Ai In Barcelona y veo señales útiles en torno a genai, ai engineering, automation. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "lead_id": "lead_34aefaa0f49f",
+        "person_name": null,
+        "role_title": null,
+        "company_name": "Travelandz",
+        "website": null,
+        "country_code": null,
+        "evidence": [],
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "List of SAAS Startup Companies in Madrid (https://startuprise.co.uk/industry/saas/madrid/); 45 top SaaS companies and startups in Madrid in April 2026 - F6S (https://www.f6s.com/companies/saas/spain/madrid/co)",
+          "hooks": [
+            "Travelandz appears active around genai, automation.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Travelandz está trabajando temas de genai, automation. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Travelandz y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Travelandz",
+          "email_body": "Hola there,\n\nHe revisado Travelandz y veo señales útiles en torno a genai, automation, agentic workflows. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "lead_id": "lead_e6f95abebf0b",
+        "person_name": null,
+        "role_title": null,
+        "company_name": "Best In Barcelona",
+        "website": null,
+        "country_code": null,
+        "evidence": [],
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but misses key relaxable filters: preferred buyer persona and company size evidence are unverified.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "69 Best Startups in Barcelona to Watch in 2026 - Seedtable (https://www.seedtable.com/best-startups-in-barcelona); 48 Best Fintech Startups in Barcelona to Watch in 2026 - Seedtable (https://www.seedtable.com/best-fintech-startups-in-barcelona)",
+          "hooks": [
+            "Best In Barcelona appears active around ai engineering, automation.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but misses key relaxable filters: preferred buyer persona and company size evidence are unverified.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Best In Barcelona está trabajando temas de ai engineering, automation. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Best In Barcelona y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Best In Barcelona",
+          "email_body": "Hola there,\n\nHe revisado Best In Barcelona y veo señales útiles en torno a ai engineering, automation, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "lead_id": "lead_9a37be6ed7e3",
+        "person_name": null,
+        "role_title": null,
+        "company_name": "Vixiees",
+        "website": null,
+        "country_code": null,
+        "evidence": [],
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "SaaS Startups in Barcelona - 17 Companies (2026) - VCBacked (https://www.vcbacked.co/directory/cities/industry/barcelona-spain/saas); Vixiees - LinkedIn (https://www.linkedin.com/company/vixiees/)",
+          "hooks": [
+            "Vixiees appears active around ai engineering, software company.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Vixiees está trabajando temas de ai engineering, software company. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Vixiees y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Vixiees",
+          "email_body": "Hola there,\n\nHe revisado Vixiees y veo señales útiles en torno a ai engineering, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      }
+    ],
+    "shortlist_id": "short_98dc6ce3dcd3",
+    "shortlist_options": [
+      {
+        "option_number": 5,
+        "company_name": "Back",
+        "person_name": null,
+        "role_title": null,
+        "website": null,
+        "country_code": null,
+        "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and unmatched buyer persona.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and unmatched buyer persona.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Back | EU-Startups (https://www.eu-startups.com/directory/back/); Agentic Workflow Automation for Industrial IT: The 2026 Guide (https://opsima.com/blog/industry-insights/agentic-workflow-automation-industrial-it/)",
+          "hooks": [
+            "Back appears active around automation, agentic workflows.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and unmatched buyer persona.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Back está trabajando temas de automation, agentic workflows. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Back y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Back",
+          "email_body": "Hola there,\n\nHe revisado Back y veo señales útiles en torno a automation, agentic workflows, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        },
+        "evidence": []
+      }
+    ],
+    "iterations": [
+      {
+        "index": 1,
+        "planner_action": "SOURCE",
+        "query": "Barcelona B2B software startup GenAI automation under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Barcelona B2B software startup GenAI automation under 50 employees",
+          "person": {
+            "full_name": "alised lab testing and daily-life health tracking Industries: Artificial Intelligence (AI) Analytics Software as a service (SaaS) Location: Barcelona Key people: Emilio Rodriguez Camara ******@tryholo.com Francesc Navarro ********@tryholo.com Sergio Mosquera Dopico ******@tryholo.com Cribdata 1 Funding Rounds $170.0k Money raised Cribdata is an online data monetization platform founded in 2023 by Ricardo Piiroja, Claudia Vera and Gonzalo Salazar. Industries: Information technology Software as a service (SaaS) Artificial Intelligence (AI) Location: Spain Barcelona Key people: Claudia Vera *******@cribdata.com Ricardo Piiroja *******@cribdata.com Gonzalo Salazar *******@cribdata.com Zymvol Biomodeling 1 Funding Rounds $1.4m Money raised Zymvol Biomodeling is a computational enzyme discovery platform founded in 2017. Industries: Technology Artificial Intelligence (AI) Biotechnology Location: Barcelona Health Lean Analytics 1 Funding Rounds $2.5m Money raised Health Lean Analytics is an AI-powered data automation platform for hospitals founded in 2023 by Mauro Batesteza, Juan Jose Estrada and Josep Lazaro. Industries: Artificial Intelligence (AI) Analytics Software as a service (SaaS) Location: Barcelona Key people: Mauro Batesteza linkedin Juan Jose Estrada linkedin Josep Lazaro linkedin Drimer 1 Funding Rounds $1.5m Money raised AI-powered monetisation-based social platform for travel-related content creators. Industries: Artificial Intelligence (AI) Media Analytics Location: Barcelona Key people: Carlos Saez Alfonsea ******.****@drimer.io Javier Exposito Fernandez ******.********@drimer.io Nestor Malet ******.*****@drimer.io Avatar Cognition 1 Funding Rounds $1.1m Money raised AI LAB startup solving General Intelligence Industries: Analytics Artificial Intelligence (AI) Technology Location: Barcelona Altan 1 Funding Rounds $2.5m Money raised AI-powered no-code development platform. Industries: Artificial Intelligence (AI) Web development Software as a service (SaaS) Location: Barcelona Key people: Tristan Pou Alerany *******@altan.ai Albert Salgueda ******@altan.ai Tendios 1 Funding Rounds $2.2m Money raised Tendios is an AI-powered tender management platform founded in 2023 by Xavier Creus. Industries: Artificial Intelligence (AI) Analytics Procurement Location: Barcelona Key people: Xavier Creus ******.*****@tendios.com Albert Riera ******.*****@tendios.com Supersonik 1 Funding Rounds $5.0m Money raised Multilingual AI agents provider for live product demos. Industries: Artificial Intelligence (AI) Sales Technology Software as a service (SaaS) Location: Barcelona Key people: Daniel Carmona Serrat *******@supersonik.ai Joaquim Lechà Pol Ruiz Farre ***@supersonik.ai Kabilio 1 Funding Rounds $4.6m Money raised AI platform to automate accounting and tax processes Industries: Artificial Intelligence (AI) Accounting Software as a service (SaaS) Location: Barcelona Key people: Jose Ojeda ****.*****@kabilio.es Alex Valls ******@leadtech.com Afori 1 Funding Rounds $4.7m Money raised AI platform for insurance brokers. Industries: Artificial Intelligence (AI) Software as a service (SaaS) Insurance Technology Location: Barcelona Key people: Fabian Wesemann ******.********@alumni.esade.edu Sergi Baños Uxia 1 Funding Rounds $1.2m Money raised AI-powered platform for UX/UI user testing using synthetic users Industries: Artificial Intelligence (AI) Software as a service (SaaS) Developer Tools Location: Barcelona Key people: Borja Diaz Roig *****@uxia.app Metly 1 Funding Rounds $610.0k Money raised Metly is an AI platform for pharmaceutical business development teams founded in 2024 by Anna Torrents Saldo. Industries: Artificial Intelligence (AI) Business intelligence (BI) Pharmaceutical industry Location: Barcelona Key people: Anna Torrents Saldo ****@meetmetly.com Lydia Taranilla *****@meetmetly.com Valeria 1 Funding Rounds $2.0m Money raised Valeria is an AI platform for payroll founded in 2024 by Carlos Saiz, Pau Laporte and Sergio Morales Bonet. Industries: Artificial Intelligence (AI) Human resources Payroll Location: Barcelona Key people: Carlos Saiz ******@valeriahr.com Pau Laporte linkedin Sergio Morales Bonet ******@itsvaleria.co KomboAI 1 Funding Rounds $772.0k Money raised KomboAI is an AI-powered sales platform for companies founded by Ale Pintaudi . Industries: Artificial Intelligence (AI) Software as a service (SaaS) Sales and Marketing Location: Spain Barcelona Key people: Ignacio Gaminde *******@getkombo.ai Ale Pintaudi ***@getkombo.ai Manglai $540.0k Money raised AI-powered SaaS platform to track carbon footprints in companies. Industries: Clean technology Artificial Intelligence (AI) Software as a service (SaaS) Location: Barcelona Steryon 1 Funding Rounds $4.6m Money raised Cyber resilience and risk management platform for industrial infrastructures and OT asset owners. Industries: Artificial Intelligence (AI) Risk management Compliance Location: Barcelona Key people: Maria Taberna *****@steryon.com Genesy 1 Funding Rounds $5.2m Money raised Genesy is an AI-powered digital agents provider founded in 2022 by Kai Brandt. Industries: Artificial Intelligence (AI) Software as a service (SaaS) Sales and Marketing Location: Barcelona Spain Key people: Kai Brandt ***.******@genesy.ai Jaume Puig Turon *****.****@genesy.ai Opground 1 Funding Rounds $570.0k Money raised Platform providing virtual interviews using AI to connect entrepreneurs, startups, and established companies. Industries: Artificial Intelligence (AI) Recruitment Business intelligence (BI) Location: Barcelona Sign up to access our full database Enter your email and get access to 71,000 + technology companies you can partner with. Join 29000+ founders, operators, and investors. Seedtable combines proprietary data with advanced AI technology to accelerate professional success across industries. Sign Up Rankings Startups By Location Startups By Industry Top Europe Startups Top AI Startups New Startups Investor Rankings Top Europe Investors Top AI Investors Content Raise Investor Rankings Top Europe Investors Top AI Investors Recent Funding Rounds Debt Finance Changelog Score Podcast Statistics Recently Funded Product Login Account Management Pricing and Features Platform Data Integration API CRM Contact Us Contact About Privacy Intelligence Hubs © 2025 Seedtable™. All Rights Reserved.",
+            "role_title": null
+          },
+          "company": {
+            "name": "Best Ai In Barcelona",
+            "website": null,
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "automation",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.seedtable.com/best-ai-startups-in-barcelona",
+              "title": "69 Best Ai Startups in Barcelona to Watch in 2026 - Seedtable",
+              "snippet": "Software as a service (SaaS) Health technology Artificial Intelligence (AI). Software as a service (SaaS) Artificial Intelligence (AI) Technology. Artificial Intelligence (AI) Financial technology Software as a service (SaaS). Real estate technology Software as a service (SaaS) Artificial Intelligence (AI). Software as a service (SaaS) Artificial Intelligence (AI) Machine learning. Artificial Intelligence (AI) Software as a service (SaaS) Biotechnology. Software as a service (SaaS) Sales and Marketing Artificial Intelligence (AI). Artificial Intelligence (AI) Analytics Software as a service (SaaS). Information technology Software as a service (SaaS) Artificial Intelligence (AI). Artificial Intelligence (AI) Analytics Software as a service (SaaS). Artificial Intelligence (AI) Sales Technology Software as a service (SaaS). Artificial Intelligence (AI) Software as a service (SaaS) Insurance Technology. Artificial Intelligence (AI) Software as a service (SaaS) Developer Tools. Artificial Intelligence (AI) Software as a service (SaaS) Sales and Marketing. Clean technology Artificial Intelligence (AI) Software as a service (SaaS). Artificial Intelligence (AI) Software as a service (SaaS) Sales and Marketing.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://francescostara.com/genai-business-intelligence-complete-implementation-guide/",
+              "title": "Complete Implementation Guide for Companies with 1-50 Employees",
+              "snippet": "Complete AI business intelligence small business implementation guide. GenAI tools, natural language querying, and predictive analytics.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Barcelona B2B software startup GenAI automation under 50 employees",
+            "candidate_selected_by=heuristic"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 2,
+        "planner_action": "SOURCE",
+        "query": "Madrid B2B software startup automation",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Madrid B2B software startup automation",
+          "person": null,
+          "company": {
+            "name": "Travelandz",
+            "website": "https://startuprise.co.uk/industry/saas/madrid/",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "automation",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://startuprise.co.uk/industry/saas/madrid/",
+              "title": "List of SAAS Startup Companies in Madrid",
+              "snippet": "Discover the top SAAS startup companies in Madrid, offering innovative cloud-based software solutions across industries like fintech, healthcare, and marketing.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.f6s.com/companies/saas/spain/madrid/co",
+              "title": "45 top SaaS companies and startups in Madrid in April 2026 - F6S",
+              "snippet": "Detailed info and reviews on 45 top SaaS companies and startups in Madrid in 2026. Get the latest updates on their products, jobs, funding, investors,",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Madrid B2B software startup automation",
+            "candidate_selected_by=llm"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 3,
+        "planner_action": "SOURCE",
+        "query": "site:seedtable.com best AI startups in Barcelona",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:seedtable.com best AI startups in Barcelona",
+          "person": {
+            "full_name": "for a theyekend getaway - including flight and hotel accommodations. Industries: Travel technology Lifestyle Leisure industry Location: Barcelona Mediktor 2 Funding Rounds $16.4m Money raised A symptom checker developed in Barcelona that focuses on pre-diagnoses, triage and decision-making support. Founded 2011 in Barcelona, Catalonia, Spain by Cristian Pascual and Oscar García-Esquirol, Mediktor has raised a total Industries: Artificial Intelligence (AI) Technology Healthcare Location: Barcelona Glovo App 6 Funding Rounds $1.0b Money raised Glovo is a Barcelona based start-up that is transforming the way consumer access local goods, enabling anyone to get nearly any product delivered in less than 60 minutes. Industries: Mobile commerce Collaborative consumption Delivery (commerce) Location: Barcelona Spain Unlimited 3 Funding Rounds $1.1m Money raised As the cost of lithium-ion batteries decreases combined with a strong top-down push to reduce emissions, transportation is going electric. Industries: Electric vehicle Hardware Transportation Location: Spain Barcelona Key people: Alejandro Veloz Carlos Kübler Juan Pablo Viera Xceed (company) $2.1m Money raised Xceed is a B2B city nightlife promotions and bookings platform founded in 2013. Industries: Music Entertainment Technology Location: Spain Barcelona Inari 2 Funding Rounds $94.2m Money raised INARI provides technology software for insurers, reinsurers, MGAs and Lloyd&#039;s syndicates on a cloud-based blockchain platform. Industries: Technology Insurance Technology Financial technology Location: Barcelona Key people: Frank Perkins *****.*******@inari.io Véronique Gob Teresa Madariaga IOMED 7 Funding Rounds $14.7m Money raised IOMED is an AI-powered healthcare data management platform founded in 2016 by Javier de Oca, Gabriel de Maeztu and Álvaro Abella Bascarán. Industries: Software as a service (SaaS) Health technology Artificial Intelligence (AI) Location: Barcelona Key people: Javier de Oca ******@iomed.health Gabriel de Maeztu linkedin Álvaro Abella Bascarán ******@iomed.health Inbrain Neuroelectronics 5 Funding Rounds $89.6m Money raised High-density and high-resolution graphene intelligent neural systems provider for central and peripheral neuroelectronic applications for neurological treatment. Industries: Biomedical engineering Neurotechnology Health Care and Social Assistance Location: Barcelona Key people: Carolina Aguilar ********@inbrain-neuroelectronics.com Jose Garrido ********@inbrain-neuroelectronics.com Letgo 3 Funding Rounds $775.0m Money raised Letgo is a company providing a website and application for buying and selling used electronics, furniture, cars, movies, books, fashion, real estate and services. Industries: People Marketplace Online shopping Location: Barcelona Spain Istanbul Province Key people: Enrique Linares linkedin Jordi Castello Incapto Coffee 4 Funding Rounds $6.0m Money raised Producer of coffee products intended to offer its customers the original taste of the coffee. The company&#039;s products reduce the impact on the environment without the generation of unnecessary waste such as aluminum capsules, enabling customers to taste a variety of coffee at affordable prices. Industries: Coffee Household Appliances, Electric Housewares, and Consumer Electronics Merchant Wholesalers Specialty Retail Location: Barcelona Key people: Joaquim Mach *******@incapto.com Francesc Cot ********@incapto.com Colvin 9 Funding Rounds $151.0m Money raised Colvin is an online flower shop founded in 2016. Industries: Service industry E-commerce Floristry Location: Barcelona Factorial 4 Funding Rounds $99.2m Money raised All-in-one HR platform for small and medium businesses. Industries: Software as a service (SaaS) Recruitment Human resources Location: Barcelona Key people: Jordi Romero *****@factorialhr.com Bernat Farrero ******@factorialhr.com Ukio 4 Funding Rounds $48.7m Money raised Ukio is a proptech company that operates a network of high quality design forward apartments available for monthly stays across Europe. Industries: Rental Hospitality industry Location: Spain Barcelona, Catalonia, Spain Barcelona Key people: Stanley Fourteau *******@ukio.com Learnlife 1 Funding Rounds $3.5m Money raised Learnlife is a global community of education founded in 2007. Industries: Educational Technology School Learning Location: Barcelona Vintra 3 Funding Rounds $13.9m Money raised A software company using artificial intelligence for video surveillance analytics. Industries: Enterprise software Analytics Big data Location: Barcelona San Jose, California Key people: Brent Boekestein ***********@vintra.io Paack 5 Funding Rounds $239.0m Money raised Paack is a parcel delivery company in UK focused on delivery for businesses Industries: Transportation Supply chain E-commerce Location: Barcelona Key people: Victor Obradors Fernando Benito ********.******@paack.co NoviCap 4 Funding Rounds $3.2m Money raised End-to-end working capital solutions provider focused on enabling CFOs/Finance teams of SMEs to pay their suppliers and collect from their customers. Industries: Finance Technology Financial technology Location: Barcelona Key people: Nicolas Overloop Federico Travella ********@novicap.com Marc Antoni Macia ****@novicap.com Cooltra 10 Funding Rounds $189.4m Money raised Cooltra is a Barcelona-based company founded in 2006 that offers shared bikes and scooters. The company operates in several European cities across Italy, Spain, and Portugal. Industries: Electric vehicle Software as a service (SaaS) Service industry Location: Barcelona Caelum Labs 1 Funding Rounds $600.0k Money raised Building a next-gent solution for greater interoperability, traceability, and transparency in multi-party collaborations, without losing privacy, protecting data and fully secure. Industries: Privacy Developer Tools Software as a service (SaaS) Location: Barcelona Taclia 4 Funding Rounds $3.2m Money raised Developer of a facilities management platform designed to help service companies to concentrate all their business in one place. The company&#039;s platform can be used to hire, manage, control, and track all maintenance, repair tasks, and expenses in real-time, enabling clients to have fast, optimized, and valuable facilities services. Industries: Business software Financial software Automation Location: Barcelona Key people: Alex Casals *******@taclia.com Flanks 4 Funding Rounds $33.2m Money raised Flanks is an end-to-end wealth management platform founded in 2019 by Joaquim De la Cruz, Alvaro Morales and Sergi Lao. Industries: Finance Technology Finance and Insurance Location: Barcelona Key people: Sergi Lao *****@flanks.io Joaquim De la Cruz *******@flanks.io Alvaro Morales ******@flanks.io Landbot 5 Funding Rounds $33.2m Money raised Landbot is a no-code chatbot builder platform founded in 2015 by Fernando Guirao de Gregorio, Fran Conejos and Jiaqi Pan. Industries: Artificial Intelligence (AI) Technology No-code / low-code development Location: Barcelona Key people: Jiaqi Pan *****@landbot.io Fran Conejos Fernando Guirao de Gregorio Minoryx Therapeutics 13 Funding Rounds $147.7m Money raised Minoryx Therapeutics is a small Molecules for Rare Diseases founded in 2011. Industries: Biomedical engineering Biopharmaceutical Pharmaceutical industry Location: Barcelona Emjoy 4 Funding Rounds $10.0m Money raised Emjoy is a womens sexuality and body positivity app. Industries: Property management Software Women&#039;s Health Location: Barcelona Amenitiz 4 Funding Rounds $72.0m Money raised All-in-one hospitality management platform Industries: Hospitality industry Software as a service (SaaS) Travel technology Location: Barcelona Key people: Frederic Cadet ********@amenitiz.com Alexandre Guinefolleau *********@amenitiz.com Bioo 1 Funding Rounds $2.3m Money raised Bioo is dedicated to the generation of electricity from nature through singular technologies and patents of its own. The company&#039;s business model is based on the development of the R&amp;D, and the design and distribution of sustainable products and proprietary technologies, including the production of electricity through photosynthesis. Industries: Technology Biology Clean technology Location: Barcelona Key people: Pablo Vidarte linkedin Baluwo 1 Funding Rounds $610.0k Money raised Developer of cross-border payment and material delivery platform designed to send materials and food across the border. The company&#039;s platform works with various global retail stores to offer a wide range of food, construction materials, mobile recharge, and electricity payment among other services. Industries: Consumer goods Apps E-commerce Location: Barcelona Key people: Josep Arroyo *******@baluwo.com Brava Fabrics 1 Funding Rounds $350.0k Money raised Operator of an apparel brand intended to create eco-friendly clothes for men and women. The company&#039;s brand focuses on using natural fibers, renewable resources, and recycled materials that include organic cotton, linen, wool, and recycled polyester, enabling customers to have access to a wide variety of sustainable clothing. Industries: Lifestyle Clean technology Manufacturing Location: Barcelona Key people: Ramón Barbero *****@bravafabrics.com Nemuru 4 Funding Rounds $6.4m Money raised Developer of a multi-financial technology platform designed to bridge the gap between lenders and borrowers. Industries: Loan Finance Financial software Location: Barcelona Key people: Pere Monràs Oliu linkedin Faromatics 4 Funding Rounds $750.8k Money raised Faromatics is an agricultural technology company. Industries: Agriculture Robotics Information technology Location: Spain Barcelona Key people: Heiner Lehr ******@syntesa.eu Integra Therapeutics 4 Funding Rounds $31.1m Money raised Gene writing tools provider to improve the safety, precision, and efficacy of advanced therapies. Industries: Biotechnology Genomics Genome editing Location: Barcelona Key people: Avencia Sanchez Mejias *******.**@integra-tx.com Marc Güell Lodgify 2 Funding Rounds $6.5m Money raised Lodgify is a Barcelona-based company founded in 2012. Industries: Software Vacation rental Property management Location: Barcelona Oryzon Genomics 6 Funding Rounds $40.7m Money raised Oryzon Genomics is a clinical stage biopharmaceutical company. Industries: Biotechnology Therapeutics Biomedical engineering Location: Barcelona Key people: Tamara Maes *****@oryzon.com Carlos Buesa ******@oryzon.com Dinbeat 1 Funding Rounds $560.0k Money raised DinbeatUNO is a theyarable device that tracks the most important vital signs of pet&#039;s from a remote wireless monitor. Industries: Animal Health Technology Digital health Location: Barcelona Key people: Talía Bonmatí ********@dinbeat.com Zinklar 3 Funding Rounds $6.4m Money raised Zinklar is an market research company that helps to make safer and smarter business decisions. Industries: Software as a service (SaaS) Adtech Sales and Marketing Location: Barcelona Key people: Borja Ormaechea *****.*********@zinklar.com Jordi Ferrer *****.******@zinklar.com Rever 3 Funding Rounds $7.4m Money raised Instant cash refunds through a buy now, pay later-type (BNPL) model. Industries: Internet of things (IoT) Technology Software Location: Barcelona Key people: Errette Dunn *******@reverscore.com Inbiomotion 5 Funding Rounds $7.6m Money raised A personalized medicine company focused on the development of biomarkers to predict bone metastasis in cancers Industries: Oncology Genetics Therapeutics Location: Barcelona Key people: Anna Bosch Comas linkedin Roger Gomis ******@inbiomotion.com Reloadly 1 Funding Rounds $750.0k Money raised Reloadly potheyrs the future of cross border digital mobile payments to emerging markets. Industries: Application programming interface (API) Technology Finance and Insurance Location: Miami Barcelona Spain Key people: Michel Francis ********@reloadly.com Emmanuel Piard ******@reloadly.com Cubiq Foods 2 Funding Rounds $19.6m Money raised Cubic Foods is a Barcelona-based food technology company growing cell-based specialty fats. Industries: Cell-based meat Alternative proteins Cellular agriculture Location: Barcelona Key people: Andres Montefeltro ************@cubiqfoods.com Raquel Revilla ********@cubiqfoods.com Whisbi 1 Funding Rounds $5.5m Money raised Conversational sales and marketing platform designed for B2C enterprises. Industries: Automotive industry Retail E-commerce Location: Barcelona Key people: Alex Bisbe linkedin Gocleer 2 Funding Rounds $2.0m Money raised Digital urban mobility insurance provider. Insurtech, Mobile App, Insurance, Distribution, MGA, Broker, Spain, Europe, LATAM. Industries: Property insurance Financial software Ridesharing Location: Barcelona Key people: Antonio Morales linkedin Submer 4 Funding Rounds $63.5m Money raised Sustainable immersion cooling and automation solutions provider for data centers. Industries: Energy efficiency Data center Hardware Location: Barcelona Key people: Daniel Pope ******@submer.com Pol Valls Soler ***@submer.com Sign up to access our full database Enter your email and get access to 71,000 + technology companies you can partner with. Join 29000+ founders, operators, and investors. Seedtable combines proprietary data with advanced AI technology to accelerate professional success across industries. Sign Up Rankings Startups By Location Startups By Industry Top Europe Startups Top AI Startups New Startups Investor Rankings Top Europe Investors Top AI Investors Content Raise Investor Rankings Top Europe Investors Top AI Investors Recent Funding Rounds Debt Finance Changelog Score Podcast Statistics Recently Funded Product Login Account Management Pricing and Features Platform Data Integration API CRM Contact Us Contact About Privacy Intelligence Hubs © 2025 Seedtable™. All Rights Reserved.",
+            "role_title": null
+          },
+          "company": {
+            "name": "Best In Barcelona",
+            "website": null,
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "ai engineering",
+            "automation",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.seedtable.com/best-startups-in-barcelona",
+              "title": "69 Best Startups in Barcelona to Watch in 2026 - Seedtable",
+              "snippet": "App Samurai is a San Francisco-based company that provides mobile marketing technology. Typeform is a technology company that allows users to build well-designed, conversation-based forms for collecting data. BCN3D is a company that designs and manufactures 3D printers, consumer electronics, information technologies, and software. INARI provides technology software for insurers, reinsurers, MGAs and Lloyd's syndicates on a cloud-based blockchain platform. Software as a service (SaaS) Health technology Artificial Intelligence (AI). Cooltra is a Barcelona-based company founded in 2006 that offers shared bikes and scooters. Developer of a facilities management platform designed to help service companies to concentrate all their business in one place. The company's business model is based on the development of the R&D, and the design and distribution of sustainable products and proprietary technologies, including the production of electricity through photosynthesis. Lodgify is a Barcelona-based company founded in 2012. Cubic Foods is a Barcelona-based food technology company growing cell-based specialty fats.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.seedtable.com/best-fintech-startups-in-barcelona",
+              "title": "48 Best Fintech Startups in Barcelona to Watch in 2026 - Seedtable",
+              "snippet": "48 Best Fintech Startups in Barcelona to Watch in 2026 ; App Samurai · $4.4m. Money raised · Artificial Intelligence (AI) Big data ; Verse · $40.0m. Money raised.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:seedtable.com best AI startups in Barcelona",
+            "candidate_selected_by=heuristic"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but misses key relaxable filters: preferred buyer persona and company size evidence are unverified.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 4,
+        "planner_action": "SOURCE",
+        "query": "Barcelona B2B software startup automation",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Barcelona B2B software startup automation",
+          "person": null,
+          "company": {
+            "name": "Vixiees",
+            "website": "https://www.vcbacked.co/directory/cities/industry/barcelona-spain/saas",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "ai engineering",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.vcbacked.co/directory/cities/industry/barcelona-spain/saas",
+              "title": "SaaS Startups in Barcelona - 17 Companies (2026) - VCBacked",
+              "snippet": "Get founder emails, funding data, and company details in one CSV. ## Recently Funded Companies. Remuner's variable pay software automates sales commission systems, aligning company and employee goals and incentives. Supersonik provides an AI-powered platform for SaaS companies to offer 24/7 interactive product demos. Vixiees is an application that provides omnichannel tools, team monitoring productivity, analytics, sales and lead management services. Wattwin is a software engineering company that provides SaaS tools for marketing, sales, after-sales, and e-commerce. Get verified contact info for decision-makers at 17funded saasstartups in Barcelona. Get verified contact info for decision-makers at 17funded saasstartups in Barcelona. Get verified contact info for decision-makers at 17funded saasstartups in Barcelona. Software5,814 companiesArtificial Intelligence (AI)4,802 companiesInformation Technology3,241 companiesHealth Care2,672 companiesFinancial Services1,524 companiesFinTech1,522 companiesBiotechnology1,446 companiesMachine Learning1,244 companies. Perfect for: B2B sales teams targeting saascompanies, investors exploring Barcelonaopportunities, and service providers looking for funded companies ready to scale. Join thousands of sales teams, investors, and service providers using VCBacked. SaaS Startups in Barcelona - 17 Companies (2026) | VCBacked.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.linkedin.com/company/vixiees/",
+              "title": "Vixiees - LinkedIn",
+              "snippet": "Vixiees es una solución de ventas utilizada por equipos comerciales B2C, call y contact centers. Automatiza tus procesos comerciales gracias",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Barcelona B2B software startup automation",
+            "candidate_selected_by=llm",
+            "follow_up_query=Vixiees ceo es automation"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 5,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com/directory/ Spain agentic workflows software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:eu-startups.com/directory/ Spain agentic workflows software company under 50 employees",
+          "person": null,
+          "company": {
+            "name": "Back",
+            "website": "https://opsima.com/blog/industry-insights/agentic-workflow-automation-industrial-it/",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "automation",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/back/",
+              "title": "Back | EU-Startups",
+              "snippet": "Back is a modern collaboration and automation platform that enables internal service teams to manage all workplace requests on one intuitive platform. Long",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://opsima.com/blog/industry-insights/agentic-workflow-automation-industrial-it/",
+              "title": "Agentic Workflow Automation for Industrial IT: The 2026 Guide",
+              "snippet": "The same pattern appears across agentic AI in mining operations: facilities waiting 12 to 18 months for reporting a developer could build in a week. Agentic workflow automation operates in a continuous loop. ## Agentic Workflow Use Cases in Industrial Operations. Enterprise agentic AI requires four governance layers: a staging environment where solutions are built in isolation from production, a risk assessment step to check for vulnerabilities before IT review, IT approval gates that control what reaches production, and full audit trails with rollback capability. With a governed agentic AI platform like Opsima Agent Builder, workflows that previously took 6 to 24 months through traditional IT channels can be deployed in days. Real customer examples: a major container terminal’s 12-month integration backlog was replaced with agent-built workflows deployed in a fraction of the time. Yes. Agentic workflow automation platforms designed for industrial IT build the integration layer on top of existing enterprise systems.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com/directory/ Spain agentic workflows software company under 50 employees",
+            "candidate_selected_by=llm",
+            "follow_up_query=Back ceo es agentic workflows automation"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but misses key evidence for exact match due to unverified company size and unmatched buyer persona.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 6,
+        "planner_action": "SOURCE",
+        "query": "Spain ceo AI software startup",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Spain ceo AI software startup",
+          "person": {
+            "full_name": "ik launches from stealth and raises €4.2 ... # Spanish startup Supersonik launches from stealth and raises €4.2 million for its multilingual AI agent",
+            "role_title": "founder"
+          },
+          "company": {
+            "name": "Spanish Supersonik Launches From Stealth And Raises E4 2 Million For Its Multilingual Ai Agent",
+            "website": null,
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/2025/09/spanish-startup-supersonik-launches-from-stealth-and-raises-e4-2-million-for-its-multilingual-ai-agent/",
+              "title": "Spanish startup Supersonik launches from stealth and raises €4.2 ...",
+              "snippet": "# Spanish startup Supersonik launches from stealth and raises €4.2 million for its multilingual AI agent | EU-Startups. HomeFundingSpanish startup Supersonik launches from stealth and raises €4.2 million for its... # Spanish startup Supersonik launches from stealth and raises €4.2 million for its multilingual AI agent. Launched today from stealth with €4.2 million in Seed funding, Barcelona’s **Supersonik** is introducing an autonomous, multilingual AI agent that joins live video calls, showcases real software in action, and adapts the demo to the buyer in real time. “_We’re living through the biggest tech shift of our lifetime with AI, and teaming up with Dani and Pol was a no-brainer to build a future where every company can engage buyers instantly, globally, and at scale, transforming how software is discovered and bought,_” added **Joaquim Lechà**, Co-founder at Supersonik. ### German HealthTech startup Recare closes €37 million funding round to scale AI platform and expand internationally.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.forbes.com/sites/davidprosser/2024/12/12/meet-maisa-the-spanish-ai-start-up-backed-by-the-titans-of-big-tech/",
+              "title": "Meet Maisa, The Spanish AI Start-Up Backed By The Titans Of Big ...",
+              "snippet": "Our best stories, exclusive reporting and Forbes perspectives on the day’s top news. “Our view is that the approach of many AI companies just isn’t going to work because they are asking enterprises to blindly trust their models,” says David Villalón, co-founder and CEO of Maisa. He points to recent research from Amazon, which found that while 25% of businesses had begun experimenting with generative AI, just 6% had put the technology to use in a live production environment. Image 11: Graphic Best High-Yield Savings Accounts Of 2024. Image 12: Graphic Best 5% Interest Savings Accounts of 2024. Forbes Daily: Join over 1 million Forbes Daily subscribers and get our best stories, exclusive reporting and essential analysis of the day’s news in your inbox every weekday. “The Maisa team are building a transformative technology to turn AI agents into actual workers that are capable of reasoning through complex workflows,” says Max Kilberg of Village Global.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain ceo AI software startup",
+            "candidate_selected_by=heuristic"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 90,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "founder",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 0,
+      "search_calls_used": 8
+    },
+    "applied_relaxation_stage": 2,
+    "completed_reason": "budget_exhausted_with_shortlist"
+  }
+}

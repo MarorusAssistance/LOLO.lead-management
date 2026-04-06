@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from lolo_lead_management.domain.enums import PlannerAction, QualificationOutcome, RunStatus
+from lolo_lead_management.domain.enums import PlannerAction, QualificationOutcome, RunStatus, StageName
 from lolo_lead_management.domain.models import (
     AcceptedLeadRecord,
     LeadSearchStartRequest,
@@ -59,6 +59,11 @@ class LeadManagementEngine:
         self._archive_writer = archive_writer
 
     def start(self, payload: LeadSearchStartRequest) -> LeadSearchStartResponse:
+        run = self.initialize_run(payload)
+        completed = self.run_to_completion(run.run_id)
+        return self.build_start_response(completed)
+
+    def initialize_run(self, payload: LeadSearchStartRequest) -> SearchRunSnapshot:
         normalized = self._normalize_stage.execute(payload)
         run = SearchRunSnapshot(
             request=normalized,
@@ -67,99 +72,190 @@ class LeadManagementEngine:
                 enrich_attempt_budget=self._enrich_attempt_budget,
             ),
         )
-        self._run_store.save_run(run)
-        state = self._load_state_stage.execute(run)
+        self._update_progress(
+            run,
+            stage=StageName.NORMALIZE,
+            message="Request normalized. Preparing durable search state.",
+        )
+        return run
 
-        while state.should_continue:
-            state.run.updated_at = datetime.now(timezone.utc)
-            state.current_decision = self._plan_stage.execute(state)
-            state.run.applied_relaxation_stage = state.current_decision.relaxation_stage
+    def run_to_completion(self, run_id: str, *, raise_on_error: bool = True) -> SearchRunSnapshot:
+        run = self._run_store.get_run(run_id)
+        if run is None:
+            raise ValueError(f"Run not found: {run_id}")
 
-            if state.current_decision.action == PlannerAction.FINISH_ACCEPTED:
-                state.run.status = RunStatus.COMPLETED
-                state.run.completed_reason = state.current_decision.reason
-                break
-            if state.current_decision.action == PlannerAction.FINISH_SHORTLIST:
-                state.run.status = RunStatus.COMPLETED
-                state.run.completed_reason = state.current_decision.reason
-                break
-            if state.current_decision.action == PlannerAction.FINISH_NO_RESULT:
-                state.run.status = RunStatus.NO_RESULT
-                state.run.completed_reason = state.current_decision.reason
-                break
+        active_stage = run.current_stage or StageName.LOAD_STATE
+        state = None
+        try:
+            self._update_progress(run, stage=StageName.LOAD_STATE, message="Loading exploration memory.")
+            state = self._load_state_stage.execute(run)
 
-            query, dossier = self._source_stage.execute(state)
-            if query is None:
-                state.run.budget.source_attempts_used = state.run.budget.source_attempt_budget
-            else:
-                state.run.budget.source_attempts_used += 1
-            state.current_query = query
-            state.current_dossier = dossier
-            state.current_qualification = self._qualify_stage.execute(
-                request_payload=state.run.request.model_dump(mode="json"),
-                dossier_payload=dossier.model_dump(mode="json"),
-            )
+            while state.should_continue:
+                self._update_progress(
+                    state.run,
+                    stage=StageName.PLAN,
+                    message=self._planning_message(state.run),
+                )
+                state.current_decision = self._plan_stage.execute(state)
+                state.run.applied_relaxation_stage = state.current_decision.relaxation_stage
 
-            if state.current_qualification.outcome == QualificationOutcome.ENRICH and state.run.budget.can_enrich():
-                state.run.budget.enrich_attempts_used += 1
-                state.current_dossier = self._enrich_stage.execute(state)
+                if state.current_decision.action == PlannerAction.FINISH_ACCEPTED:
+                    state.run.status = RunStatus.COMPLETED
+                    state.run.completed_reason = state.current_decision.reason
+                    break
+                if state.current_decision.action == PlannerAction.FINISH_SHORTLIST:
+                    state.run.status = RunStatus.COMPLETED
+                    state.run.completed_reason = state.current_decision.reason
+                    break
+                if state.current_decision.action == PlannerAction.FINISH_NO_RESULT:
+                    state.run.status = RunStatus.NO_RESULT
+                    state.run.completed_reason = state.current_decision.reason
+                    break
+
+                active_stage = StageName.SOURCE
+                self._update_progress(
+                    state.run,
+                    stage=StageName.SOURCE,
+                    message=self._sourcing_message(state.run),
+                )
+                query, dossier = self._source_stage.execute(state)
+                if query is None:
+                    state.run.budget.source_attempts_used = state.run.budget.source_attempt_budget
+                else:
+                    state.run.budget.source_attempts_used += 1
+                state.current_query = query
+                state.current_dossier = dossier
+
+                active_stage = StageName.QUALIFY
+                self._update_progress(
+                    state.run,
+                    stage=StageName.QUALIFY,
+                    message="Evaluating whether the candidate is an exact match or a close match.",
+                )
                 state.current_qualification = self._qualify_stage.execute(
                     request_payload=state.run.request.model_dump(mode="json"),
-                    dossier_payload=state.current_dossier.model_dump(mode="json"),
+                    dossier_payload=dossier.model_dump(mode="json"),
                 )
 
-            if state.current_qualification.outcome in {QualificationOutcome.ACCEPT, QualificationOutcome.REJECT_CLOSE_MATCH}:
-                state.current_commercial = self._draft_stage.execute(
-                    request_payload=state.run.request.model_dump(mode="json"),
-                    dossier_payload=state.current_dossier.model_dump(mode="json"),
-                    qualification_payload=state.current_qualification.model_dump(mode="json"),
-                )
-            else:
-                state.current_commercial = None
+                if state.current_qualification.outcome == QualificationOutcome.ENRICH and state.run.budget.can_enrich():
+                    active_stage = StageName.ENRICH
+                    self._update_progress(
+                        state.run,
+                        stage=StageName.ENRICH,
+                        message="Collecting extra evidence for a promising candidate.",
+                    )
+                    state.run.budget.enrich_attempts_used += 1
+                    state.current_dossier = self._enrich_stage.execute(state)
 
-            state.run.iterations.append(
-                RunIteration(
-                    index=len(state.run.iterations) + 1,
-                    planner_action=PlannerAction.SOURCE,
-                    query=query,
-                    dossier=state.current_dossier,
-                    qualification=state.current_qualification,
+                    active_stage = StageName.REQUALIFY
+                    self._update_progress(
+                        state.run,
+                        stage=StageName.REQUALIFY,
+                        message="Re-checking the enriched candidate against the request.",
+                    )
+                    state.current_qualification = self._qualify_stage.execute(
+                        request_payload=state.run.request.model_dump(mode="json"),
+                        dossier_payload=state.current_dossier.model_dump(mode="json"),
+                    )
+
+                if state.current_qualification.outcome in {
+                    QualificationOutcome.ACCEPT,
+                    QualificationOutcome.REJECT_CLOSE_MATCH,
+                }:
+                    active_stage = StageName.DRAFT
+                    self._update_progress(
+                        state.run,
+                        stage=StageName.DRAFT,
+                        message="Preparing outreach drafts for a validated lead candidate.",
+                    )
+                    state.current_commercial = self._draft_stage.execute(
+                        request_payload=state.run.request.model_dump(mode="json"),
+                        dossier_payload=state.current_dossier.model_dump(mode="json"),
+                        qualification_payload=state.current_qualification.model_dump(mode="json"),
+                    )
+                else:
+                    state.current_commercial = None
+
+                state.run.iterations.append(
+                    RunIteration(
+                        index=len(state.run.iterations) + 1,
+                        planner_action=PlannerAction.SOURCE,
+                        query=query,
+                        dossier=state.current_dossier,
+                        qualification=state.current_qualification,
+                    )
                 )
+
+                active_stage = StageName.CRM_WRITE
+                self._update_progress(
+                    state.run,
+                    stage=StageName.CRM_WRITE,
+                    message="Saving structured candidate state.",
+                )
+                self._crm_write_stage.execute(state)
+
+                active_stage = StageName.CONTINUE_OR_FINISH
+                self._update_progress(
+                    state.run,
+                    stage=StageName.CONTINUE_OR_FINISH,
+                    message="Checking whether more sourcing is needed.",
+                )
+                self._continue_stage.execute(state)
+
+            final_run = state.run if state is not None else run
+            self._update_progress(
+                final_run,
+                stage=StageName.CONTINUE_OR_FINISH,
+                message=self._final_progress_message(final_run),
             )
-            self._crm_write_stage.execute(state)
-            self._continue_stage.execute(state)
+            self._archive_final_run(final_run)
+            return final_run
+        except Exception as exc:
+            failed_run = state.run if state is not None else run
+            failed_run.status = RunStatus.FAILED
+            failed_run.completed_reason = "engine_failed"
+            failed_run.errors = [*failed_run.errors, str(exc)]
+            self._update_progress(
+                failed_run,
+                stage=active_stage,
+                message="Search failed. Check the stored errors for details.",
+            )
+            self._archive_final_run(failed_run)
+            if raise_on_error:
+                raise
+            return failed_run
 
-        state.run.updated_at = datetime.now(timezone.utc)
-        self._run_store.save_run(state.run)
-        response = LeadSearchStartResponse(
-            run_id=state.run.run_id,
-            status=state.run.status,
-            normalized_request=state.run.request,
-            accepted_leads=state.run.accepted_leads,
-            shortlist_id=state.run.shortlist_id,
-            shortlist_options=state.run.shortlist_options,
-            errors=state.run.errors,
-            budget_summary=state.run.budget,
-            applied_relaxation_stage=state.run.applied_relaxation_stage,
-            completed_reason=state.run.completed_reason,
+    def build_start_response(self, run: SearchRunSnapshot) -> LeadSearchStartResponse:
+        return LeadSearchStartResponse(
+            run_id=run.run_id,
+            status=run.status,
+            normalized_request=run.request,
+            current_stage=run.current_stage,
+            progress_message=run.progress_message,
+            last_heartbeat_at=run.last_heartbeat_at,
+            accepted_leads=run.accepted_leads,
+            shortlist_id=run.shortlist_id,
+            shortlist_options=run.shortlist_options,
+            errors=run.errors,
+            budget_summary=run.budget,
+            applied_relaxation_stage=run.applied_relaxation_stage,
+            completed_reason=run.completed_reason,
         )
-        if self._archive_writer is not None:
-            self._archive_writer.write(
-                kind="lead-search-run",
-                payload={
-                    "run_id": state.run.run_id,
-                    "request": payload.model_dump(mode="json"),
-                    "response": response.model_dump(mode="json"),
-                    "final_run": state.run.model_dump(mode="json"),
-                },
-            )
-        return response
 
     def get_run(self, run_id: str) -> SearchRunSnapshot | None:
         return self._run_store.get_run(run_id)
 
+    def get_shortlist(self, shortlist_id: str):
+        return self._shortlist_store.get_pending_shortlist(shortlist_id)
+
+    def get_shortlist_option(self, shortlist_id: str, option_number: int):
+        shortlist = self.get_shortlist(shortlist_id)
+        if shortlist is None:
+            return None
+        return next((item for item in shortlist.options if item.option_number == option_number), None)
+
     def select_shortlist_option(self, shortlist_id: str, option_number: int) -> SearchRunSnapshot | None:
-        shortlist = self._shortlist_store.get_pending_shortlist(shortlist_id)
+        shortlist = self.get_shortlist(shortlist_id)
         if shortlist is None:
             return None
         option = next((item for item in shortlist.options if item.option_number == option_number), None)
@@ -172,17 +268,34 @@ class LeadManagementEngine:
 
         accepted_record = AcceptedLeadRecord(
             person_name=option.person_name,
-            role_title=option.qualification.type,
+            role_title=option.role_title,
             company_name=option.company_name,
+            website=option.website,
+            country_code=option.country_code,
+            evidence=option.evidence,
             qualification=option.qualification,
             commercial=option.commercial,
         )
         run.accepted_leads.append(accepted_record)
-        run.shortlist_options = [item for item in run.shortlist_options if item.option_number != option_number]
+        remaining_options = [item for item in shortlist.options if item.option_number != option_number]
+        run.shortlist_options = remaining_options
         run.status = RunStatus.COMPLETED
-        run.updated_at = datetime.now(timezone.utc)
-        self._shortlist_store.clear_pending_shortlist(shortlist_id)
-        self._run_store.save_run(run)
+        remaining_count = len(remaining_options)
+        self._update_progress(
+            run,
+            stage=StageName.CONTINUE_OR_FINISH,
+            message=(
+                "Shortlist option selected and promoted to accepted lead."
+                if remaining_count == 0
+                else f"Shortlist option selected and promoted to accepted lead. {remaining_count} shortlist options remain."
+            ),
+        )
+        if remaining_options:
+            self._shortlist_store.save_pending_shortlist(
+                shortlist.model_copy(update={"options": remaining_options})
+            )
+        else:
+            self._shortlist_store.clear_pending_shortlist(shortlist_id)
         if self._archive_writer is not None:
             self._archive_writer.write(
                 kind="shortlist-selection",
@@ -194,3 +307,44 @@ class LeadManagementEngine:
                 },
             )
         return run
+
+    def _planning_message(self, run: SearchRunSnapshot) -> str:
+        target_count = run.request.constraints.target_count
+        next_index = len(run.accepted_leads) + 1
+        return f"Planning the next step for lead {next_index} of {target_count}."
+
+    def _sourcing_message(self, run: SearchRunSnapshot) -> str:
+        next_attempt = min(run.budget.source_attempts_used + 1, run.budget.source_attempt_budget)
+        return f"Searching the web for candidate {next_attempt} of {run.budget.source_attempt_budget}."
+
+    def _final_progress_message(self, run: SearchRunSnapshot) -> str:
+        if run.status == RunStatus.FAILED:
+            return "Search failed before completion."
+        if run.accepted_leads:
+            return f"Search completed with {len(run.accepted_leads)} accepted leads."
+        if run.shortlist_options:
+            return f"Search completed with {len(run.shortlist_options)} shortlist options."
+        if run.status == RunStatus.NO_RESULT:
+            return "Search completed with no suitable results."
+        return "Search completed."
+
+    def _update_progress(self, run: SearchRunSnapshot, *, stage: StageName, message: str) -> None:
+        now = datetime.now(timezone.utc)
+        run.current_stage = stage
+        run.progress_message = message
+        run.last_heartbeat_at = now
+        run.updated_at = now
+        self._run_store.save_run(run)
+
+    def _archive_final_run(self, run: SearchRunSnapshot) -> None:
+        if self._archive_writer is None:
+            return
+        response = self.build_start_response(run)
+        self._archive_writer.write(
+            kind="lead-search-run",
+            payload={
+                "run_id": run.run_id,
+                "response": response.model_dump(mode="json"),
+                "final_run": run.model_dump(mode="json"),
+            },
+        )

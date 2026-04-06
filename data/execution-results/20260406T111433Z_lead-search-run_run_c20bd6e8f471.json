@@ -1,0 +1,1130 @@
+{
+  "run_id": "run_c20bd6e8f471",
+  "response": {
+    "run_id": "run_c20bd6e8f471",
+    "status": "completed",
+    "normalized_request": {
+      "action": "lead_search.start",
+      "request_id": "req_e65288553ee7",
+      "user_text": "encuentra 1 lead en empresas españolas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 1,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "current_stage": "continue_or_finish",
+    "progress_message": "Search completed with 5 shortlist options.",
+    "last_heartbeat_at": "2026-04-06T11:14:33.303182Z",
+    "accepted_leads": [],
+    "shortlist_id": "short_c20bd6e8f471",
+    "shortlist_options": [
+      {
+        "option_number": 1,
+        "company_name": "Techcrunch",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but misses the hard constraint on company size, which cannot be verified.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "company_size"
+          ],
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 90,
+          "summary": "Candidate is commercially interesting but misses the hard constraint on company size, which cannot be verified.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "Founder",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Krea raises $83M to be the one-stop shop for GenAI creatives (https://techcrunch.com/2025/04/07/kreas-founders-snubbed-postgrad-grants-from-the-king-of-spain-to-build-their-ai-startup-now-its-valued-at-500m/); GenAiA, the first Generative AI Association led by the Spanish ... (https://generativeaiassociation.org/articles/genaia-the-first-generative-ai-association-led-by-the-spanish-entrepreneurial-ecosystem-is-launched/)",
+          "hooks": [
+            "Techcrunch appears active around genai, ai engineering.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but misses the hard constraint on company size, which cannot be verified.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Techcrunch está trabajando temas de genai, ai engineering. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Techcrunch y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Techcrunch",
+          "email_body": "Hola there,\n\nHe revisado Techcrunch y veo señales útiles en torno a genai, ai engineering, agentic workflows. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "option_number": 2,
+        "company_name": "Sifted",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "company_size"
+          ],
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 80,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "founder",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "11 Spanish AI startups to watch, according to investors (https://sifted.eu/articles/11-spanish-ai-startups-to-watch-according-to-investors); Spain's Rising AI Startups: Sherpa.ai and Wallbox Lead the ... (https://www.linkedin.com/posts/startup-networks_startups-business-investment-activity-7443164098021851136-UqcU)",
+          "hooks": [
+            "Sifted appears active around software company.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Sifted está trabajando temas de software company. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Sifted y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Sifted",
+          "email_body": "Hola there,\n\nHe revisado Sifted y veo señales útiles en torno a software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "option_number": 3,
+        "company_name": "Semeris",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "AI software Semeris raises €4 million to meet demand for GenAI in ... (https://www.eu-startups.com/2025/02/ai-software-semeris-raises-e4-million-to-meet-demand-for-genai-in-fintech/); Semeris – Superhuman Powers for Legal Docs | Enhance Deal ... (https://www.semeris.com/)",
+          "hooks": [
+            "Semeris appears active around genai, agentic workflows.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Semeris está trabajando temas de genai, agentic workflows. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Semeris y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Semeris",
+          "email_body": "Hola there,\n\nHe revisado Semeris y veo señales útiles en torno a genai, agentic workflows, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "option_number": 4,
+        "company_name": "Uxia",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Spanish startup Uxia lands €1 million to develop synthetic- ... (https://www.eu-startups.com/2025/11/spanish-startup-uxia-lands-e1-million-to-develop-synthetic-user-technology-for-product-teams/); What are Agentic Workflows? (https://www.uipath.com/ai/agentic-workflows); Agentic AI For Workflow Automation (https://xebia.com/glossary/agentic-ai-workflow-automation/)",
+          "hooks": [
+            "Uxia appears active around automation, agentic workflows.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Uxia está trabajando temas de automation, agentic workflows. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Uxia y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Uxia",
+          "email_body": "Hola there,\n\nHe revisado Uxia y veo señales útiles en torno a automation, agentic workflows, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "option_number": 5,
+        "company_name": "Alteria Automation SL",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Alteria Automation (https://www.eu-startups.com/directory/alteria-automation/); Alteria Automation Smart Sensors - F6S (https://www.f6s.com/company/alteriaautomationsmart)",
+          "hooks": [
+            "Alteria Automation SL appears active around ai engineering, automation.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Alteria Automation SL está trabajando temas de ai engineering, automation. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Alteria Automation SL y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Alteria Automation SL",
+          "email_body": "Hola there,\n\nHe revisado Alteria Automation SL y veo señales útiles en torno a ai engineering, automation, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      }
+    ],
+    "errors": [],
+    "budget_summary": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 10
+    },
+    "applied_relaxation_stage": 2,
+    "completed_reason": "budget_exhausted_with_shortlist"
+  },
+  "final_run": {
+    "run_id": "run_c20bd6e8f471",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_e65288553ee7",
+      "user_text": "encuentra 1 lead en empresas españolas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 1,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "completed",
+    "created_at": "2026-04-06T11:10:22.065971Z",
+    "updated_at": "2026-04-06T11:14:33.303182Z",
+    "current_stage": "continue_or_finish",
+    "progress_message": "Search completed with 5 shortlist options.",
+    "last_heartbeat_at": "2026-04-06T11:14:33.303182Z",
+    "accepted_leads": [],
+    "shortlist_id": "short_c20bd6e8f471",
+    "shortlist_options": [
+      {
+        "option_number": 1,
+        "company_name": "Techcrunch",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but misses the hard constraint on company size, which cannot be verified.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "company_size"
+          ],
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 90,
+          "summary": "Candidate is commercially interesting but misses the hard constraint on company size, which cannot be verified.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "Founder",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Krea raises $83M to be the one-stop shop for GenAI creatives (https://techcrunch.com/2025/04/07/kreas-founders-snubbed-postgrad-grants-from-the-king-of-spain-to-build-their-ai-startup-now-its-valued-at-500m/); GenAiA, the first Generative AI Association led by the Spanish ... (https://generativeaiassociation.org/articles/genaia-the-first-generative-ai-association-led-by-the-spanish-entrepreneurial-ecosystem-is-launched/)",
+          "hooks": [
+            "Techcrunch appears active around genai, ai engineering.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but misses the hard constraint on company size, which cannot be verified.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Techcrunch está trabajando temas de genai, ai engineering. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Techcrunch y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Techcrunch",
+          "email_body": "Hola there,\n\nHe revisado Techcrunch y veo señales útiles en torno a genai, ai engineering, agentic workflows. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "option_number": 2,
+        "company_name": "Sifted",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "company_size"
+          ],
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 80,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "founder",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "11 Spanish AI startups to watch, according to investors (https://sifted.eu/articles/11-spanish-ai-startups-to-watch-according-to-investors); Spain's Rising AI Startups: Sherpa.ai and Wallbox Lead the ... (https://www.linkedin.com/posts/startup-networks_startups-business-investment-activity-7443164098021851136-UqcU)",
+          "hooks": [
+            "Sifted appears active around software company.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Sifted está trabajando temas de software company. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Sifted y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Sifted",
+          "email_body": "Hola there,\n\nHe revisado Sifted y veo señales útiles en torno a software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "option_number": 3,
+        "company_name": "Semeris",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "AI software Semeris raises €4 million to meet demand for GenAI in ... (https://www.eu-startups.com/2025/02/ai-software-semeris-raises-e4-million-to-meet-demand-for-genai-in-fintech/); Semeris – Superhuman Powers for Legal Docs | Enhance Deal ... (https://www.semeris.com/)",
+          "hooks": [
+            "Semeris appears active around genai, agentic workflows.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Semeris está trabajando temas de genai, agentic workflows. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Semeris y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Semeris",
+          "email_body": "Hola there,\n\nHe revisado Semeris y veo señales útiles en torno a genai, agentic workflows, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "option_number": 4,
+        "company_name": "Uxia",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Spanish startup Uxia lands €1 million to develop synthetic- ... (https://www.eu-startups.com/2025/11/spanish-startup-uxia-lands-e1-million-to-develop-synthetic-user-technology-for-product-teams/); What are Agentic Workflows? (https://www.uipath.com/ai/agentic-workflows); Agentic AI For Workflow Automation (https://xebia.com/glossary/agentic-ai-workflow-automation/)",
+          "hooks": [
+            "Uxia appears active around automation, agentic workflows.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Uxia está trabajando temas de automation, agentic workflows. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Uxia y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Uxia",
+          "email_body": "Hola there,\n\nHe revisado Uxia y veo señales útiles en torno a automation, agentic workflows, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      },
+      {
+        "option_number": 5,
+        "company_name": "Alteria Automation SL",
+        "person_name": null,
+        "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+        "close_match": {
+          "summary": "Commercially interesting candidate with exact-match gaps.",
+          "missed_filters": [
+            "preferred buyer persona",
+            "company_size"
+          ],
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        },
+        "commercial": {
+          "source_notes": "Alteria Automation (https://www.eu-startups.com/directory/alteria-automation/); Alteria Automation Smart Sensors - F6S (https://www.f6s.com/company/alteriaautomationsmart)",
+          "hooks": [
+            "Alteria Automation SL appears active around ai engineering, automation.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Alteria Automation SL está trabajando temas de ai engineering, automation. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Alteria Automation SL y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Alteria Automation SL",
+          "email_body": "Hola there,\n\nHe revisado Alteria Automation SL y veo señales útiles en torno a ai engineering, automation, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      }
+    ],
+    "iterations": [
+      {
+        "index": 1,
+        "planner_action": "SOURCE",
+        "query": "Spain ceo GenAI software startup",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Spain ceo GenAI software startup",
+          "person": {
+            "full_name": "Us Image Credits: Ingrid Lunden / Krea.ai (opens in a new window) under a CC BY 2.0 (opens in a new window) license. AI Krea raises $83M to be the one-stop shop for GenAI creatives Ingrid Lunden 7:29 AM PDT · April 7, 2025 Overwhelmed with trying to keep up with the different AI models you can use to make content? A startup called Krea is looking to solve this problem specifically for designers and other visual creatives, and it has now raised $83 million for its platform, which it believes will make working with generative AI a lot smoother.&nbsp; San Francisco-based Krea says its “unified” platform provides tooling from multiple models, along with a custom interface aimed at making queries and subsequent edits sent to those models significantly easier and more customizable.&nbsp;Its user base includes creators at&nbsp;Perplexity AI,&nbsp;Loop Earplugs,&nbsp;Pixar,&nbsp;LEGO, and&nbsp;Samsung. Krea’s funding is being announced for the first time today, and the $83 million is actually coming in a few tranches: the latest, a Series B, totals $47 million. That was preceded by a preseed/seed and Series A of $3 million and $33 million, respectively.&nbsp;TechCrunch has learned from sources close to the deal that the startup is currently valued at $500 million post-money.&nbsp; Bain Capital Ventures is leading the latest round. Other major investors in the startup include Andreessen Horowitz and Abstract Ventures.&nbsp; From creatives to AI creators Krea is the brainchild of Victor Perez (CEO) and Diego Rodriguez (CTO), who met when they were still students in Barcelona a decade ago. Both consider themselves creatives and creators — Perez in music playing and production, and Rodriguez in art — but they have always been interested in technical subjects, too.&nbsp; “I liked physics and maths and problems that challenged my mind,” Perez said, recalling his student days.&nbsp; Techcrunch event This Week Only: Up to $482 savings for Disrupt 2026 Offer ends April 10, 11:59 p.m. PT Your next round. Your next hire. Your next breakout opportunity. Find it at TechCrunch Disrupt 2026, where 10,000+ founders, investors, and tech leaders gather for three days of 250+ tactical sessions, powerful introductions, and market-defining innovation. Register now to secure these savings. This Week Only: Up to $482 savings for Disrupt 2026 Offer ends April 10, 11:59 p.m. PT Your next round. Your next hire. Your next breakout opportunity. Find it at TechCrunch Disrupt 2026, where 10,000+ founders, investors, and tech leaders gather for three days of 250+ tactical sessions, powerful introductions, and market-defining innovation. Register now to secure these savings. San Francisco, CA",
+            "role_title": "Founder"
+          },
+          "company": {
+            "name": "Techcrunch",
+            "website": "https://techcrunch.com/2025/04/07/kreas-founders-snubbed-postgrad-grants-from-the-king-of-spain-to-build-their-ai-startup-now-its-valued-at-500m/",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "ai engineering",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://techcrunch.com/2025/04/07/kreas-founders-snubbed-postgrad-grants-from-the-king-of-spain-to-build-their-ai-startup-now-its-valued-at-500m/",
+              "title": "Krea raises $83M to be the one-stop shop for GenAI creatives",
+              "snippet": "A startup called Krea is looking to solve this problem specifically for designers and other visual creatives, and it has now raised $83 million for its platform, which it believes will make working with generative AI a lot smoother. #### On **June 23 in Boston**, more than **1,100 founders** come together at **TechCrunch Founder Summit 2026** for a full day focused on growth, execution, and real-world scaling. “A lot of companies are focused on replacing creative workflows,” Perez said. That idea is then processed by Krea, which selects the models that it believes could give users the best outcome based on the request. “Why isn’t it possible to go on an [AI-generated] image, and click and drag and drop something in or take something out?” asked Rodriguez. The company’s tools cover still images and videos, and it is working on expanding its platform to support tools for audio and music generation as well, Perez said. abstract ventures, AI, Andreessen Horowitz, bain capital ventures, genAI, image generation, krea.ai, Spain.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://generativeaiassociation.org/articles/genaia-the-first-generative-ai-association-led-by-the-spanish-entrepreneurial-ecosystem-is-launched/",
+              "title": "GenAiA, the first Generative AI Association led by the Spanish ...",
+              "snippet": "The project is led by Óscar Méndez and Carmen Vidal in their respective roles as President and Vice President of GenAiA. ... He is currently CEO",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain ceo GenAI software startup",
+            "candidate_selected_by=heuristic"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 90,
+          "summary": "Candidate is commercially interesting but misses the hard constraint on company size, which cannot be verified.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "Founder",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 2,
+        "planner_action": "SOURCE",
+        "query": "Spain founder AI software startup",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Spain founder AI software startup",
+          "person": {
+            "full_name": "Us Sifted Pro Subscribe ~/Briefings ~/Deals Newsletter Products ~/Newsletters ~/Rankings ~/Reports ~/Leaderboards ~/Deals Tracker ~/Investor Tracker ~/Market Tracker ~/M&amp;A Tracker Community ~/Talks ~/Podcasts ~/Summit © 2026 Sifted EU Ltd. All Rights Reserved.",
+            "role_title": "founder"
+          },
+          "company": {
+            "name": "Sifted",
+            "website": "https://sifted.eu/articles/11-spanish-ai-startups-to-watch-according-to-investors",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://sifted.eu/articles/11-spanish-ai-startups-to-watch-according-to-investors",
+              "title": "11 Spanish AI startups to watch, according to investors",
+              "snippet": "# 11 Spanish AI startups to watch, according to investors. ## Spain is emerging as the AI dark horse of Europe, with fast-growing funding and startups abounding in the space. Spanish AI is on a roll. Rocío Pillado — partner at Adara Ventures. Javier Torremocha — co-founder and managing partner at Kibo Ventures. Jaime Novoa —  partner at Kfund. OpenAI's Laura Modiano on hackathons, Lovable and how startups can partner with the tech giant. She covers French tech and writes Sifted's  AI and Deeptech newsletter . ### Sifted Daily newsletter. How many government AI initiatives is too many? British politician Ed Vaizey asks for a more joined-up AI investment strategy from the UK government. Danish AI lab Corti beats OpenAI and Anthropic in medical coding. Its AI model Symphony outperforms big‑tech models in medical coding by more than 25% in independent clinical‑accuracy benchmarks. The race to dominate voice AI is heating up: ‘We have to go fast’. ### Sifted Pro.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.linkedin.com/posts/startup-networks_startups-business-investment-activity-7443164098021851136-UqcU",
+              "title": "Spain's Rising AI Startups: Sherpa.ai and Wallbox Lead the ...",
+              "snippet": "11 Spanish AI Startups to Watch, According to Investors Spain is rapidly becoming a hub for AI innovation, with startups gaining attention",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain founder AI software startup",
+            "candidate_selected_by=heuristic"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 80,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "founder",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "company_size"
+            ],
+            "reasons": [
+              "buyer persona matches the preferred targets",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 3,
+        "planner_action": "SOURCE",
+        "query": "Spain founder GenAI software startup",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Spain founder GenAI software startup",
+          "person": null,
+          "company": {
+            "name": "Semeris",
+            "website": "https://www.semeris.com/",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "genai",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/2025/02/ai-software-semeris-raises-e4-million-to-meet-demand-for-genai-in-fintech/",
+              "title": "AI software Semeris raises €4 million to meet demand for GenAI in ...",
+              "snippet": "Semeris was founded in 2020 by Peter Jasko, former head of JPMorgan's European CLO team, and Sam Daroczy, Co-founder and former CEO of Verba",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.semeris.com/",
+              "title": "Semeris – Superhuman Powers for Legal Docs | Enhance Deal ...",
+              "snippet": "It's time to let Semeris streamline your deal document analysis. Semeris Raises $4.3M to Transform Legal Document Analysis in Finance with AI. Semeris Raises $4.3M to Transform Legal Document Analysis in Finance with AI. Semeris Checklists transforms ad-hoc document review into intelligent workflows - whether you need a comprehensive new issue analysis, rapid BWIC prep, or focused deep-dives into ESG criteria or LMO structures. Semeris Market Compare changes that by transforming hundreds of deals into color-coded intelligence screens that reveal market patterns instantly. While most teams are still doing individual deal forensics with limited context, Semeris users operate with a market-wide perspective that turns pattern recognition into a competitive advantage. The Stip Tracker in Semeris Docs changes all that by turning your stip lists into intelligent, deal-aware workflows. The Semeris Excel Add-on eliminates the digital archaeology of copying and pasting deal data - now you have a direct pipeline from our 800,000+ pages of CLO documents straight into your live spreadsheets.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain founder GenAI software startup",
+            "candidate_selected_by=llm",
+            "follow_up_query=Semeris ceo es genai ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 4,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com Spain startup automation",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Uxia ceo es automation  agentic workflows",
+          "person": {
+            "full_name": "center All departments By technology Peak.ai Coded agents Microsoft SAP Agentic testing Technology solutions overview Prebuilt Solutions for the agentic enterprise Agentic workflows that connect AI agents, robots, and teams across your business. Explore prebuilt solutions Platform Platform Agentic Automation Discover the place where agents think, robots do, and people lead. Agentic Testing Explore agentic testing for the enterprise Explore the Platform View all products Pricing Support Agentic Automation Agentic Automation Discover the place where agents think, robots do, and people lead. Build Agentic AI RPA &amp; API Intelligent document processing Orchestrate Agentic orchestration Process intelligence AI ecosystem Featured Studio Maestro Test Cloud ScreenPlay NEW Foundation: Orchestrate with security, governance, and trust Discover the latest UiPath release UiPath 2025.10 brings business and IT together with Maestro for orchestration, unified development in Studio, IXP for data, and Test Cloud for reliability. Explore now Agentic Testing Agentic Testing Explore agentic testing for the enterprise Topics Unlock comprehensive testing for enterprises Enterprise applications Integrations Performance testing NEW SAP testing Test automation Products Take your testing to the next level with agentic testing Test Cloud Agent Builder for testers Autopilot™ for testers Explore agentic testing solutions for your enterprise Gartner® Magic Quadrant™ for AI-Augmented Software Testing Tools Report See why UiPath wa",
+            "role_title": null
+          },
+          "company": {
+            "name": "Uxia",
+            "website": "https://www.uipath.com/ai/agentic-workflows",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "automation",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/2025/11/spanish-startup-uxia-lands-e1-million-to-develop-synthetic-user-technology-for-product-teams/",
+              "title": "Spanish startup Uxia lands €1 million to develop synthetic- ...",
+              "snippet": "Uxia, a Barcelona-based B2B SaaS startup automating user testing with AI-generated synthetic users, has secured nearly €1 million in its",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.uipath.com/ai/agentic-workflows",
+              "title": "What are Agentic Workflows?",
+              "snippet": "Agentic workflows are the next step in smart automation, enabling AI agents to handle complex tasks without continuous human oversight.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://xebia.com/glossary/agentic-ai-workflow-automation/",
+              "title": "Agentic AI For Workflow Automation",
+              "snippet": "# Agentic AI for Workflow Automation. * Agentic AI for Customer Engagement. * Agentic AI for Decision Support. * Agentic AI for Knowledge Management. * Agentic AI for Predictive Operations. * Agentic AI for Process Optimization. * Agentic AI for Workflow Automation. * AI Agents for IT Service Management. * Next-Generation AI Technologies (R&D). ## What is Agentic AI for Workflow Automation. Agentic AI for Workflow Automation refers to using autonomous AI agents to transform workflows from static, rule-based sequences (like traditional RPA or BPM systems) into intelligent, self-adjusting workflows that can think and act — not just execute commands. Agentic AI enables workflows that run themselves, improve themselves, and coordinate across departments and systems — with humans stepping in only when needed. Unlike traditional, rule-based automation, agentic AI is dynamic and goal-driven, capable of handling unpredictability and continuously improving its performance. ## What are the Key Benefits of Agentic AI for Workflow Automation. ## What are Some Use Cases of Agentic AI for Workflow Automation at Xebia? Related Content on AI for Workflow Automation.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com Spain startup automation",
+            "candidate_selected_by=llm",
+            "enrichment_query=Uxia ceo es automation  agentic workflows"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 60,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified buyer persona and company size.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "named person found",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      },
+      {
+        "index": 5,
+        "planner_action": "SOURCE",
+        "query": "site:startupstash.com Spain startup AI",
+        "dossier": {
+          "sourcing_status": "NO_CANDIDATE",
+          "query_used": "site:startupstash.com Spain startup AI",
+          "person": null,
+          "company": null,
+          "fit_signals": [],
+          "evidence": [],
+          "notes": [
+            "query_used=site:startupstash.com Spain startup AI",
+            "candidate_selected_by=heuristic",
+            "company_already_terminally_explored"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT",
+          "match_type": null,
+          "score": 0,
+          "summary": "No candidate dossier was found despite the query and heuristic-based sourcing attempt.",
+          "reasons": [
+            "sourcing did not produce a valid candidate"
+          ],
+          "type": null,
+          "region": null,
+          "close_match": null
+        }
+      },
+      {
+        "index": 6,
+        "planner_action": "SOURCE",
+        "query": "site:eu-startups.com Spain startup automation",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "site:eu-startups.com Spain startup automation",
+          "person": null,
+          "company": {
+            "name": "Alteria Automation SL",
+            "website": null,
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "ai engineering",
+            "automation",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://www.eu-startups.com/directory/alteria-automation/",
+              "title": "Alteria Automation",
+              "snippet": "Alteria Automation SL is a high-tech engineering company based in Spain since 2017. Its activity is focused on the development, manufacture and sale of air",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://www.f6s.com/company/alteriaautomationsmart",
+              "title": "Alteria Automation Smart Sensors - F6S",
+              "snippet": "Alteria Automation SL is a high-tech engineering company based in the US ... Jose Vigil, Founder & CTO, is a lead Engineer with an incredible vision of",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=site:eu-startups.com Spain startup automation",
+            "candidate_selected_by=llm",
+            "follow_up_query=Alteria Automation SL ceo es automation ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT_CLOSE_MATCH",
+          "match_type": "close_match",
+          "score": 55,
+          "summary": "Candidate is commercially interesting but cannot be confirmed as an exact match due to unverified company size and incomplete buyer persona alignment.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": {
+            "summary": "Commercially interesting candidate with exact-match gaps.",
+            "missed_filters": [
+              "preferred buyer persona",
+              "company_size"
+            ],
+            "reasons": [
+              "preferred buyer persona is not yet fully matched",
+              "company geography matches the requested country",
+              "company size is not fully evidenced yet",
+              "company shows relevant automation or AI signals",
+              "evidence is supported by multiple URLs"
+            ]
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 6,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 10
+    },
+    "applied_relaxation_stage": 2,
+    "completed_reason": "budget_exhausted_with_shortlist"
+  }
+}

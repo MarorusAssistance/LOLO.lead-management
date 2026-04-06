@@ -64,10 +64,14 @@ class CrmWriteStage:
                     option_number=len(state.run.shortlist_options) + 1,
                     company_name=dossier.company.name,
                     person_name=person_name,
+                    role_title=role_title,
+                    website=dossier.company.website,
+                    country_code=dossier.company.country_code,
                     summary=qualification.summary,
                     close_match=qualification.close_match,
                     qualification=qualification,
                     commercial=commercial,
+                    evidence=dossier.evidence,
                 )
                 state.run.shortlist_options.append(option)
             state.memory.searched_company_names.append(dossier.company.name)

@@ -1,0 +1,353 @@
+{
+  "run_id": "run_862f412da98c",
+  "response": {
+    "run_id": "run_862f412da98c",
+    "status": "completed",
+    "normalized_request": {
+      "action": "lead_search.start",
+      "request_id": "req_4132fb53bf19",
+      "user_text": "encuentra 1 lead en empresas españolas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 1,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "current_stage": "continue_or_finish",
+    "progress_message": "Search completed with 1 accepted leads.",
+    "last_heartbeat_at": "2026-04-06T10:26:44.128423Z",
+    "accepted_leads": [
+      {
+        "lead_id": "lead_16ad598d3623",
+        "person_name": null,
+        "role_title": "founder",
+        "company_name": "Ninebit Computing Private Limited",
+        "website": "https://schema.org/PostalAddress\"",
+        "country_code": "es",
+        "evidence": [
+          {
+            "url": "https://clutch.co/es/developers/artificial-intelligence/generative",
+            "title": "Top Generative AI Companies in Spain - Apr 2026 Rankings - Clutch",
+            "snippet": "NINEBIT COMPUTING PRIVATE LIMITED is a company specializing in Generative AI services, particularly excelling in automated data extraction and integration",
+            "source_type": "tavily_search"
+          },
+          {
+            "url": "https://yourstory.com/2025/12/ninebit-building-ai-layer-enterprises-unlock-value-documents",
+            "title": "How NineBit is building an AI layer to help enterprises unlock value ...",
+            "snippet": "# How NineBit is building an AI layer to help enterprises unlock value from their documents. How NineBit is building an AI layer to help enterprises unlock value from their documents. Indore-based NineBit wants to change this with CIQ, an AI-powered intelligence layer that sits on top of an organisation’s existing document systems. The startup, founded in 2023, is building tools that allow enterprises to quickly prototype, automate, and analyse documents using large language models. “I wanted to build something that allows the business owner to do rapid prototyping on their own data,” says Co-founder and CEO Rajeev Jamaiyar. Jamaiyar describes it as “a layer on top of the ECM that corporates set up,” designed to extract information, compare documents, identify gaps, and automate routine workflows. Small and medium enterprises, he says, do not always have access to large consulting firms or expensive AI solutions, leaving a wide-open market for lean platforms like CIQ.",
+            "source_type": "tavily_search"
+          },
+          {
+            "url": "https://in.linkedin.com/company/ninebit-computing",
+            "title": "NineBit Computing | LinkedIn",
+            "snippet": "Overview:\nWelcome to NineBit Computing - a deep tech startup on a mission to simplify how people interact with documents using cutting-edge Artificial Intelligence and Machine Learning. We are a team of engineers and machine learning experts. CiQ by NineBit — now live in Beta — enables seamless, intelligent interaction with documents across formats. Whether it's extracting insights, querying data, or automating workflows, our platform is built to unlock the full potential of unstructured information. Why Work With Us? ✅ Recognized by the Government of India under the Startup India program — giving us access to a strong innovation ecosystem and support network. ✅ Backed by Microsoft for Startups, equipping us with world-class infrastructure, mentorship, and AI tools. ✅ Already Beta Live — we're collaborating with early adopters to co-develop high-impact use cases in real-world environments. ✅ Actively seeking business partnerships with companies ready to explore how Generative AI can streamline workflows, reduce manual effort, and unlock new efficiencies. If your business is looking to lead the next wave of digital transformation through document intelligence — let’s connect. 💼 For Investors We are currently exploring early-stage funding opportunities to support product development, expand our customer base, and accelerate go-to-market efforts. If you’re an investor aligned with our mission to democratize AI-driven document interaction, we’d love to share our story. 📩 Get in touch to explore investment opportunities or request our pitch deck. Join our developer community on Slack [https://join.slack.com/t/ninebit-ciq-community/shared_invite/zt-38oi663on-9R~0J8echKGQ8NV2zRKJZA]\n\nWebsite: https://www.ninebitciq.com/?utm_source=linkedin\nCrunchbase Url: N/A\nLinkedin Url: https://www.linkedin.com/company/ninebit-computing\n\nIndustry:\nTechnology, Information and Internet\n\nCompany size:\n2-10 employees\n4 associated members (LinkedIn members who’ve listed NineBit Computing as their current workplace on their profile)\n\nFounded:\n2023\n\nFunding:\nLast Round Date: N/A\nLast Round Type: N/A\nTotal Rounds: N/A\nLast Round Raised: N/A\n\nInvestors:\nN/A",
+            "source_type": "tavily_search"
+          }
+        ],
+        "qualification": {
+          "outcome": "ACCEPT",
+          "match_type": "exact",
+          "score": 100,
+          "summary": "Candidate is a strong exact match with all hard constraints satisfied and sufficient evidence supporting relevance.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "founder",
+          "region": "es",
+          "close_match": null
+        },
+        "commercial": {
+          "source_notes": "Top Generative AI Companies in Spain - Apr 2026 Rankings - Clutch (https://clutch.co/es/developers/artificial-intelligence/generative); How NineBit is building an AI layer to help enterprises unlock value ... (https://yourstory.com/2025/12/ninebit-building-ai-layer-enterprises-unlock-value-documents); NineBit Computing | LinkedIn (https://in.linkedin.com/company/ninebit-computing)",
+          "hooks": [
+            "Ninebit Computing Private Limited appears active around genai, agentic workflows.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is a strong exact match with all hard constraints satisfied and sufficient evidence supporting relevance.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Ninebit Computing Private Limited está trabajando temas de genai, agentic workflows. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Ninebit Computing Private Limited y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Ninebit Computing Private Limited",
+          "email_body": "Hola there,\n\nHe revisado Ninebit Computing Private Limited y veo señales útiles en torno a genai, agentic workflows, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      }
+    ],
+    "shortlist_id": null,
+    "shortlist_options": [],
+    "errors": [],
+    "budget_summary": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 2,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 4
+    },
+    "applied_relaxation_stage": 0,
+    "completed_reason": "target_count_reached"
+  },
+  "final_run": {
+    "run_id": "run_862f412da98c",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_4132fb53bf19",
+      "user_text": "encuentra 1 lead en empresas españolas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 1,
+        "preferred_country": "es",
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size",
+          "preferred_country"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "completed",
+    "created_at": "2026-04-06T10:25:39.155866Z",
+    "updated_at": "2026-04-06T10:26:44.128423Z",
+    "current_stage": "continue_or_finish",
+    "progress_message": "Search completed with 1 accepted leads.",
+    "last_heartbeat_at": "2026-04-06T10:26:44.128423Z",
+    "accepted_leads": [
+      {
+        "lead_id": "lead_16ad598d3623",
+        "person_name": null,
+        "role_title": "founder",
+        "company_name": "Ninebit Computing Private Limited",
+        "website": "https://schema.org/PostalAddress\"",
+        "country_code": "es",
+        "evidence": [
+          {
+            "url": "https://clutch.co/es/developers/artificial-intelligence/generative",
+            "title": "Top Generative AI Companies in Spain - Apr 2026 Rankings - Clutch",
+            "snippet": "NINEBIT COMPUTING PRIVATE LIMITED is a company specializing in Generative AI services, particularly excelling in automated data extraction and integration",
+            "source_type": "tavily_search"
+          },
+          {
+            "url": "https://yourstory.com/2025/12/ninebit-building-ai-layer-enterprises-unlock-value-documents",
+            "title": "How NineBit is building an AI layer to help enterprises unlock value ...",
+            "snippet": "# How NineBit is building an AI layer to help enterprises unlock value from their documents. How NineBit is building an AI layer to help enterprises unlock value from their documents. Indore-based NineBit wants to change this with CIQ, an AI-powered intelligence layer that sits on top of an organisation’s existing document systems. The startup, founded in 2023, is building tools that allow enterprises to quickly prototype, automate, and analyse documents using large language models. “I wanted to build something that allows the business owner to do rapid prototyping on their own data,” says Co-founder and CEO Rajeev Jamaiyar. Jamaiyar describes it as “a layer on top of the ECM that corporates set up,” designed to extract information, compare documents, identify gaps, and automate routine workflows. Small and medium enterprises, he says, do not always have access to large consulting firms or expensive AI solutions, leaving a wide-open market for lean platforms like CIQ.",
+            "source_type": "tavily_search"
+          },
+          {
+            "url": "https://in.linkedin.com/company/ninebit-computing",
+            "title": "NineBit Computing | LinkedIn",
+            "snippet": "Overview:\nWelcome to NineBit Computing - a deep tech startup on a mission to simplify how people interact with documents using cutting-edge Artificial Intelligence and Machine Learning. We are a team of engineers and machine learning experts. CiQ by NineBit — now live in Beta — enables seamless, intelligent interaction with documents across formats. Whether it's extracting insights, querying data, or automating workflows, our platform is built to unlock the full potential of unstructured information. Why Work With Us? ✅ Recognized by the Government of India under the Startup India program — giving us access to a strong innovation ecosystem and support network. ✅ Backed by Microsoft for Startups, equipping us with world-class infrastructure, mentorship, and AI tools. ✅ Already Beta Live — we're collaborating with early adopters to co-develop high-impact use cases in real-world environments. ✅ Actively seeking business partnerships with companies ready to explore how Generative AI can streamline workflows, reduce manual effort, and unlock new efficiencies. If your business is looking to lead the next wave of digital transformation through document intelligence — let’s connect. 💼 For Investors We are currently exploring early-stage funding opportunities to support product development, expand our customer base, and accelerate go-to-market efforts. If you’re an investor aligned with our mission to democratize AI-driven document interaction, we’d love to share our story. 📩 Get in touch to explore investment opportunities or request our pitch deck. Join our developer community on Slack [https://join.slack.com/t/ninebit-ciq-community/shared_invite/zt-38oi663on-9R~0J8echKGQ8NV2zRKJZA]\n\nWebsite: https://www.ninebitciq.com/?utm_source=linkedin\nCrunchbase Url: N/A\nLinkedin Url: https://www.linkedin.com/company/ninebit-computing\n\nIndustry:\nTechnology, Information and Internet\n\nCompany size:\n2-10 employees\n4 associated members (LinkedIn members who’ve listed NineBit Computing as their current workplace on their profile)\n\nFounded:\n2023\n\nFunding:\nLast Round Date: N/A\nLast Round Type: N/A\nTotal Rounds: N/A\nLast Round Raised: N/A\n\nInvestors:\nN/A",
+            "source_type": "tavily_search"
+          }
+        ],
+        "qualification": {
+          "outcome": "ACCEPT",
+          "match_type": "exact",
+          "score": 100,
+          "summary": "Candidate is a strong exact match with all hard constraints satisfied and sufficient evidence supporting relevance.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "founder",
+          "region": "es",
+          "close_match": null
+        },
+        "commercial": {
+          "source_notes": "Top Generative AI Companies in Spain - Apr 2026 Rankings - Clutch (https://clutch.co/es/developers/artificial-intelligence/generative); How NineBit is building an AI layer to help enterprises unlock value ... (https://yourstory.com/2025/12/ninebit-building-ai-layer-enterprises-unlock-value-documents); NineBit Computing | LinkedIn (https://in.linkedin.com/company/ninebit-computing)",
+          "hooks": [
+            "Ninebit Computing Private Limited appears active around genai, agentic workflows.",
+            "The contact role aligns with your team."
+          ],
+          "fit_summary": "Candidate is a strong exact match with all hard constraints satisfied and sufficient evidence supporting relevance.",
+          "connection_note_draft": "Hola there, he visto varias señales de que Ninebit Computing Private Limited está trabajando temas de genai, agentic workflows. Yo ayudo a equipos IT a convertir esas iniciativas en automatizaciones y workflows agentic útiles.",
+          "dm_draft": "Hola there, estuve mirando Ninebit Computing Private Limited y creo que puede haber una oportunidad clara para acelerar procesos internos con GenAI y automatización aplicada. Si te encaja, te comparto 2 o 3 ideas muy concretas.",
+          "email_subject": "Idea concreta de automatización para Ninebit Computing Private Limited",
+          "email_body": "Hola there,\n\nHe revisado Ninebit Computing Private Limited y veo señales útiles en torno a genai, agentic workflows, software company. Trabajo como freelancer de sistemas agentic y GenAI para equipos IT que quieren aterrizar mejoras reales, no solo pruebas.\n\nSi te interesa, puedo proponerte unas cuantas automatizaciones o flujos aplicables a vuestro contexto.\n\nUn saludo."
+        }
+      }
+    ],
+    "shortlist_id": null,
+    "shortlist_options": [],
+    "iterations": [
+      {
+        "index": 1,
+        "planner_action": "SOURCE",
+        "query": "Spain startup AI engineering company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Spain startup AI engineering company under 50 employees",
+          "person": null,
+          "company": {
+            "name": "App",
+            "website": "https://app.zefyron.com/blog/ZHyVqVMTB3/Top-10-Seed-Stage-Artificial-Intelligence-startups-of-Spain",
+            "country_code": "es",
+            "employee_estimate": null
+          },
+          "fit_signals": [
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://app.zefyron.com/blog/ZHyVqVMTB3/Top-10-Seed-Stage-Artificial-Intelligence-startups-of-Spain",
+              "title": "Top 10 Seed Stage Artificial Intelligence startups of Spain - Zefyron",
+              "snippet": "These startups use cutting-edge technologies such as machine learning, natural language processing, and computer vision to develop solutions that can automate processes, analyze data, and provide valuable insights. Predictiva uses a Conversational Intelligence platform based on Artificial Intelligence and Natural Language Processing using their technology called Upbe to massively and automatically arrange and categorize the data included in phone conversations. Trajectory Ventures, Plug and Play, K Fund, EASME - EU Executive Agency for SMEs, SaxeCap. Graphext is a powerful exploratory data analysis tool that provides a comprehensive experience for root cause analysis and developing predictive models. The AI-powered system ensures the confidentiality of your data while providing refined search results and generative answers, improving your overall experience. By leveraging ethical artificial intelligence that uses natural language processing (NLP) and machine learning (ML) to analyze vast amounts of unstructured data, Citibeats provides actionable insights into various impact areas like sustainable development, financial inclusion, natural disaster response, migration, social policy, food security, education, and more.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://wellfound.com/startups/l/spain/artificial-intelligence",
+              "title": "Top Artificial Intelligence Startups in Spain - Wellfound",
+              "snippet": "Top Artificial Intelligence Startups in Spain · PhotoRoom · Workato · Affinity.co · Intuition Machines · Glacis · impakter.com · Briidge.one · Vellum.",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain startup AI engineering company under 50 employees",
+            "candidate_selected_by=heuristic"
+          ]
+        },
+        "qualification": {
+          "outcome": "REJECT",
+          "match_type": null,
+          "score": 45,
+          "summary": "The candidate does not provide sufficient evidence to confirm compliance with the hard constraint on company size (max 50 employees). Although the company is in Spain and shows relevant AI/automation signals, the employee estimate is missing and no reliable source confirms the size is under 50.",
+          "reasons": [
+            "preferred buyer persona is not yet fully matched",
+            "company geography matches the requested country",
+            "company size is not fully evidenced yet",
+            "company shows relevant automation or AI signals",
+            "evidence is supported by multiple URLs",
+            "missing hard proof: company_size"
+          ],
+          "type": "unknown",
+          "region": "es",
+          "close_match": null
+        }
+      },
+      {
+        "index": 2,
+        "planner_action": "SOURCE",
+        "query": "Spain startup generative AI software company under 50 employees",
+        "dossier": {
+          "sourcing_status": "FOUND",
+          "query_used": "Ninebit Computing Private Limited ceo es genai  ai engineering",
+          "person": {
+            "full_name": "al data that I have provided and declare my agreement with the data protection regulations in the privacy policy on the website. Advertise with Newsletter Follow Us About Us Careers Privacy Policy Terms &amp; Condition Copyright © 2026 YourStory Media Pvt. Ltd. All rights reserved. Brands Topics Resource Hub Upcoming Events Discover Advertise with Newsletter About Us Careers Privacy Policy Terms &amp; Condition Copyright © 2026 YourStory Media Pvt. Ltd. All rights reserved. ADVERTISEMENT ADVERTISEMENT In-focus How NineBit is building an AI layer to help enterprises unlock value from their documents By combining LLMs with a secure on-premise deployment model, NineBit is targeting global demand for intelligent document processing. Megha Ghosh 89 Stories Wednesday December 17, 2025 , 5 min Read Across large companies, documents flow in and out every day through purchase orders, invoices, regulatory files, and more. But most of this info",
+            "role_title": "founder"
+          },
+          "company": {
+            "name": "Ninebit Computing Private Limited",
+            "website": "https://schema.org/PostalAddress\"",
+            "country_code": "es",
+            "employee_estimate": 4
+          },
+          "fit_signals": [
+            "genai",
+            "agentic workflows",
+            "software company"
+          ],
+          "evidence": [
+            {
+              "url": "https://clutch.co/es/developers/artificial-intelligence/generative",
+              "title": "Top Generative AI Companies in Spain - Apr 2026 Rankings - Clutch",
+              "snippet": "NINEBIT COMPUTING PRIVATE LIMITED is a company specializing in Generative AI services, particularly excelling in automated data extraction and integration",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://yourstory.com/2025/12/ninebit-building-ai-layer-enterprises-unlock-value-documents",
+              "title": "How NineBit is building an AI layer to help enterprises unlock value ...",
+              "snippet": "# How NineBit is building an AI layer to help enterprises unlock value from their documents. How NineBit is building an AI layer to help enterprises unlock value from their documents. Indore-based NineBit wants to change this with CIQ, an AI-powered intelligence layer that sits on top of an organisation’s existing document systems. The startup, founded in 2023, is building tools that allow enterprises to quickly prototype, automate, and analyse documents using large language models. “I wanted to build something that allows the business owner to do rapid prototyping on their own data,” says Co-founder and CEO Rajeev Jamaiyar. Jamaiyar describes it as “a layer on top of the ECM that corporates set up,” designed to extract information, compare documents, identify gaps, and automate routine workflows. Small and medium enterprises, he says, do not always have access to large consulting firms or expensive AI solutions, leaving a wide-open market for lean platforms like CIQ.",
+              "source_type": "tavily_search"
+            },
+            {
+              "url": "https://in.linkedin.com/company/ninebit-computing",
+              "title": "NineBit Computing | LinkedIn",
+              "snippet": "Overview:\nWelcome to NineBit Computing - a deep tech startup on a mission to simplify how people interact with documents using cutting-edge Artificial Intelligence and Machine Learning. We are a team of engineers and machine learning experts. CiQ by NineBit — now live in Beta — enables seamless, intelligent interaction with documents across formats. Whether it's extracting insights, querying data, or automating workflows, our platform is built to unlock the full potential of unstructured information. Why Work With Us? ✅ Recognized by the Government of India under the Startup India program — giving us access to a strong innovation ecosystem and support network. ✅ Backed by Microsoft for Startups, equipping us with world-class infrastructure, mentorship, and AI tools. ✅ Already Beta Live — we're collaborating with early adopters to co-develop high-impact use cases in real-world environments. ✅ Actively seeking business partnerships with companies ready to explore how Generative AI can streamline workflows, reduce manual effort, and unlock new efficiencies. If your business is looking to lead the next wave of digital transformation through document intelligence — let’s connect. 💼 For Investors We are currently exploring early-stage funding opportunities to support product development, expand our customer base, and accelerate go-to-market efforts. If you’re an investor aligned with our mission to democratize AI-driven document interaction, we’d love to share our story. 📩 Get in touch to explore investment opportunities or request our pitch deck. Join our developer community on Slack [https://join.slack.com/t/ninebit-ciq-community/shared_invite/zt-38oi663on-9R~0J8echKGQ8NV2zRKJZA]\n\nWebsite: https://www.ninebitciq.com/?utm_source=linkedin\nCrunchbase Url: N/A\nLinkedin Url: https://www.linkedin.com/company/ninebit-computing\n\nIndustry:\nTechnology, Information and Internet\n\nCompany size:\n2-10 employees\n4 associated members (LinkedIn members who’ve listed NineBit Computing as their current workplace on their profile)\n\nFounded:\n2023\n\nFunding:\nLast Round Date: N/A\nLast Round Type: N/A\nTotal Rounds: N/A\nLast Round Raised: N/A\n\nInvestors:\nN/A",
+              "source_type": "tavily_search"
+            }
+          ],
+          "notes": [
+            "query_used=Spain startup generative AI software company under 50 employees",
+            "candidate_selected_by=llm",
+            "enrichment_query=Ninebit Computing Private Limited ceo es genai  ai engineering"
+          ]
+        },
+        "qualification": {
+          "outcome": "ACCEPT",
+          "match_type": "exact",
+          "score": 100,
+          "summary": "Candidate is a strong exact match with all hard constraints satisfied and sufficient evidence supporting relevance.",
+          "reasons": [
+            "buyer persona matches the preferred targets",
+            "company geography matches the requested country",
+            "company size falls within the requested range",
+            "company shows relevant automation or AI signals",
+            "named person found",
+            "evidence is supported by multiple URLs"
+          ],
+          "type": "founder",
+          "region": "es",
+          "close_match": null
+        }
+      }
+    ],
+    "errors": [],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 2,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 4
+    },
+    "applied_relaxation_stage": 0,
+    "completed_reason": "target_count_reached"
+  }
+}

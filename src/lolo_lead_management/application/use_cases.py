@@ -17,8 +17,28 @@ def start_lead_search(container: ServiceContainer, payload: LeadSearchStartReque
     return container.engine.start(payload)
 
 
+def initialize_lead_search(container: ServiceContainer, payload: LeadSearchStartRequest) -> SearchRunSnapshot:
+    return container.engine.initialize_run(payload)
+
+
+def execute_lead_search(container: ServiceContainer, run_id: str, *, raise_on_error: bool = False) -> SearchRunSnapshot:
+    return container.engine.run_to_completion(run_id, raise_on_error=raise_on_error)
+
+
+def build_start_response(container: ServiceContainer, run: SearchRunSnapshot) -> LeadSearchStartResponse:
+    return container.engine.build_start_response(run)
+
+
 def get_run(container: ServiceContainer, run_id: str) -> SearchRunSnapshot | None:
     return container.engine.get_run(run_id)
+
+
+def get_shortlist(container: ServiceContainer, shortlist_id: str):
+    return container.engine.get_shortlist(shortlist_id)
+
+
+def get_shortlist_option(container: ServiceContainer, shortlist_id: str, option_number: int):
+    return container.engine.get_shortlist_option(shortlist_id, option_number)
 
 
 def select_shortlist_option(container: ServiceContainer, shortlist_id: str, option_number: int) -> SearchRunSnapshot | None:
