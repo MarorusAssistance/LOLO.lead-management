@@ -1,0 +1,118 @@
+{
+  "run_id": "run_ea1a988c699d",
+  "response": {
+    "run_id": "run_ea1a988c699d",
+    "status": "failed",
+    "normalized_request": {
+      "action": "lead_search.start",
+      "request_id": "req_a78e91a8f7c2",
+      "user_text": "encuentra 1 lead que trabaje en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 1,
+        "preferred_country": null,
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "current_stage": "source",
+    "progress_message": "Search failed. Check the stored errors for details.",
+    "last_heartbeat_at": "2026-04-07T07:01:32.155813Z",
+    "accepted_leads": [],
+    "shortlist_id": null,
+    "shortlist_options": [],
+    "errors": [
+      "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+    ],
+    "budget_summary": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 0,
+      "enrich_attempts_used": 0,
+      "search_calls_used": 1
+    },
+    "applied_relaxation_stage": 0,
+    "completed_reason": "engine_failed"
+  },
+  "final_run": {
+    "run_id": "run_ea1a988c699d",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_a78e91a8f7c2",
+      "user_text": "encuentra 1 lead que trabaje en empresas espa?olas de menos de 50 empleados",
+      "constraints": {
+        "target_count": 1,
+        "preferred_country": null,
+        "preferred_regions": [],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "company_size"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "ceo",
+        "founder",
+        "cto",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "genai",
+        "ai engineering",
+        "automation",
+        "agentic workflows",
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "failed",
+    "created_at": "2026-04-07T07:01:28.095508Z",
+    "updated_at": "2026-04-07T07:01:32.155813Z",
+    "current_stage": "source",
+    "progress_message": "Search failed. Check the stored errors for details.",
+    "last_heartbeat_at": "2026-04-07T07:01:32.155813Z",
+    "accepted_leads": [],
+    "shortlist_id": null,
+    "shortlist_options": [],
+    "iterations": [],
+    "errors": [
+      "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+    ],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "source_attempts_used": 0,
+      "enrich_attempts_used": 0,
+      "search_calls_used": 1
+    },
+    "applied_relaxation_stage": 0,
+    "completed_reason": "engine_failed"
+  }
+}

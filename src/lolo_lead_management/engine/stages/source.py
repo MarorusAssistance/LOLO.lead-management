@@ -9,7 +9,9 @@ from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.agents.specs import STAGE_AGENT_SPECS
 from lolo_lead_management.engine.rules import (
     build_research_query_plan,
+    candidate_company_names_from_document,
     choose_queries,
+    company_name_matches_anchor,
     dedupe_preserve_order,
     enrich_document_metadata,
     merge_research_query_plans,
@@ -58,6 +60,7 @@ class SourceStage:
         documents = []
         executed_queries = []
         research_trace: list[ResearchTraceEntry] = []
+        excluded_companies = self._excluded_company_names(state)
         for query in selected_queries:
             state.run.budget.search_calls_used += 1
             results = self._search_port.web_search(query, max_results=self._max_results)
@@ -84,7 +87,16 @@ class SourceStage:
         documents = merge_documents(documents)
         anchored_company = next((item.candidate_company_name for item in executed_queries if item.candidate_company_name), None)
         if anchored_company is None and documents:
-            anchored_company = select_anchor_company(documents)
+            anchored_company = select_anchor_company(documents, excluded_companies=excluded_companies)
+        if anchored_company is None and documents:
+            return SourcePassResult(
+                sourcing_status=SourcingStatus.NO_CANDIDATE,
+                query_plan=plan,
+                executed_queries=executed_queries,
+                documents=documents,
+                research_trace=research_trace,
+                notes=["no_fresh_company_anchor"],
+            )
 
         if anchored_company:
             anchor_plan = build_research_query_plan(
@@ -120,6 +132,7 @@ class SourceStage:
                 documents.extend(selected)
                 executed_queries.append(query)
             documents = merge_documents(documents)
+            documents = self._focus_documents(documents, anchored_company)
 
         if not documents:
             return SourcePassResult(
@@ -140,6 +153,25 @@ class SourceStage:
             research_trace=research_trace,
             notes=[f"queries_executed={len(executed_queries)}"],
         )
+
+    def _excluded_company_names(self, state: EngineRuntimeState) -> list[str]:
+        run_company_names = [item.company_name for item in state.run.accepted_leads]
+        return dedupe_preserve_order([*state.memory.searched_company_names, *run_company_names])
+
+    def _focus_documents(self, documents, anchored_company: str):
+        focused = []
+        for item in documents:
+            candidates = candidate_company_names_from_document(item)
+            if any(company_name_matches_anchor(candidate, anchored_company) for candidate in candidates):
+                focused.append(item)
+                continue
+            if item.company_anchor and company_name_matches_anchor(item.company_anchor, anchored_company):
+                focused.append(item)
+                continue
+            text = f"{item.title}\n{item.snippet}\n{item.raw_content}".lower()
+            if anchored_company.lower() in text:
+                focused.append(item)
+        return merge_documents(focused or documents)
 
     def _choose_anchor_queries(self, plan: ResearchQueryPlan, query_history: list[str]):
         selected = []

@@ -15,6 +15,8 @@ from lolo_lead_management.domain.enums import (
     SourcingStatus,
 )
 from lolo_lead_management.domain.models import (
+    AssemblyFieldAssertion,
+    AssemblyResolution,
     AssembledFieldEvidence,
     AssembledLeadDossier,
     CloseMatch,
@@ -897,18 +899,40 @@ def candidate_company_names_from_document(document: EvidenceDocument) -> list[st
     return dedupe_preserve_order([name for name in candidates if name])
 
 
-def select_anchor_company(documents: list[EvidenceDocument], prior_anchor: str | None = None) -> str | None:
+def select_anchor_company(
+    documents: list[EvidenceDocument],
+    prior_anchor: str | None = None,
+    excluded_companies: Iterable[str] | None = None,
+) -> str | None:
     scores: Counter[str] = Counter()
+    excluded_names = [item for item in (excluded_companies or []) if company_name_key(item)]
+
+    def matches_excluded(candidate: str) -> bool:
+        candidate_key = company_name_key(candidate)
+        for excluded in excluded_names:
+            excluded_key = company_name_key(excluded)
+            if not candidate_key or not excluded_key:
+                continue
+            if candidate_key == excluded_key:
+                return True
+            if candidate_key in excluded_key or excluded_key in candidate_key:
+                return True
+        return False
+
     for document in documents:
         quality_weight = {SourceQuality.HIGH: 5, SourceQuality.MEDIUM: 3, SourceQuality.LOW: 1, SourceQuality.UNKNOWN: 1}[document.source_quality]
         for candidate in candidate_company_names_from_document(document):
+            if matches_excluded(candidate):
+                continue
             scores[candidate] += quality_weight
             if prior_anchor and candidate.lower() == prior_anchor.lower():
                 scores[candidate] += 4
             if document.company_anchor and candidate.lower() == document.company_anchor.lower():
                 scores[candidate] += 5
     if not scores:
-        return prior_anchor
+        if prior_anchor and not matches_excluded(prior_anchor):
+            return prior_anchor
+        return None
     return scores.most_common(1)[0][0]
 
 
@@ -1080,8 +1104,84 @@ def build_fallback_assembled_dossier(
     )
 
 
-def sanitize_assembled_dossier(
-    generated: AssembledLeadDossier | None,
+def _documents_from_urls(urls: Iterable[str], allowed_docs: dict[str, EvidenceDocument]) -> list[EvidenceDocument]:
+    selected: list[EvidenceDocument] = []
+    seen: set[str] = set()
+    for url in urls:
+        if url in seen or url not in allowed_docs:
+            continue
+        seen.add(url)
+        selected.append(allowed_docs[url])
+    return selected
+
+
+def _resolution_assertion_map(resolution: AssemblyResolution) -> dict[str, AssemblyFieldAssertion]:
+    return {item.field_name: item for item in resolution.field_assertions}
+
+
+def _resolution_scalar_value(
+    resolution: AssemblyResolution,
+    assertions: dict[str, AssemblyFieldAssertion],
+    *,
+    field_name: str,
+    root_value: str | int | None,
+) -> str | int | None:
+    if root_value is not None:
+        return root_value
+    assertion = assertions.get(field_name)
+    if assertion is None:
+        return None
+    return assertion.value
+
+
+def _build_resolution_field_evidence(
+    *,
+    field_name: str,
+    value: str | int | None,
+    assertion: AssemblyFieldAssertion | None,
+    selected_docs: list[EvidenceDocument],
+    allowed_docs: dict[str, EvidenceDocument],
+    fallback_item: AssembledFieldEvidence | None,
+    default_note: str,
+) -> AssembledFieldEvidence:
+    if assertion is not None:
+        supporting = _documents_from_urls(assertion.evidence_urls, allowed_docs)
+        contradicting = _documents_from_urls(assertion.contradicting_urls, allowed_docs)
+        return AssembledFieldEvidence(
+            field_name=field_name,
+            value=assertion.value if assertion.value is not None else value,
+            status=assertion.status,
+            supporting_evidence=supporting,
+            contradicting_evidence=contradicting,
+            source_quality=_source_quality_from_docs(supporting or contradicting),
+            reasoning_note=assertion.reasoning_note or default_note,
+        )
+    if value is not None and selected_docs:
+        supporting = selected_docs[:3]
+        return AssembledFieldEvidence(
+            field_name=field_name,
+            value=value,
+            status=FieldEvidenceStatus.SATISFIED if len(supporting) >= 2 else FieldEvidenceStatus.WEAKLY_SUPPORTED,
+            supporting_evidence=supporting,
+            contradicting_evidence=[],
+            source_quality=_source_quality_from_docs(supporting),
+            reasoning_note=default_note,
+        )
+    if fallback_item is not None:
+        return fallback_item
+    return AssembledFieldEvidence(
+        field_name=field_name,
+        value=value,
+        status=FieldEvidenceStatus.UNKNOWN if value is None else FieldEvidenceStatus.WEAKLY_SUPPORTED,
+        supporting_evidence=selected_docs[:2] if value is not None else [],
+        contradicting_evidence=[],
+        source_quality=_source_quality_from_docs(selected_docs[:2] if value is not None else []),
+        reasoning_note=default_note,
+    )
+
+
+def sanitize_assembly_resolution(
+    generated: AssemblyResolution | None,
     *,
     request: NormalizedLeadSearchRequest,
     source_result: SourcePassResult,
@@ -1092,34 +1192,139 @@ def sanitize_assembled_dossier(
         return fallback
 
     allowed_docs = {item.url: item for item in merge_documents([*(prior_dossier.evidence if prior_dossier else []), *source_result.documents])}
-    evidence = [allowed_docs[item.url] for item in generated.evidence if item.url in allowed_docs] or fallback.evidence
-    company = generated.company.model_copy(deep=True) if generated.company else fallback.company
-    person = generated.person.model_copy(deep=True) if generated.person else fallback.person
-    if company is None:
-        return fallback
-    if company.website and domain_is_publisher_like(domain_from_url(company.website)):
-        company.website = fallback.company.website if fallback.company else None
-    combined_text = " ".join(_document_text(item) for item in evidence)
-    if person and person.full_name and person.full_name.lower() not in combined_text.lower():
-        person = fallback.person if fallback.person and fallback.person.full_name and fallback.person.full_name.lower() in combined_text.lower() else None
-    fit_signals = [item for item in dedupe_preserve_order(generated.fit_signals) if item in request.search_themes] or fallback.fit_signals
+    assertions = _resolution_assertion_map(generated)
+    selected_urls = dedupe_preserve_order(
+        [
+            *generated.selected_evidence_urls,
+            *[url for item in generated.field_assertions for url in item.evidence_urls],
+            *[url for item in generated.field_assertions for url in item.contradicting_urls],
+        ]
+    )
+    evidence = _documents_from_urls(selected_urls, allowed_docs) or fallback.evidence
+    fallback_field_map = {item.field_name: item for item in fallback.field_evidence}
 
-    field_evidence: list[AssembledFieldEvidence] = []
-    for item in generated.field_evidence:
-        supporting = [allowed_docs[doc.url] for doc in item.supporting_evidence if doc.url in allowed_docs]
-        contradicting = [allowed_docs[doc.url] for doc in item.contradicting_evidence if doc.url in allowed_docs]
-        field_evidence.append(item.model_copy(update={"supporting_evidence": supporting, "contradicting_evidence": contradicting}))
-    if not field_evidence:
-        field_evidence = fallback.field_evidence
+    raw_company_name = _resolution_scalar_value(
+        generated,
+        assertions,
+        field_name="company_name",
+        root_value=generated.subject_company_name,
+    )
+    company_name = clean_company_name(str(raw_company_name)) if raw_company_name is not None else None
+    if not is_plausible_company_name(company_name):
+        company_name = fallback.company.name if fallback.company else None
+    if company_name is None:
+        return fallback
+
+    website_value = _resolution_scalar_value(generated, assertions, field_name="website", root_value=generated.website)
+    website = str(website_value).strip() if isinstance(website_value, str) and website_value.strip() else None
+    if website and (domain_is_publisher_like(domain_from_url(website)) or domain_is_directory(domain_from_url(website))):
+        website = fallback.company.website if fallback.company else None
+    if website is None and fallback.company:
+        website = fallback.company.website
+
+    country_value = _resolution_scalar_value(generated, assertions, field_name="country", root_value=generated.country_code)
+    country_code = canonicalize_country_code(str(country_value)) if country_value is not None else None
+    if country_code is None and fallback.company:
+        country_code = fallback.company.country_code
+
+    size_value = _resolution_scalar_value(
+        generated,
+        assertions,
+        field_name="employee_estimate",
+        root_value=generated.employee_estimate,
+    )
+    employee_estimate = int(size_value) if isinstance(size_value, int) else fallback.company.employee_estimate if fallback.company else None
+
+    person_value = _resolution_scalar_value(generated, assertions, field_name="person_name", root_value=generated.person_name)
+    person_name = str(person_value).strip() if isinstance(person_value, str) and str(person_value).strip() else None
+    role_value = _resolution_scalar_value(generated, assertions, field_name="role_title", root_value=generated.role_title)
+    role_title = str(role_value).strip() if isinstance(role_value, str) and str(role_value).strip() else None
+
+    combined_text = " ".join(_document_text(item) for item in evidence).lower()
+    if person_name and person_name.lower() not in combined_text:
+        person_name = fallback.person.full_name if fallback.person and fallback.person.full_name and fallback.person.full_name.lower() in combined_text else None
+    if role_title and role_title.lower() not in combined_text and fallback.person and fallback.person.role_title and fallback.person.role_title.lower() in combined_text:
+        role_title = fallback.person.role_title
+
+    person = PersonCandidate(full_name=person_name, role_title=role_title) if person_name or role_title else None
+    company = CompanyCandidate(name=company_name, website=website, country_code=country_code, employee_estimate=employee_estimate)
+
+    fit_signals = [item for item in canonicalize_search_themes(generated.fit_signals) if item in request.search_themes] or fallback.fit_signals
+    selected_support = evidence[:3]
+    field_evidence = [
+        _build_resolution_field_evidence(
+            field_name="company_name",
+            value=company.name,
+            assertion=assertions.get("company_name"),
+            selected_docs=selected_support,
+            allowed_docs=allowed_docs,
+            fallback_item=fallback_field_map.get("company_name"),
+            default_note="Main subject company resolved from the selected public evidence.",
+        ),
+        _build_resolution_field_evidence(
+            field_name="website",
+            value=company.website,
+            assertion=assertions.get("website"),
+            selected_docs=selected_support,
+            allowed_docs=allowed_docs,
+            fallback_item=fallback_field_map.get("website"),
+            default_note="Website selected from evidence that appears company-controlled or directly about the company.",
+        ),
+        _build_resolution_field_evidence(
+            field_name="country",
+            value=company.country_code,
+            assertion=assertions.get("country"),
+            selected_docs=selected_support,
+            allowed_docs=allowed_docs,
+            fallback_item=fallback_field_map.get("country"),
+            default_note="Country kept only when the selected evidence ties the company to that geography.",
+        ),
+        _build_resolution_field_evidence(
+            field_name="employee_estimate",
+            value=company.employee_estimate,
+            assertion=assertions.get("employee_estimate"),
+            selected_docs=selected_support,
+            allowed_docs=allowed_docs,
+            fallback_item=fallback_field_map.get("employee_estimate"),
+            default_note="Employee estimate kept only when public evidence makes company size explicit enough.",
+        ),
+        _build_resolution_field_evidence(
+            field_name="person_name",
+            value=person.full_name if person else None,
+            assertion=assertions.get("person_name"),
+            selected_docs=selected_support,
+            allowed_docs=allowed_docs,
+            fallback_item=fallback_field_map.get("person_name"),
+            default_note="Named person kept only when explicitly tied to the subject company in the selected evidence.",
+        ),
+        _build_resolution_field_evidence(
+            field_name="role_title",
+            value=person.role_title if person else None,
+            assertion=assertions.get("role_title"),
+            selected_docs=selected_support,
+            allowed_docs=allowed_docs,
+            fallback_item=fallback_field_map.get("role_title"),
+            default_note="Role title kept only when explicitly supported by the selected evidence.",
+        ),
+        _build_resolution_field_evidence(
+            field_name="fit_signals",
+            value=", ".join(fit_signals) if fit_signals else None,
+            assertion=None,
+            selected_docs=selected_support,
+            allowed_docs=allowed_docs,
+            fallback_item=fallback_field_map.get("fit_signals"),
+            default_note="Fit signals were inferred only from selected evidence with relevant product, docs, hiring, or tech references.",
+        ),
+    ]
     return AssembledLeadDossier(
-        sourcing_status=generated.sourcing_status,
-        query_used=source_result.executed_queries[0].query if source_result.executed_queries else generated.query_used or fallback.query_used,
+        sourcing_status=SourcingStatus.FOUND if evidence else fallback.sourcing_status,
+        query_used=source_result.executed_queries[0].query if source_result.executed_queries else fallback.query_used,
         person=person,
         company=company,
         fit_signals=fit_signals,
         evidence=evidence,
         notes=dedupe_preserve_order([*fallback.notes, *generated.notes, "assembled_by=llm"]),
-        anchored_company_name=generated.anchored_company_name or fallback.anchored_company_name or company.name,
+        anchored_company_name=company.name,
         research_trace=source_result.research_trace,
         field_evidence=field_evidence,
         contradictions=dedupe_preserve_order([*fallback.contradictions, *generated.contradictions]),

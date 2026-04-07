@@ -19,6 +19,7 @@ class EngineRuntimeState(StrictModel):
     memory: ExplorationMemoryState = Field(default_factory=ExplorationMemoryState)
     current_decision: StageDecision | None = None
     current_source_result: SourcePassResult | None = None
+    current_assembler_trace: dict | None = None
     current_dossier: AssembledLeadDossier | None = None
     current_qualification: QualificationDecision | None = None
     current_commercial: CommercialBundle | None = None

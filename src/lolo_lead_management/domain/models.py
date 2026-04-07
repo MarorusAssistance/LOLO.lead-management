@@ -135,6 +135,30 @@ class AssembledFieldEvidence(StrictModel):
     reasoning_note: str
 
 
+class AssemblyFieldAssertion(StrictModel):
+    field_name: Literal["company_name", "website", "country", "employee_estimate", "person_name", "role_title"]
+    value: str | int | None = None
+    status: FieldEvidenceStatus
+    evidence_urls: list[str] = Field(default_factory=list)
+    contradicting_urls: list[str] = Field(default_factory=list)
+    reasoning_note: str = ""
+
+
+class AssemblyResolution(StrictModel):
+    subject_company_name: str | None = None
+    website: str | None = None
+    country_code: str | None = None
+    employee_estimate: int | None = None
+    person_name: str | None = None
+    role_title: str | None = None
+    fit_signals: list[str] = Field(default_factory=list)
+    selected_evidence_urls: list[str] = Field(default_factory=list)
+    field_assertions: list[AssemblyFieldAssertion] = Field(default_factory=list)
+    contradictions: list[str] = Field(default_factory=list)
+    unresolved_fields: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
 class QualificationRubricField(StrictModel):
     field_name: str
     status: FieldEvidenceStatus
@@ -283,6 +307,7 @@ class RunIteration(StrictModel):
     research_trace: list[ResearchTraceEntry] = Field(default_factory=list)
     documents_considered: int = Field(default=0, ge=0)
     documents_selected: int = Field(default=0, ge=0)
+    assembler_trace: dict[str, Any] = Field(default_factory=dict)
 
 
 class SearchRunSnapshot(StrictModel):

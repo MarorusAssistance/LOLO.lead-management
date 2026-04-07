@@ -118,6 +118,7 @@ class LeadManagementEngine:
                 active_stage = StageName.SOURCE
                 state.current_dossier = None
                 state.current_source_result = None
+                state.current_assembler_trace = None
                 self._update_progress(
                     state.run,
                     stage=StageName.SOURCE,
@@ -208,6 +209,7 @@ class LeadManagementEngine:
                         research_trace=state.current_dossier.research_trace if state.current_dossier else [],
                         documents_considered=state.current_dossier.documents_considered if state.current_dossier else 0,
                         documents_selected=state.current_dossier.documents_selected if state.current_dossier else 0,
+                        assembler_trace=state.current_assembler_trace or {},
                     )
                 )
 
