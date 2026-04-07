@@ -20,6 +20,8 @@ Playbook:
   - discovery queries must be short, high-value, and aimed at startup directories, ecosystem hubs, or company profile sources
   - use `tier_b` for directories and ecosystem sources, `tier_c` only for growth/news signals
   - do not search for a person or role yet
+  - do not search for employee size yet
+  - prefer discovery queries that can later lead to an official company domain
 - If a company anchor already exists:
   - plan coverage queries, not random variations
   - sequence matters:
@@ -42,12 +44,16 @@ Discovery rules:
 - Directories and publishers may introduce a candidate, but they are not the company entity.
 - Avoid GitHub, LinkedIn, repositories, case studies, marketplaces, and social platforms in `company_discovery`.
 - Prefer sources that can lead to a later company-controlled page.
+- Never treat the host portal, listicle, publisher, or ranking page as the company subject by default.
+- If discovery results are noisy or multi-company, return a narrower discovery plan instead of inventing a weak anchor.
 
 Anchor rules:
 - Once a company anchor exists, search around official site, about, team, careers, contact, blog, docs, GitHub, funding/news, and company profile sources.
 - Use `tier_a` for official-site, about, team, careers, docs, blog, GitHub official.
 - Use `tier_b` for Crunchbase, RocketReach, F6S, Seedtable, EU-Startups, and company directories.
 - Use `tier_c` only to introduce a candidate or corroborate public growth signals, never to close website, person, role, or size by itself.
+- Prefer founder and tech-lead titles such as `founder`, `co-founder`, `ceo`, `cto`, `head of engineering`, `vp engineering`, `director of engineering`, `director of data`, `head of data`, and `ai lead`.
+- Do not plan person or role queries before the website is anchored.
 
 Output rules:
 - Each query must include:

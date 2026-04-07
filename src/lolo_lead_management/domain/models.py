@@ -89,6 +89,8 @@ class EvidenceItem(StrictModel):
     company_anchor: str | None = None
     is_company_controlled_source: bool = False
     is_publisher_like: bool = False
+    selected_for_field: Literal["company_name", "website", "country", "employee_estimate", "person_name", "role_title", "fit_signals", "multi"] | None = None
+    why_selected: str | None = None
 
 
 class EvidenceDocument(EvidenceItem):

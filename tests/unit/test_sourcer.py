@@ -2,7 +2,7 @@ from lolo_lead_management.adapters.search.fake import FakeSearchPort
 from lolo_lead_management.adapters.stores.sqlite import SqliteExplorationMemoryStore
 from lolo_lead_management.domain.models import EvidenceDocument, LeadSearchStartRequest, SearchBudget, SearchRunSnapshot
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
-from lolo_lead_management.engine.rules import candidate_company_names_from_document, enrich_document_metadata
+from lolo_lead_management.engine.rules import candidate_company_names_from_document, enrich_document_metadata, extracted_official_website_from_document, select_anchor_company
 from lolo_lead_management.engine.stages.assemble import AssembleStage
 from lolo_lead_management.engine.stages.load_state import LoadStateStage
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
@@ -121,3 +121,126 @@ def test_non_official_profile_is_not_marked_company_controlled() -> None:
 
     assert document.is_company_controlled_source is False
     assert document.source_tier == "tier_b"
+
+
+def test_select_anchor_company_prefers_real_company_over_portal_fragments() -> None:
+    bitbrain_doc = enrich_document_metadata(
+        EvidenceDocument(
+            url="https://startupshub.catalonia.com/startup/barcelona/bitbrain/1111",
+            title="BitBrain - Barcelona & Catalonia STARTUP HUB",
+            snippet="BitBrain develops neurotechnology and AI products.",
+            source_type="fixture",
+            raw_content="BitBrain develops neurotechnology and AI products. Website: https://bitbrain.com/",
+        )
+    )
+    noisy_doc = enrich_document_metadata(
+        EvidenceDocument(
+            url="https://startupshub.catalonia.com/page/investment",
+            title="Investment - Barcelona & Catalonia STARTUP HUB",
+            snippet="The Barcelona & Catalonia Startup Hub. It is a Catalan Government project.",
+            source_type="fixture",
+            raw_content="The Barcelona & Catalonia Startup Hub. It is a Catalan Government project offering updated information.",
+        )
+    )
+
+    assert select_anchor_company([bitbrain_doc, noisy_doc]) == "BitBrain"
+
+
+def test_sourcer_prioritizes_field_targeted_documents_for_assembler() -> None:
+    tmp_path = workspace_tmp_dir("sourcer_field_batch")
+    search_index = {
+        "Spain AI startup directory": [
+            EvidenceDocument(
+                url="https://www.f6s.com/company/bdeo",
+                title="Bdeo - F6S",
+                snippet="Bdeo is an AI startup from Spain. Website https://bdeo.io",
+                source_type="fixture",
+                raw_content="Bdeo is an AI startup from Spain. Website: https://bdeo.io",
+            ),
+        ],
+        '"Bdeo" official site': [
+            EvidenceDocument(
+                url="https://bdeo.io",
+                title="Bdeo | Visual Intelligence for Insurance",
+                snippet="Bdeo is a Spanish AI software company.",
+                source_type="fixture",
+                raw_content="Bdeo is a Spanish AI software company helping insurers automate visual claims.",
+            ),
+        ],
+        '"Bdeo" leadership team founders': [
+            EvidenceDocument(
+                url="https://bdeo.io/about",
+                title="About Bdeo",
+                snippet="Julio Pernia is CEO and co-founder of Bdeo.",
+                source_type="fixture",
+                raw_content="Julio Pernia is CEO and co-founder of Bdeo. Bdeo leadership team builds AI products for insurance.",
+            ),
+        ],
+        '"Bdeo" careers team hiring': [
+            EvidenceDocument(
+                url="https://careers.bdeo.io/team",
+                title="Bdeo careers",
+                snippet="Bdeo team size and hiring plans.",
+                source_type="fixture",
+                raw_content="Bdeo team size: 80 employees. The company keeps hiring across product and engineering.",
+            ),
+        ],
+        '"Bdeo" employees team size': [
+            EvidenceDocument(
+                url="https://www.crunchbase.com/organization/bdeo",
+                title="Bdeo - Crunchbase Company Profile",
+                snippet="Bdeo has 80 employees.",
+                source_type="fixture",
+                raw_content="Bdeo company size: 80 employees.",
+            ),
+        ],
+    }
+    search_port = FakeSearchPort(search_index=search_index, pages={})
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 lead founder en españa con empresas de mas de 50 empleados"))
+    run = SearchRunSnapshot(request=request, budget=SearchBudget(source_attempt_budget=6, enrich_attempt_budget=1))
+    memory_store = SqliteExplorationMemoryStore(SqliteDatabase(str(tmp_path / "sourcer.sqlite3")))
+    state = LoadStateStage(memory_store).execute(run)
+
+    source_stage = SourceStage(search_port=search_port, agent_executor=StageAgentExecutor(None), max_results=5)
+    source_result = source_stage.execute(state)
+
+    selected_fields = [item.selected_for_field for item in source_result.documents]
+
+    assert source_result.anchored_company_name == "Bdeo"
+    assert selected_fields[0] == "website"
+    assert "person_name" in selected_fields
+    assert "employee_estimate" in selected_fields
+    assert all(item.why_selected for item in source_result.documents)
+
+
+def test_partner_directory_is_not_treated_as_official_website() -> None:
+    document = enrich_document_metadata(
+        EvidenceDocument(
+            url="https://awinpartnerdirectory.builtfirst.com/awin-perks-blueknow",
+            title="Awin Perks Blueknow",
+            snippet="Blueknow partner profile on Awin Perks.",
+            source_type="fixture",
+            raw_content="Blueknow partner profile on Awin Perks. Learn more about the offer.",
+        ),
+        anchor_company="Blueknow",
+    )
+
+    assert extracted_official_website_from_document(document, "Blueknow") is None
+
+
+def test_job_title_page_does_not_become_company_anchor() -> None:
+    document = enrich_document_metadata(
+        EvidenceDocument(
+            url="https://www.eu-startups.com/job/plc-automation-engineer/",
+            title="PLC Automation Engineer",
+            snippet="Join Idneo in Spain to work on automation and embedded systems.",
+            source_type="fixture",
+            raw_content="Idneo is hiring a PLC Automation Engineer in Spain. Company: Idneo. Country: Spain. Website: https://www.idneo.com/",
+        )
+    )
+
+    candidates = candidate_company_names_from_document(document)
+
+    assert "Idneo" in candidates
+    assert "PLC Automation Engineer" not in candidates

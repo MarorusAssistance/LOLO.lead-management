@@ -303,6 +303,8 @@ class AssembleStage:
             "is_company_controlled_source": payload.get("is_company_controlled_source"),
             "is_publisher_like": payload.get("is_publisher_like"),
             "source_tier": payload.get("source_tier"),
+            "selected_for_field": payload.get("selected_for_field"),
+            "why_selected": payload.get("why_selected"),
         }
 
     def _compact_assertions(self, assertions) -> list[dict]:

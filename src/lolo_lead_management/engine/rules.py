@@ -134,7 +134,7 @@ PUBLISHER_DOMAINS = {
 }
 
 DISCOVERY_INCLUDE_DOMAINS = ["seedtable.com", "f6s.com", "eu-startups.com"]
-BARCELONA_DISCOVERY_INCLUDE_DOMAINS = ["startupshub.catalonia.com", "techbarcelona.com", "eu-startups.com"]
+BARCELONA_DISCOVERY_INCLUDE_DOMAINS = ["techbarcelona.com", "eu-startups.com", "f6s.com"]
 MADRID_DISCOVERY_INCLUDE_DOMAINS = ["f6s.com", "seedtable.com", "eu-startups.com"]
 DISCOVERY_EXCLUDED_DOMAINS = [
     "github.com",
@@ -201,13 +201,17 @@ GENERIC_COMPANY_NAME_TOKENS = {
     "of",
     "on",
     "about",
+    "page",
+    "pages",
     "rankings",
+    "ranking",
     "report",
     "software",
     "spain",
     "startups",
     "the",
     "top",
+    "trade",
     "us",
     "watch",
 }
@@ -510,7 +514,7 @@ def deterministic_discovery_queries(request: NormalizedLeadSearchRequest, relaxa
                 country=request.constraints.preferred_country,
                 search_depth="advanced",
                 min_score=0.62,
-                preferred_domains=["eu-startups.com", "f6s.com", "startupshub.catalonia.com"],
+                preferred_domains=["eu-startups.com", "f6s.com", "techbarcelona.com"],
                 excluded_domains=DISCOVERY_EXCLUDED_DOMAINS,
                 expected_source_types=["directory", "job_board", "news"],
             )
@@ -525,17 +529,33 @@ def deterministic_anchor_queries(
     missing_fields: list[str] | None = None,
 ) -> list[ResearchQuery]:
     missing = set(missing_fields or [])
-    buyers = [item.replace("_", " ") for item in request.buyer_targets[:3] or DEFAULT_BUYER_TARGETS[:3]]
+    buyers = dedupe_preserve_order(
+        [
+            *[item.replace("_", " ") for item in request.buyer_targets[:3] or DEFAULT_BUYER_TARGETS[:3]],
+            "founder",
+            "co-founder",
+            "ceo",
+            "cto",
+            "head of engineering",
+            "vp engineering",
+            "director of engineering",
+            "director of data",
+            "head of data",
+            "ai lead",
+        ]
+    )
     themes = dedupe_preserve_order(request.search_themes[:2] or DEFAULT_SEARCH_THEMES[:2])
     queries: list[ResearchQuery] = [
         ResearchQuery(query=f'"{anchor_company}" official site', objective="Verify the official website and the main company entity.", research_phase="company_anchoring", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="website", stop_if_resolved=True, exact_match=True, search_depth="advanced", min_score=0.62, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
-        ResearchQuery(query=f'"{anchor_company}" about team leadership contact', objective="Find company-controlled pages that tie the company to named people, leadership roles, and geography.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="person_name", exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
-        ResearchQuery(query=f'"{anchor_company}" careers jobs hiring', objective="Find company-controlled or close-to-company pages with hiring and team-size clues.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="employee_estimate", exact_match=True, search_depth="advanced", min_score=0.58, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "job_board"]),
+        ResearchQuery(query=f'"{anchor_company}" about team contact', objective="Find company-controlled pages that confirm the website, geography, and core company identity.", research_phase="company_anchoring", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="website", stop_if_resolved=True, exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
+        ResearchQuery(query=f'"{anchor_company}" leadership team founders', objective="Find named leaders and explicit roles on company-controlled pages.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="person_name", exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
+        ResearchQuery(query=f'"{anchor_company}" careers team hiring', objective="Find company-controlled or close-to-company pages with hiring and team-size clues.", research_phase="evidence_closing", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="employee_estimate", exact_match=True, search_depth="advanced", min_score=0.58, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "job_board"]),
         ResearchQuery(query=f'"{anchor_company}" product docs blog github', objective="Find company product, docs, blog, or GitHub evidence for AI, automation, or software fit.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="fit_signals", exact_match=True, search_depth="advanced", min_score=0.55, excluded_domains=["linkedin.com", "twitter.com", "x.com", "facebook.com", "instagram.com"], expected_source_types=["company_site", "docs", "github", "blog"]),
     ]
     if "person_name" in missing or "role_title" in missing or not missing:
         for buyer in buyers[:2]:
-            queries.append(ResearchQuery(query=f'"{anchor_company}" {buyer} founder ceo cto leadership team', objective="Find a named buyer persona and explicit role title tied to the company.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="role_title", exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "news", "event"]))
+            queries.append(ResearchQuery(query=f'"{anchor_company}" {buyer}', objective="Find a named buyer persona and explicit role title tied to the company.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="role_title", exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "news", "event"]))
+        queries.append(ResearchQuery(query=f'"{anchor_company}" leadership founder ceo cto', objective="Use vetted company directories to corroborate named founders or technical leaders.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_b", expected_field="person_name", exact_match=True, search_depth="advanced", min_score=0.58, preferred_domains=["f6s.com", "rocketreach.co", "crunchbase.com", "eu-startups.com"], excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["directory", "company_site"]))
     if "employee_estimate" in missing or not missing:
         queries.append(ResearchQuery(query=f'"{anchor_company}" employees team size', objective="Corroborate company size from public company profiles, directories, and hiring evidence.", research_phase="evidence_closing", candidate_company_name=anchor_company, source_tier_target="tier_b", expected_field="employee_estimate", exact_match=True, search_depth="advanced", min_score=0.56, preferred_domains=["crunchbase.com", "f6s.com", "rocketreach.co", "wellfound.com"], excluded_domains=["linkedin.com"], expected_source_types=["company_site", "directory", "job_board"]))
     if "fit_signals" in missing or not missing:
@@ -571,6 +591,24 @@ def dedupe_queries(queries: list[ResearchQuery]) -> list[ResearchQuery]:
 def query_contains_blocked_discovery_terms(query: str) -> bool:
     normalized = normalize_text(query)
     return any(token in normalized for token in BLOCKED_DISCOVERY_QUERY_TOKENS)
+
+
+def query_contains_premature_closing_terms(query: str) -> bool:
+    normalized = normalize_text(query)
+    closing_terms = [
+        " founder",
+        " ceo",
+        " cto",
+        " head of",
+        " vp ",
+        " director",
+        " employee",
+        " team size",
+        " leadership",
+        " hiring",
+        " careers",
+    ]
+    return any(term in f" {normalized} " for term in closing_terms)
 
 
 def query_selection_score(query: ResearchQuery) -> int:
@@ -637,9 +675,13 @@ def sanitize_research_query_plan(
             continue
         if phase == "company_discovery" and query_contains_blocked_discovery_terms(query):
             continue
+        if phase == "company_discovery" and query_contains_premature_closing_terms(query):
+            continue
         expected_field = item.expected_field or ("company_name" if phase == "company_discovery" else "multi")
         source_tier_target = item.source_tier_target or ("tier_b" if phase == "company_discovery" else "tier_a")
         if expected_field in {"person_name", "role_title"} and not (item.candidate_company_name or anchor_company):
+            continue
+        if phase == "company_discovery" and expected_field in {"person_name", "role_title", "employee_estimate"}:
             continue
         if source_tier_target == "tier_c" and expected_field in {"website", "person_name", "role_title", "employee_estimate"}:
             continue
@@ -655,7 +697,7 @@ def sanitize_research_query_plan(
         }
         if phase == "company_discovery":
             preferred_domains = item.preferred_domains or discovery_domains_for_request()
-            update["preferred_domains"] = preferred_domains[:4]
+            update["preferred_domains"] = preferred_domains[:3]
             update["search_depth"] = "advanced"
             update["min_score"] = max(item.min_score, 0.65)
             update["exact_match"] = False
@@ -737,6 +779,8 @@ def is_plausible_company_name(value: str | None, *, source_domain: str | None = 
         return False
     if len(tokens) > 5:
         return False
+    if len(tokens) == 1 and tokens[0] in GENERIC_COMPANY_NAME_TOKENS:
+        return False
     generic_tokens = sum(1 for token in tokens if token in GENERIC_COMPANY_NAME_TOKENS)
     if generic_tokens >= max(2, len(tokens)):
         return False
@@ -768,7 +812,11 @@ def title_company_name(title: str) -> str | None:
     if not title:
         return None
     primary = re.split(r"\s+[|\-:]\s+", title, maxsplit=1)[0].strip()
+    primary = re.sub(r"^(about|team|leadership|careers|jobs|contact)\s+", "", primary, flags=re.IGNORECASE)
+    primary = re.sub(r"\s+(leadership|team|engineering team|about|contact|careers|jobs|blog|docs)$", "", primary, flags=re.IGNORECASE)
     if re.search(r"\b(startups?|companies?|jobs?|rankings?|funding|raises?)\b", primary, re.IGNORECASE):
+        return None
+    if re.search(r"\b(engineer|developer|manager|specialist|architect|analyst|designer|recruiter|consultant|intern)\b", primary, re.IGNORECASE):
         return None
     candidate = clean_company_name(primary)
     return candidate if is_plausible_company_name(candidate) else None
@@ -807,7 +855,7 @@ def extract_official_website(text: str, source_url: str) -> str | None:
             continue
         return candidate.rstrip(".,)")
     lowered_source = source_url.lower()
-    noisy_path_tokens = ["/case-studies/", "/company/", "/directory/", "/jobs/", "/job/", "/profile", "/articles/", "/blog/"]
+    noisy_path_tokens = ["/case-studies/", "/company/", "/directory/", "/jobs/", "/job/", "/profile", "/articles/", "/blog/", "/partner", "/partners", "/perks/"]
     if source_host and not domain_is_directory(source_host) and not domain_is_publisher_like(source_host) and not any(token in lowered_source for token in noisy_path_tokens):
         return source_url
     return None
@@ -824,6 +872,36 @@ def canonicalize_website(url: str | None) -> str | None:
         return None
     scheme = parsed.scheme or "https"
     return f"{scheme}://{parsed.hostname}"
+
+
+def domain_root_name(domain: str | None) -> str | None:
+    if not domain:
+        return None
+    root = normalize_text((domain or "").split(".")[0].replace("-", " "))
+    candidate = clean_company_name(root)
+    if candidate and is_plausible_company_name(candidate, source_domain=domain):
+        return candidate
+    return None
+
+
+def extracted_official_website_from_document(document: EvidenceDocument, anchor_company: str | None = None) -> str | None:
+    text = _document_text(document)
+    urls = re.findall(r"https?://[^\s)]+", text, flags=re.IGNORECASE)
+    source_host = domain_from_url(document.url)
+    for candidate in urls:
+        hostname = domain_from_url(candidate)
+        if not hostname or hostname == source_host or domain_is_directory(hostname) or domain_is_publisher_like(hostname):
+            continue
+        website = canonicalize_website(candidate.rstrip(".,)"))
+        if website:
+            return website
+    if source_host and not domain_is_directory(source_host) and not domain_is_publisher_like(source_host):
+        if document.is_company_controlled_source:
+            return canonicalize_website(document.url)
+        domain_root = domain_root_name(source_host)
+        if anchor_company and domain_root and company_name_matches_anchor(domain_root, anchor_company):
+            return canonicalize_website(document.url)
+    return None
 
 
 def extract_employee_estimate_from_text(text: str) -> int | None:
@@ -995,14 +1073,19 @@ def candidate_company_names_from_document(document: EvidenceDocument) -> list[st
     if document.is_publisher_like or domain_is_directory(source_domain):
         if title_candidate := directory_title_company_name(document.title, source_domain):
             candidates.append(title_candidate)
-        candidates.extend(extract_company_candidates_from_list_text(text, source_domain=source_domain))
+        elif title_candidate := title_company_name(document.title):
+            candidates.append(title_candidate)
+        candidates.extend(extract_company_candidates_from_list_text("\n".join([document.snippet, document.raw_content]), source_domain=source_domain))
+        if website := extracted_official_website_from_document(document):
+            if domain_candidate := domain_root_name(domain_from_url(website)):
+                candidates.append(domain_candidate)
     else:
         _, company = parse_candidate_from_text(text, document.url)
         if company and company.name and is_plausible_company_name(company.name, source_domain=source_domain):
             candidates.append(company.name)
         if title_name := title_company_name(document.title):
             candidates.append(title_name)
-        if domain_name := extract_domain_company_name(document.url):
+        if not candidates and (domain_name := extract_domain_company_name(document.url)):
             candidates.append(domain_name)
     return dedupe_preserve_order([name for name in candidates if name])
 
@@ -1013,6 +1096,9 @@ def select_anchor_company(
     excluded_companies: Iterable[str] | None = None,
 ) -> str | None:
     scores: Counter[str] = Counter()
+    mentions: Counter[str] = Counter()
+    official_hits: Counter[str] = Counter()
+    title_hits: Counter[str] = Counter()
     excluded_names = [item for item in (excluded_companies or []) if company_name_key(item)]
 
     def matches_excluded(candidate: str) -> bool:
@@ -1029,19 +1115,58 @@ def select_anchor_company(
 
     for document in documents:
         quality_weight = {SourceQuality.HIGH: 5, SourceQuality.MEDIUM: 3, SourceQuality.LOW: 1, SourceQuality.UNKNOWN: 1}[document.source_quality]
+        source_domain = document.domain or domain_from_url(document.url)
+        title_candidate = directory_title_company_name(document.title, source_domain) or title_company_name(document.title)
+        official_website = extracted_official_website_from_document(document)
+        official_name = domain_root_name(domain_from_url(official_website))
+        multi_entity = _document_is_multi_entity_listing(document)
         for candidate in candidate_company_names_from_document(document):
             if matches_excluded(candidate):
                 continue
-            scores[candidate] += quality_weight
+            score = quality_weight
+            mentions[candidate] += 1
+            if title_candidate and company_name_matches_anchor(candidate, title_candidate):
+                score += 6
+                title_hits[candidate] += 1
+            if official_name and company_name_matches_anchor(candidate, official_name):
+                score += 9
+                official_hits[candidate] += 1
+            if document.is_company_controlled_source:
+                score += 8
+            if not multi_entity:
+                score += 3
+            if source_domain and not domain_is_directory(source_domain) and not domain_is_publisher_like(source_domain):
+                root_name = domain_root_name(source_domain)
+                if root_name and company_name_matches_anchor(candidate, root_name):
+                    score += 5
             if prior_anchor and candidate.lower() == prior_anchor.lower():
-                scores[candidate] += 4
+                score += 4
             if document.company_anchor and candidate.lower() == document.company_anchor.lower():
-                scores[candidate] += 5
+                score += 5
+            if document.is_publisher_like:
+                score -= 2
+            elif domain_is_directory(source_domain) and title_candidate and not company_name_matches_anchor(candidate, title_candidate):
+                score -= 3
+            scores[candidate] += score
     if not scores:
         if prior_anchor and not matches_excluded(prior_anchor):
             return prior_anchor
         return None
-    return scores.most_common(1)[0][0]
+    ranked = sorted(
+        scores.items(),
+        key=lambda item: (
+            item[1],
+            official_hits[item[0]],
+            title_hits[item[0]],
+            mentions[item[0]],
+            len(company_name_key(item[0])),
+        ),
+        reverse=True,
+    )
+    best_name, best_score = ranked[0]
+    if best_score < 6 and official_hits[best_name] == 0 and title_hits[best_name] == 0:
+        return prior_anchor if prior_anchor and not matches_excluded(prior_anchor) else None
+    return best_name
 
 
 def _field_status_from_values(values: list[str | int], supporting: list[EvidenceDocument]) -> FieldEvidenceStatus:
@@ -1688,6 +1813,10 @@ def _document_is_multi_entity_listing(document: EvidenceDocument) -> bool:
         " page ",
     ]
     return domain_is_publisher_like(domain_from_url(document.url)) or any(token in title or token in url or token in text for token in listing_tokens)
+
+
+def document_is_multi_entity_listing(document: EvidenceDocument) -> bool:
+    return _document_is_multi_entity_listing(document)
 
 
 def _documents_explicitly_support_person(
