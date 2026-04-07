@@ -25,3 +25,19 @@ class FakeSearchPort(SearchPort):
 
     def fetch_page(self, url: str) -> str:
         return self._pages.get(url, "")
+
+    def extract_pages(self, urls: list[str], *, extract_depth: str = "advanced") -> list[EvidenceDocument]:
+        _ = extract_depth
+        documents: list[EvidenceDocument] = []
+        for url in urls:
+            raw_content = self._pages.get(url, "")
+            documents.append(
+                EvidenceDocument(
+                    url=url,
+                    title="",
+                    snippet=raw_content[:400],
+                    source_type="tavily_extract",
+                    raw_content=raw_content,
+                )
+            )
+        return documents

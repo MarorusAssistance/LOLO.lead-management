@@ -13,6 +13,7 @@ Important:
 - The current batch may contain only one document. Treat this as a normal incremental update.
 - Focus on `focus_company` when it is provided.
 - Do not switch to another company unless the supplied evidence clearly proves the focus is wrong.
+- Treat each document as a partial update, not as a requirement to complete the whole dossier.
 
 What you must do:
 - Decide the subject company.
@@ -34,12 +35,20 @@ How to use the schema:
 - Use `selected_evidence_urls` for the URLs you trust most overall.
 - Use `field_assertions` only for fields you can support from the supplied URLs.
 - `field_assertions[].evidence_urls` must contain only supplied URLs.
+- Every `field_assertion` must include:
+  - `source_tier`: `tier_a`, `tier_b`, `tier_c`, `mixed`, or `unknown`
+  - `support_type`: `explicit`, `corroborated`, or `weak_inference`
 - Use `unresolved_fields` for fields that still need enrichment.
 - Use `contradictions` when evidence conflicts.
+- Use `confidence_notes` for short notes about why a field is still weak, corroborated, or risky.
 
 Do not:
 - Do not invent company, website, country, size, person, role, or fit signals.
 - Do not use URL slugs, boilerplate, CTA text, navigation, or host branding as facts.
+- Do not use claims of product capability or page copy as `role_title`.
+- Do not use a directory or publisher domain as `website` unless the evidence explicitly points to a different official root domain.
+- Do not close `employee_estimate` from startup vibes, funding stage, or generic company profile text alone.
+- Do not close `person_name` or `role_title` unless the company-person link is explicit.
 - Do not use evidence URLs that were not supplied.
 
 Return JSON only.

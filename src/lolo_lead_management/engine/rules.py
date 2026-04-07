@@ -113,7 +113,9 @@ DIRECTORY_DOMAINS = {
     "linkedin.com",
     "rocketreach.co",
     "seedtable.com",
+    "startupshub.catalonia.com",
     "startupstash.com",
+    "techbarcelona.com",
     "techbehemoths.com",
     "tracxn.com",
     "wellfound.com",
@@ -177,21 +179,28 @@ GENERIC_COMPANY_NAME_TOKENS = {
     "business",
     "companies",
     "company",
+    "com",
+    "catalonia",
     "data",
     "directory",
     "ecosystem",
     "energy",
+    "eu",
     "finance",
     "focused",
     "for",
     "founded",
     "has",
+    "hub",
     "intelligence",
+    "investment",
     "launched",
+    "logo",
     "madrid",
     "manufacturing",
     "of",
     "on",
+    "about",
     "rankings",
     "report",
     "software",
@@ -199,6 +208,7 @@ GENERIC_COMPANY_NAME_TOKENS = {
     "startups",
     "the",
     "top",
+    "us",
     "watch",
 }
 
@@ -443,9 +453,12 @@ def deterministic_discovery_queries(request: NormalizedLeadSearchRequest, relaxa
     for theme in theme_terms[:2]:
         queries.append(
             ResearchQuery(
-                query=f"{broad_country} {theme} startup",
-                objective="Find plausible startup companies in the requested geography and theme using high-value public startup directories.",
+                query=f"{broad_country} {theme} startup directory",
+                objective="Find plausible startup company candidates from high-signal public startup directories and ecosystem hubs.",
                 research_phase="company_discovery",
+                source_tier_target="tier_b",
+                expected_field="company_name",
+                stop_if_resolved=True,
                 country=request.constraints.preferred_country,
                 search_depth="advanced",
                 min_score=0.68,
@@ -457,9 +470,12 @@ def deterministic_discovery_queries(request: NormalizedLeadSearchRequest, relaxa
     for city in city_terms[:2]:
         queries.append(
             ResearchQuery(
-                query=f"{city} AI startup",
-                objective="Find city-specific AI startups from regional startup hubs and directories.",
+                query=f"{city} AI startup directory",
+                objective="Find city-specific AI startup company candidates from regional startup hubs and directories.",
                 research_phase="company_discovery",
+                source_tier_target="tier_b",
+                expected_field="company_name",
+                stop_if_resolved=True,
                 country=request.constraints.preferred_country,
                 search_depth="advanced",
                 min_score=0.68,
@@ -472,8 +488,10 @@ def deterministic_discovery_queries(request: NormalizedLeadSearchRequest, relaxa
         queries.append(
             ResearchQuery(
                 query=f"{broad_country} AI startup funding",
-                objective="Find AI startups showing public growth or funding signals while staying inside trusted startup sources.",
+                objective="Find AI startups with public funding or growth signals to prioritize commercially active company candidates.",
                 research_phase="company_discovery",
+                source_tier_target="tier_c",
+                expected_field="company_name",
                 country=request.constraints.preferred_country,
                 search_depth="advanced",
                 min_score=0.65,
@@ -485,8 +503,10 @@ def deterministic_discovery_queries(request: NormalizedLeadSearchRequest, relaxa
         queries.append(
             ResearchQuery(
                 query=f"{broad_country} automation startup hiring",
-                objective="Find companies with hiring or expansion signals relevant to automation and AI services.",
+                objective="Find companies with public hiring or expansion signals relevant to automation and AI services.",
                 research_phase="company_discovery",
+                source_tier_target="tier_b",
+                expected_field="company_name",
                 country=request.constraints.preferred_country,
                 search_depth="advanced",
                 min_score=0.62,
@@ -508,18 +528,19 @@ def deterministic_anchor_queries(
     buyers = [item.replace("_", " ") for item in request.buyer_targets[:3] or DEFAULT_BUYER_TARGETS[:3]]
     themes = dedupe_preserve_order(request.search_themes[:2] or DEFAULT_SEARCH_THEMES[:2])
     queries: list[ResearchQuery] = [
-        ResearchQuery(query=f'"{anchor_company}" official site', objective="Verify the official website and the main company entity.", research_phase="company_anchoring", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.62, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
-        ResearchQuery(query=f'"{anchor_company}" careers team jobs about', objective="Find company-controlled pages with hiring, team, and headcount clues.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.58, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "job_board"]),
-        ResearchQuery(query=f'"{anchor_company}" product docs github blog', objective="Find product, docs, GitHub, or blog evidence of AI, automation, or software fit.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.55, excluded_domains=["linkedin.com", "twitter.com", "x.com", "facebook.com", "instagram.com"], expected_source_types=["company_site", "docs", "github", "blog"]),
+        ResearchQuery(query=f'"{anchor_company}" official site', objective="Verify the official website and the main company entity.", research_phase="company_anchoring", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="website", stop_if_resolved=True, exact_match=True, search_depth="advanced", min_score=0.62, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
+        ResearchQuery(query=f'"{anchor_company}" about team leadership contact', objective="Find company-controlled pages that tie the company to named people, leadership roles, and geography.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="person_name", exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
+        ResearchQuery(query=f'"{anchor_company}" careers jobs hiring', objective="Find company-controlled or close-to-company pages with hiring and team-size clues.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="employee_estimate", exact_match=True, search_depth="advanced", min_score=0.58, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "job_board"]),
+        ResearchQuery(query=f'"{anchor_company}" product docs blog github', objective="Find company product, docs, blog, or GitHub evidence for AI, automation, or software fit.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="fit_signals", exact_match=True, search_depth="advanced", min_score=0.55, excluded_domains=["linkedin.com", "twitter.com", "x.com", "facebook.com", "instagram.com"], expected_source_types=["company_site", "docs", "github", "blog"]),
     ]
     if "person_name" in missing or "role_title" in missing or not missing:
         for buyer in buyers[:2]:
-            queries.append(ResearchQuery(query=f'"{anchor_company}" {buyer} founder team leadership', objective="Find a named buyer persona and role title tied to the company.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.58, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "news", "event"]))
+            queries.append(ResearchQuery(query=f'"{anchor_company}" {buyer} founder ceo cto leadership team', objective="Find a named buyer persona and explicit role title tied to the company.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="role_title", exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "news", "event"]))
     if "employee_estimate" in missing or not missing:
-        queries.append(ResearchQuery(query=f'"{anchor_company}" employees team size', objective="Estimate company size from public information and business directories.", research_phase="evidence_closing", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.52, preferred_domains=["crunchbase.com", "f6s.com", "rocketreach.co", "wellfound.com"], excluded_domains=["linkedin.com"], expected_source_types=["company_site", "directory", "job_board"]))
+        queries.append(ResearchQuery(query=f'"{anchor_company}" employees team size', objective="Corroborate company size from public company profiles, directories, and hiring evidence.", research_phase="evidence_closing", candidate_company_name=anchor_company, source_tier_target="tier_b", expected_field="employee_estimate", exact_match=True, search_depth="advanced", min_score=0.56, preferred_domains=["crunchbase.com", "f6s.com", "rocketreach.co", "wellfound.com"], excluded_domains=["linkedin.com"], expected_source_types=["company_site", "directory", "job_board"]))
     if "fit_signals" in missing or not missing:
         for theme in themes:
-            queries.append(ResearchQuery(query=f'"{anchor_company}" {theme}', objective="Collect evidence for AI, automation, or software fit signals.", research_phase="field_acquisition", candidate_company_name=anchor_company, exact_match=True, search_depth="advanced", min_score=0.55, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "blog", "docs", "news"]))
+            queries.append(ResearchQuery(query=f'"{anchor_company}" {theme}', objective="Collect corroborated evidence for AI, automation, or software fit signals.", research_phase="field_acquisition", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="fit_signals", exact_match=True, search_depth="advanced", min_score=0.55, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "blog", "docs", "news"]))
     return queries
 
 
@@ -532,7 +553,7 @@ def build_research_query_plan(
     mode: str = "source",
 ) -> ResearchQueryPlan:
     planned_queries = deterministic_anchor_queries(request, anchor_company=anchor_company, missing_fields=missing_fields) if anchor_company else deterministic_discovery_queries(request, relaxation_stage)
-    return ResearchQueryPlan(planned_queries=planned_queries, notes=[f"mode={mode}", f"relaxation_stage={relaxation_stage}"], stop_conditions=["two strong documents for the same company", "enough evidence for hard constraints"])
+    return ResearchQueryPlan(planned_queries=planned_queries, notes=[f"mode={mode}", f"relaxation_stage={relaxation_stage}"], stop_conditions=["official website resolved", "two corroborating documents for the same company", "enough evidence for hard constraints"])
 
 
 def dedupe_queries(queries: list[ResearchQuery]) -> list[ResearchQuery]:
@@ -559,6 +580,18 @@ def query_selection_score(query: ResearchQuery) -> int:
         score += 30
     if query.candidate_company_name:
         score += 25
+    if query.source_tier_target == "tier_a":
+        score += 14
+    elif query.source_tier_target == "tier_b":
+        score += 9
+    elif query.source_tier_target == "tier_c":
+        score -= 4
+    if query.expected_field == "website":
+        score += 10
+    elif query.expected_field in {"person_name", "role_title"}:
+        score += 6
+    elif query.expected_field == "employee_estimate":
+        score += 5
     if query.search_depth == "advanced":
         score += 12
     if query.preferred_domains:
@@ -573,6 +606,10 @@ def query_selection_score(query: ResearchQuery) -> int:
         score += 2
     if query_contains_blocked_discovery_terms(normalized) and query.research_phase == "company_discovery":
         score -= 100
+    if query.research_phase == "company_discovery" and len(normalized.split()) > 8:
+        score -= 15
+    if query.source_tier_target == "tier_c" and query.expected_field in {"website", "person_name", "role_title", "employee_estimate"}:
+        score -= 50
     if "under 50 employees" in normalized and query.research_phase == "company_discovery":
         score -= 8
     return score
@@ -594,24 +631,39 @@ def sanitize_research_query_plan(
         phase = " ".join(item.research_phase.split()).strip()
         if len(query) < 3 or len(objective) < 3 or len(phase) < 3:
             continue
+        if len(query.split()) > 10:
+            continue
+        if len(item.preferred_domains) > 4:
+            continue
         if phase == "company_discovery" and query_contains_blocked_discovery_terms(query):
+            continue
+        expected_field = item.expected_field or ("company_name" if phase == "company_discovery" else "multi")
+        source_tier_target = item.source_tier_target or ("tier_b" if phase == "company_discovery" else "tier_a")
+        if expected_field in {"person_name", "role_title"} and not (item.candidate_company_name or anchor_company):
+            continue
+        if source_tier_target == "tier_c" and expected_field in {"website", "person_name", "role_title", "employee_estimate"}:
             continue
         update: dict[str, object] = {
             "query": query,
             "objective": objective,
             "research_phase": phase,
             "candidate_company_name": item.candidate_company_name or anchor_company,
+            "source_tier_target": source_tier_target,
+            "expected_field": expected_field,
+            "stop_if_resolved": item.stop_if_resolved,
             "excluded_domains": dedupe_preserve_order([*item.excluded_domains, *(DISCOVERY_EXCLUDED_DOMAINS if phase == "company_discovery" else ANCHOR_EXCLUDED_DOMAINS)]),
         }
         if phase == "company_discovery":
             preferred_domains = item.preferred_domains or discovery_domains_for_request()
-            update["preferred_domains"] = preferred_domains[:3]
+            update["preferred_domains"] = preferred_domains[:4]
             update["search_depth"] = "advanced"
             update["min_score"] = max(item.min_score, 0.65)
             update["exact_match"] = False
         elif item.candidate_company_name or anchor_company:
             update["search_depth"] = "advanced"
             update["min_score"] = max(item.min_score, 0.55)
+            if expected_field == "website":
+                update["stop_if_resolved"] = True
         update["country"] = item.country or request.constraints.preferred_country
         sanitized.append(item.model_copy(update=update))
     if not sanitized:
@@ -722,6 +774,16 @@ def title_company_name(title: str) -> str | None:
     return candidate if is_plausible_company_name(candidate) else None
 
 
+def directory_title_company_name(title: str, source_domain: str | None) -> str | None:
+    normalized_domain = normalize_text(source_domain or "")
+    if normalized_domain == "startupshub.catalonia.com":
+        primary = title.split(" - ", 1)[0].strip()
+        candidate = clean_company_name(primary)
+        if candidate and is_plausible_company_name(candidate, source_domain=source_domain):
+            return candidate
+    return None
+
+
 def extract_company_candidates_from_list_text(text: str, *, source_domain: str | None = None) -> list[str]:
     candidates: list[str] = []
     patterns = [
@@ -749,6 +811,19 @@ def extract_official_website(text: str, source_url: str) -> str | None:
     if source_host and not domain_is_directory(source_host) and not domain_is_publisher_like(source_host) and not any(token in lowered_source for token in noisy_path_tokens):
         return source_url
     return None
+
+
+def canonicalize_website(url: str | None) -> str | None:
+    if not url:
+        return None
+    try:
+        parsed = urlparse(url.strip())
+    except ValueError:
+        return None
+    if not parsed.hostname:
+        return None
+    scheme = parsed.scheme or "https"
+    return f"{scheme}://{parsed.hostname}"
 
 
 def extract_employee_estimate_from_text(text: str) -> int | None:
@@ -787,6 +862,14 @@ def clean_role_title(value: str | None) -> str | None:
         return None
     if any(token in cleaned.lower() for token in ["administrative boundaries", "enviado", "report abuse", "repository"]):
         return None
+    lowered = cleaned.lower()
+    if lowered.startswith(("in ", "for ", "how ", "what ", "why ", "the ")):
+        return None
+    if len(cleaned.split()) > 8:
+        return None
+    role_keywords = ("founder", "ceo", "cto", "chief", "head", "director", "manager", "lead", "vp", "president", "recruit", "talent", "engineering", "product", "operations")
+    if not any(keyword in lowered for keyword in role_keywords) and len(cleaned.split()) > 4:
+        return None
     return cleaned
 
 
@@ -813,7 +896,7 @@ def parse_candidate_from_text(text: str, url: str) -> tuple[PersonCandidate | No
     company = (
         CompanyCandidate(
             name=company_name,
-            website=extract_official_website(text, url),
+            website=canonicalize_website(extract_official_website(text, url)),
             country_code=country_code,
             employee_estimate=employee_estimate,
         )
@@ -838,16 +921,37 @@ def _document_text(document: EvidenceDocument) -> str:
 
 def source_quality_for_document(document: EvidenceDocument, anchor_company: str | None = None) -> SourceQuality:
     domain = document.domain or domain_from_url(document.url)
-    if domain_is_publisher_like(domain):
-        return SourceQuality.LOW
     if domain_is_directory(domain):
         return SourceQuality.MEDIUM
+    if domain_is_publisher_like(domain):
+        return SourceQuality.LOW
     text = _document_text(document).lower()
+    domain_root = normalize_text((domain or "").split(".")[0].replace("-", " "))
+    if any(token in text for token in ["careers", "docs", "github", "blog", "product", "about", "team", "leadership", "contact"]):
+        if not anchor_company or company_name_matches_anchor(domain_root, anchor_company):
+            return SourceQuality.HIGH
     if anchor_company and anchor_company.lower() in text:
-        return SourceQuality.HIGH
+        return SourceQuality.MEDIUM
     if any(token in text for token in ["careers", "docs", "github", "blog", "product"]):
         return SourceQuality.HIGH
     return SourceQuality.MEDIUM
+
+
+def source_tier_for_document(document: EvidenceDocument, anchor_company: str | None = None) -> str:
+    domain = document.domain or domain_from_url(document.url)
+    if domain_is_directory(domain):
+        return "tier_b"
+    if domain_is_publisher_like(domain):
+        return "tier_c"
+    text = _document_text(document).lower()
+    if document.is_company_controlled_source:
+        return "tier_a"
+    domain_root = normalize_text((domain or "").split(".")[0].replace("-", " "))
+    if any(token in text for token in ["about", "team", "leadership", "careers", "contact", "docs", "blog"]) and (
+        not anchor_company or company_name_matches_anchor(domain_root, anchor_company)
+    ):
+        return "tier_a"
+    return "tier_b"
 
 
 def enrich_document_metadata(document: EvidenceDocument, *, anchor_company: str | None = None) -> EvidenceDocument:
@@ -861,12 +965,14 @@ def enrich_document_metadata(document: EvidenceDocument, *, anchor_company: str 
         and domain
         and not domain_is_directory(domain)
         and not domain_is_publisher_like(domain)
-        and (anchor_normalized in text or anchor_normalized in domain_root)
+        and company_name_matches_anchor(domain_root, anchor_company)
+        and anchor_normalized in text
     )
     return document.model_copy(
         update={
             "domain": domain,
             "source_quality": quality,
+            "source_tier": source_tier_for_document(document.model_copy(update={"domain": domain, "source_quality": quality, "is_company_controlled_source": is_company_controlled}), anchor_company),
             "is_publisher_like": domain_is_publisher_like(domain),
             "is_company_controlled_source": is_company_controlled,
         }
@@ -887,6 +993,8 @@ def candidate_company_names_from_document(document: EvidenceDocument) -> list[st
     candidates: list[str] = []
     source_domain = document.domain or domain_from_url(document.url)
     if document.is_publisher_like or domain_is_directory(source_domain):
+        if title_candidate := directory_title_company_name(document.title, source_domain):
+            candidates.append(title_candidate)
         candidates.extend(extract_company_candidates_from_list_text(text, source_domain=source_domain))
     else:
         _, company = parse_candidate_from_text(text, document.url)
@@ -963,6 +1071,37 @@ def _source_quality_from_docs(documents: list[EvidenceDocument]) -> SourceQualit
     return SourceQuality.UNKNOWN
 
 
+def _source_tier_from_docs(documents: list[EvidenceDocument]) -> str:
+    if not documents:
+        return "unknown"
+    tiers = {item.source_tier for item in documents if item.source_tier != "unknown"}
+    if not tiers:
+        return "unknown"
+    if len(tiers) == 1:
+        return next(iter(tiers))
+    return "mixed"
+
+
+def _website_has_strong_support(website: str | None, documents: list[EvidenceDocument]) -> bool:
+    website_domain = domain_from_url(website)
+    if not website_domain or not documents:
+        return False
+    exact_domain_docs = [item for item in documents if domain_from_url(item.url) == website_domain]
+    if any(item.is_company_controlled_source for item in exact_domain_docs):
+        return True
+    if any(
+        not item.is_publisher_like
+        and any(token in normalize_text(_document_text(item)) for token in ["about", "team", "leadership", "contact", "careers", "legal", "docs", "blog"])
+        for item in exact_domain_docs
+    ):
+        return True
+    return len(exact_domain_docs) >= 2 and not all(item.is_publisher_like for item in exact_domain_docs)
+
+
+def _field_requires_corroboration(field_name: str) -> bool:
+    return field_name in {"website", "employee_estimate", "person_name", "role_title"}
+
+
 def _build_field_evidence(
     field_name: str,
     value: str | int | None,
@@ -978,6 +1117,8 @@ def _build_field_evidence(
         supporting_evidence=supporting,
         contradicting_evidence=contradicting,
         source_quality=_source_quality_from_docs(supporting or contradicting),
+        source_tier=_source_tier_from_docs(supporting or contradicting),
+        support_type="corroborated" if len(supporting) >= 2 else "explicit",
         reasoning_note=note,
     )
 
@@ -1053,10 +1194,10 @@ def build_fallback_assembled_dossier(
         if company_matches_anchor and company and company.website:
             website_docs.append(document)
             if website_value is None or document.is_company_controlled_source:
-                website_value = company.website
+                website_value = canonicalize_website(company.website)
         elif document.is_company_controlled_source and website_value is None and document.domain:
             website_docs.append(document)
-            website_value = document.url.split("/", 3)[0] + "//" + document.domain
+            website_value = canonicalize_website(document.url.split("/", 3)[0] + "//" + document.domain)
         if person and person.full_name and company_matches_anchor and (
             document.is_company_controlled_source
             or not domain_is_directory(document.domain)
@@ -1147,13 +1288,28 @@ def _build_resolution_field_evidence(
     if assertion is not None:
         supporting = _documents_from_urls(assertion.evidence_urls, allowed_docs)
         contradicting = _documents_from_urls(assertion.contradicting_urls, allowed_docs)
+        derived_tier = _source_tier_from_docs(supporting or contradicting)
+        if value is None:
+            return AssembledFieldEvidence(
+                field_name=field_name,
+                value=None,
+                status=FieldEvidenceStatus.UNKNOWN,
+                supporting_evidence=[],
+                contradicting_evidence=contradicting,
+                source_quality=_source_quality_from_docs(contradicting),
+                source_tier=derived_tier,
+                support_type=assertion.support_type,
+                reasoning_note=default_note,
+            )
         return AssembledFieldEvidence(
             field_name=field_name,
-            value=assertion.value if assertion.value is not None else value,
+            value=value,
             status=assertion.status,
             supporting_evidence=supporting,
             contradicting_evidence=contradicting,
             source_quality=_source_quality_from_docs(supporting or contradicting),
+            source_tier=derived_tier,
+            support_type=assertion.support_type,
             reasoning_note=assertion.reasoning_note or default_note,
         )
     if value is not None and selected_docs:
@@ -1165,6 +1321,8 @@ def _build_resolution_field_evidence(
             supporting_evidence=supporting,
             contradicting_evidence=[],
             source_quality=_source_quality_from_docs(supporting),
+            source_tier=_source_tier_from_docs(supporting),
+            support_type="corroborated" if len(supporting) >= 2 else "explicit",
             reasoning_note=default_note,
         )
     if fallback_item is not None:
@@ -1176,6 +1334,8 @@ def _build_resolution_field_evidence(
         supporting_evidence=selected_docs[:2] if value is not None else [],
         contradicting_evidence=[],
         source_quality=_source_quality_from_docs(selected_docs[:2] if value is not None else []),
+        source_tier=_source_tier_from_docs(selected_docs[:2] if value is not None else []),
+        support_type="weak_inference" if value is not None else "explicit",
         reasoning_note=default_note,
     )
 
@@ -1216,11 +1376,11 @@ def sanitize_assembly_resolution(
         return fallback
 
     website_value = _resolution_scalar_value(generated, assertions, field_name="website", root_value=generated.website)
-    website = str(website_value).strip() if isinstance(website_value, str) and website_value.strip() else None
+    website = canonicalize_website(str(website_value).strip()) if isinstance(website_value, str) and website_value.strip() else None
     if website and (domain_is_publisher_like(domain_from_url(website)) or domain_is_directory(domain_from_url(website))):
-        website = fallback.company.website if fallback.company else None
+        website = canonicalize_website(fallback.company.website) if fallback.company else None
     if website is None and fallback.company:
-        website = fallback.company.website
+        website = canonicalize_website(fallback.company.website)
 
     country_value = _resolution_scalar_value(generated, assertions, field_name="country", root_value=generated.country_code)
     country_code = canonicalize_country_code(str(country_value)) if country_value is not None else None
@@ -1236,13 +1396,20 @@ def sanitize_assembly_resolution(
     employee_estimate = int(size_value) if isinstance(size_value, int) else fallback.company.employee_estimate if fallback.company else None
 
     person_value = _resolution_scalar_value(generated, assertions, field_name="person_name", root_value=generated.person_name)
-    person_name = str(person_value).strip() if isinstance(person_value, str) and str(person_value).strip() else None
+    person_name = clean_person_name(str(person_value).strip()) if isinstance(person_value, str) and str(person_value).strip() else None
     role_value = _resolution_scalar_value(generated, assertions, field_name="role_title", root_value=generated.role_title)
-    role_title = str(role_value).strip() if isinstance(role_value, str) and str(role_value).strip() else None
+    role_title = clean_role_title(str(role_value).strip()) if isinstance(role_value, str) and str(role_value).strip() else None
 
     combined_text = " ".join(_document_text(item) for item in evidence).lower()
     if person_name and person_name.lower() not in combined_text:
         person_name = fallback.person.full_name if fallback.person and fallback.person.full_name and fallback.person.full_name.lower() in combined_text else None
+    if person_name and not _documents_explicitly_support_person(
+        person_name=person_name,
+        company_name=company_name,
+        company_website=website,
+        documents=evidence,
+    ):
+        person_name = None
     if role_title and role_title.lower() not in combined_text and fallback.person and fallback.person.role_title and fallback.person.role_title.lower() in combined_text:
         role_title = fallback.person.role_title
 
@@ -1316,6 +1483,70 @@ def sanitize_assembly_resolution(
             default_note="Fit signals were inferred only from selected evidence with relevant product, docs, hiring, or tech references.",
         ),
     ]
+    field_evidence_map = {item.field_name: item for item in field_evidence}
+    website_field = field_evidence_map["website"]
+    if company.website is not None and (
+        website_field.support_type == "weak_inference"
+        or website_field.source_tier == "tier_c"
+        or not _website_has_strong_support(company.website, website_field.supporting_evidence or evidence)
+    ):
+        company.website = fallback.company.website if fallback.company and _website_has_strong_support(fallback.company.website, fallback.evidence) else None
+        field_evidence_map["website"] = website_field.model_copy(
+            update={
+                "value": company.website,
+                "status": FieldEvidenceStatus.UNKNOWN if company.website is None else FieldEvidenceStatus.WEAKLY_SUPPORTED,
+                "supporting_evidence": fallback.evidence[:2] if company.website else [],
+                "source_tier": _source_tier_from_docs(fallback.evidence[:2]) if company.website else "unknown",
+                "support_type": "corroborated" if company.website else "weak_inference",
+                "reasoning_note": "Website was not sufficiently corroborated by company-controlled or matching-domain evidence, so it is not yet proven.",
+            }
+        )
+    if company.employee_estimate is not None and not _documents_explicitly_support_employee_size(
+        field_evidence_map["employee_estimate"].supporting_evidence
+    ):
+        company.employee_estimate = None
+        field_evidence_map["employee_estimate"] = field_evidence_map["employee_estimate"].model_copy(
+            update={
+                "value": None,
+                "status": FieldEvidenceStatus.UNKNOWN,
+                "supporting_evidence": [],
+                "source_tier": "unknown",
+                "support_type": "weak_inference",
+                "reasoning_note": "Employee size was inferred without an explicit public size statement, so it is not yet proven.",
+            }
+        )
+    if person and person.full_name and (
+        field_evidence_map["person_name"].support_type == "weak_inference"
+        or field_evidence_map["person_name"].source_tier == "tier_c"
+    ):
+        person.full_name = None
+        field_evidence_map["person_name"] = field_evidence_map["person_name"].model_copy(
+            update={
+                "value": None,
+                "status": FieldEvidenceStatus.UNKNOWN,
+                "supporting_evidence": [],
+                "source_tier": "unknown",
+                "support_type": "weak_inference",
+                "reasoning_note": "Named person was inferred too weakly from public evidence and is not yet proven.",
+            }
+        )
+    if person and person.role_title and not _documents_explicitly_support_role(
+        role_title=person.role_title,
+        person_name=person.full_name,
+        documents=field_evidence_map["role_title"].supporting_evidence or evidence,
+    ):
+        person.role_title = None
+        field_evidence_map["role_title"] = field_evidence_map["role_title"].model_copy(
+            update={
+                "value": None,
+                "status": FieldEvidenceStatus.UNKNOWN,
+                "supporting_evidence": [],
+                "source_tier": "unknown",
+                "support_type": "weak_inference",
+                "reasoning_note": "Role title was inferred from leadership context but is not explicitly stated in the supporting evidence.",
+            }
+        )
+    field_evidence = list(field_evidence_map.values())
     return AssembledLeadDossier(
         sourcing_status=SourcingStatus.FOUND if evidence else fallback.sourcing_status,
         query_used=source_result.executed_queries[0].query if source_result.executed_queries else fallback.query_used,
@@ -1323,7 +1554,7 @@ def sanitize_assembly_resolution(
         company=company,
         fit_signals=fit_signals,
         evidence=evidence,
-        notes=dedupe_preserve_order([*fallback.notes, *generated.notes, "assembled_by=llm"]),
+        notes=dedupe_preserve_order([*fallback.notes, *generated.confidence_notes, *generated.notes, "assembled_by=llm"]),
         anchored_company_name=company.name,
         research_trace=source_result.research_trace,
         field_evidence=field_evidence,
@@ -1348,11 +1579,11 @@ def overlay_explicit_dossier_fields(
         current_country = field_map.get("country")
         if original.company.country_code and (current_country is None or current_country.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
             company.country_code = original.company.country_code
-            field_map["country"] = AssembledFieldEvidence(field_name="country", value=original.company.country_code, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Country provided explicitly in the dossier and accepted as legacy support.")
+            field_map["country"] = AssembledFieldEvidence(field_name="country", value=original.company.country_code, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), source_tier=_source_tier_from_docs(support), support_type="corroborated" if len(support) >= 2 else "explicit", reasoning_note="Country provided explicitly in the dossier and accepted as legacy support.")
         current_size = field_map.get("employee_estimate")
         if original.company.employee_estimate is not None and (current_size is None or current_size.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
             company.employee_estimate = original.company.employee_estimate
-            field_map["employee_estimate"] = AssembledFieldEvidence(field_name="employee_estimate", value=original.company.employee_estimate, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Employee estimate provided explicitly in the dossier and accepted as legacy support.")
+            field_map["employee_estimate"] = AssembledFieldEvidence(field_name="employee_estimate", value=original.company.employee_estimate, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), source_tier=_source_tier_from_docs(support), support_type="corroborated" if len(support) >= 2 else "explicit", reasoning_note="Employee estimate provided explicitly in the dossier and accepted as legacy support.")
         if original.company.website and not company.website:
             company.website = original.company.website
 
@@ -1360,15 +1591,15 @@ def overlay_explicit_dossier_fields(
         current_person = field_map.get("person_name")
         if original.person.full_name and (current_person is None or current_person.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
             person.full_name = original.person.full_name
-            field_map["person_name"] = AssembledFieldEvidence(field_name="person_name", value=original.person.full_name, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Person name provided explicitly in the dossier and accepted as legacy support.")
+            field_map["person_name"] = AssembledFieldEvidence(field_name="person_name", value=original.person.full_name, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), source_tier=_source_tier_from_docs(support), support_type="corroborated" if len(support) >= 2 else "explicit", reasoning_note="Person name provided explicitly in the dossier and accepted as legacy support.")
         current_role = field_map.get("role_title")
         if original.person.role_title and (current_role is None or current_role.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
             person.role_title = original.person.role_title
-            field_map["role_title"] = AssembledFieldEvidence(field_name="role_title", value=original.person.role_title, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Role title provided explicitly in the dossier and accepted as legacy support.")
+            field_map["role_title"] = AssembledFieldEvidence(field_name="role_title", value=original.person.role_title, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), source_tier=_source_tier_from_docs(support), support_type="corroborated" if len(support) >= 2 else "explicit", reasoning_note="Role title provided explicitly in the dossier and accepted as legacy support.")
 
     current_fit = field_map.get("fit_signals")
     if fit_signals and (current_fit is None or current_fit.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
-        field_map["fit_signals"] = AssembledFieldEvidence(field_name="fit_signals", value=", ".join(fit_signals), status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), reasoning_note="Fit signals provided explicitly in the dossier and accepted as legacy support.")
+        field_map["fit_signals"] = AssembledFieldEvidence(field_name="fit_signals", value=", ".join(fit_signals), status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), source_tier=_source_tier_from_docs(support), support_type="corroborated" if len(support) >= 2 else "explicit", reasoning_note="Fit signals provided explicitly in the dossier and accepted as legacy support.")
 
     return assembled.model_copy(
         update={
@@ -1396,8 +1627,107 @@ def field_evidence_map(dossier: AssembledLeadDossier) -> dict[str, AssembledFiel
 
 def _rubric_field_from_field_evidence(item: AssembledFieldEvidence | None, *, field_name: str, fallback_note: str) -> QualificationRubricField:
     if item is None:
-        return QualificationRubricField(field_name=field_name, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note=fallback_note)
-    return QualificationRubricField(field_name=field_name, status=item.status, supporting_evidence=item.supporting_evidence, contradicting_evidence=item.contradicting_evidence, source_quality=item.source_quality, reasoning_note=item.reasoning_note)
+        return QualificationRubricField(field_name=field_name, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, source_tier="unknown", support_type="weak_inference", reasoning_note=fallback_note)
+    return QualificationRubricField(field_name=field_name, status=item.status, supporting_evidence=item.supporting_evidence, contradicting_evidence=item.contradicting_evidence, source_quality=item.source_quality, source_tier=item.source_tier, support_type=item.support_type, reasoning_note=item.reasoning_note)
+
+
+def _update_rubric_field(
+    rubric: QualificationRubric,
+    field_map: dict[str, QualificationRubricField],
+    *,
+    field_name: str,
+    status: FieldEvidenceStatus,
+    reasoning_note: str,
+) -> None:
+    current = field_map[field_name]
+    updated = current.model_copy(update={"status": status, "reasoning_note": reasoning_note})
+    field_map[field_name] = updated
+    for index, item in enumerate(rubric.fields):
+        if item.field_name == field_name:
+            rubric.fields[index] = updated
+            break
+
+
+def _documents_explicitly_support_role(
+    *,
+    role_title: str | None,
+    person_name: str | None,
+    documents: list[EvidenceDocument],
+) -> bool:
+    if not role_title:
+        return False
+    normalized_role = normalize_text(role_title).replace("&", " and ")
+    role_tokens = [token for token in re.split(r"[^a-z]+", normalized_role) if token]
+    if not role_tokens:
+        return False
+    normalized_person = normalize_text(person_name) if person_name else None
+    for document in documents:
+        text = normalize_text(_document_text(document))
+        if normalized_person and normalized_person not in text:
+            continue
+        if any(token in text for token in role_tokens):
+            return True
+    return False
+
+
+def _document_is_multi_entity_listing(document: EvidenceDocument) -> bool:
+    title = normalize_text(document.title)
+    url = normalize_text(document.url)
+    text = normalize_text(_document_text(document))
+    listing_tokens = [
+        "best ",
+        " top ",
+        "directory",
+        "startups in",
+        "startups to watch",
+        "ranking",
+        "rankings",
+        "job opportunities",
+        "/directory/",
+        "/page/",
+        " page ",
+    ]
+    return domain_is_publisher_like(domain_from_url(document.url)) or any(token in title or token in url or token in text for token in listing_tokens)
+
+
+def _documents_explicitly_support_person(
+    *,
+    person_name: str | None,
+    company_name: str | None,
+    company_website: str | None,
+    documents: list[EvidenceDocument],
+) -> bool:
+    if not person_name or not documents:
+        return False
+    normalized_person = normalize_text(person_name)
+    normalized_company = normalize_text(company_name or "")
+    website_domain = domain_from_url(company_website)
+    proximity_pattern = None
+    if normalized_company:
+        proximity_pattern = re.compile(
+            rf"{re.escape(normalized_person)}.{{0,140}}{re.escape(normalized_company)}|{re.escape(normalized_company)}.{{0,140}}{re.escape(normalized_person)}",
+            re.IGNORECASE | re.DOTALL,
+        )
+    for document in documents:
+        text = normalize_text(_document_text(document))
+        if normalized_person not in text:
+            continue
+        if website_domain and domain_from_url(document.url) == website_domain and not document.is_publisher_like:
+            return True
+        if proximity_pattern and proximity_pattern.search(text) and not _document_is_multi_entity_listing(document):
+            return True
+    return False
+
+
+def _documents_explicitly_support_employee_size(documents: list[EvidenceDocument]) -> bool:
+    for document in documents:
+        text = _document_text(document)
+        if EMPLOYEE_VALUE_PATTERN.search(text) or EMPLOYEE_RANGE_VALUE_PATTERN.search(text):
+            return True
+        lowered = normalize_text(text)
+        if "company size" in lowered or "employees" in lowered or "empleados" in lowered:
+            return True
+    return False
 
 
 def derive_meddicc_signals(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> list[str]:
@@ -1476,6 +1806,62 @@ def build_close_match_decision(
     )
 
 
+def downgrade_enrich_to_close_match(
+    decision: QualificationDecision,
+    dossier: AssembledLeadDossier,
+    request: NormalizedLeadSearchRequest,
+) -> QualificationDecision:
+    if decision.outcome != QualificationOutcome.ENRICH or decision.qualification_rubric is None:
+        return decision
+    rubric = decision.qualification_rubric
+    field_map = {item.field_name: item for item in rubric.fields}
+    company_field = field_map.get("company_name")
+    website_field = field_map.get("website")
+    country_field = field_map.get("country")
+    if company_field is None or website_field is None or country_field is None:
+        return decision
+    if company_field.status != FieldEvidenceStatus.SATISFIED:
+        return decision
+    if website_field.status != FieldEvidenceStatus.SATISFIED:
+        return decision
+    if request.constraints.preferred_country and country_field.status != FieldEvidenceStatus.SATISFIED:
+        return decision
+    if decision.score < 60:
+        return decision
+
+    missed_filters: list[str] = []
+    size_field = field_map.get("employee_estimate")
+    person_field = field_map.get("person_name")
+    role_field = field_map.get("role_title")
+    if size_field and size_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        missed_filters.append("company_size")
+    if request.constraints.prefer_named_person and person_field and person_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        missed_filters.append("named_person")
+    role_candidate = dossier.person.role_title if dossier.person else None
+    role_exact, role_adjacent = qualifies_role(role_candidate, request.buyer_targets)
+    if not role_exact:
+        missed_filters.append("preferred buyer persona" if role_adjacent else "preferred buyer persona")
+
+    reasons = dedupe_preserve_order(
+        [
+            *decision.reasons,
+            "available enrichment budget was exhausted before the remaining gaps could be fully verified",
+        ]
+    )
+    summary = "Candidate remains commercially interesting, but some exact-match fields stayed unproven after the available enrichment budget."
+    lead_type = dossier.person.role_title if dossier.person and dossier.person.role_title else decision.type or "unknown"
+    region = dossier.company.country_code if dossier.company and dossier.company.country_code else decision.region or "unknown"
+    return build_close_match_decision(
+        score=decision.score,
+        reasons=reasons,
+        lead_type=lead_type,
+        region=region,
+        missed_filters=dedupe_preserve_order(missed_filters or ["strict exact match"]),
+        summary=summary,
+        qualification_rubric=rubric,
+    )
+
+
 def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> QualificationDecision:
     if dossier.field_evidence == [] and dossier.evidence:
         dossier = overlay_explicit_dossier_fields(build_fallback_assembled_dossier(
@@ -1499,7 +1885,81 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
     lead_type = dossier.person.role_title if dossier.person and dossier.person.role_title else "unknown"
     region = dossier.company.country_code or request.constraints.preferred_country or "unknown"
 
-    role_exact, role_adjacent = qualifies_role(dossier.person.role_title if dossier.person else None, request.buyer_targets)
+    country_field = field_map["country"]
+    website_field = field_map["website"]
+    size_field = field_map["employee_estimate"]
+    person_field = field_map["person_name"]
+    company_field = field_map["company_name"]
+    role_field = field_map["role_title"]
+    fit_field = field_map["fit_signals"]
+
+    if website_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and (
+        website_field.support_type == "weak_inference"
+        or website_field.source_tier == "tier_c"
+        or not _website_has_strong_support(dossier.company.website, website_field.supporting_evidence)
+    ):
+        _update_rubric_field(
+            rubric,
+            field_map,
+            field_name="website",
+            status=FieldEvidenceStatus.UNKNOWN,
+            reasoning_note="Website is not sufficiently corroborated by company-controlled or matching-domain evidence.",
+        )
+        website_field = field_map["website"]
+
+    if size_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and (
+        size_field.support_type == "weak_inference"
+        or size_field.source_tier == "tier_c"
+        or not _documents_explicitly_support_employee_size(size_field.supporting_evidence)
+    ):
+        _update_rubric_field(
+            rubric,
+            field_map,
+            field_name="employee_estimate",
+            status=FieldEvidenceStatus.UNKNOWN,
+            reasoning_note="Employee size was inferred without an explicit public size statement, so it is not yet proven.",
+        )
+        size_field = field_map["employee_estimate"]
+
+    if person_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and (
+        person_field.support_type == "weak_inference" or person_field.source_tier == "tier_c"
+    ):
+        _update_rubric_field(
+            rubric,
+            field_map,
+            field_name="person_name",
+            status=FieldEvidenceStatus.UNKNOWN,
+            reasoning_note="Named person is not explicitly corroborated enough in the selected evidence.",
+        )
+        person_field = field_map["person_name"]
+
+    if role_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and not _documents_explicitly_support_role(
+        role_title=dossier.person.role_title if dossier.person else None,
+        person_name=dossier.person.full_name if dossier.person else None,
+        documents=role_field.supporting_evidence or dossier.evidence,
+    ):
+        _update_rubric_field(
+            rubric,
+            field_map,
+            field_name="role_title",
+            status=FieldEvidenceStatus.UNKNOWN,
+            reasoning_note="Role title was inferred from leadership context but is not explicitly stated in the supporting evidence.",
+        )
+        role_field = field_map["role_title"]
+    if role_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and (
+        role_field.support_type == "weak_inference" or role_field.source_tier == "tier_c"
+    ):
+        _update_rubric_field(
+            rubric,
+            field_map,
+            field_name="role_title",
+            status=FieldEvidenceStatus.UNKNOWN,
+            reasoning_note="Role title is not explicitly corroborated enough in the selected evidence.",
+        )
+        role_field = field_map["role_title"]
+
+    role_candidate = dossier.person.role_title if dossier.person and role_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} else None
+    role_exact, role_adjacent = qualifies_role(role_candidate, request.buyer_targets)
     if role_exact:
         reasons.append("role matches the preferred buyer persona")
     elif role_adjacent:
@@ -1509,21 +1969,17 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
         reasons.append("preferred buyer persona is still weakly supported or unknown")
         missed_filters.append("preferred buyer persona")
 
-    country_field = field_map["country"]
-    size_field = field_map["employee_estimate"]
-    person_field = field_map["person_name"]
-    company_field = field_map["company_name"]
-    fit_field = field_map["fit_signals"]
-
     if company_field.status == FieldEvidenceStatus.CONTRADICTED or domain_is_publisher_like(domain_from_url(dossier.company.website)):
         hard_failure = True
         reasons.append("main company entity is contradictory or still looks like a publisher/aggregator artifact")
+    if website_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        reasons.append("official website is still weak or not fully corroborated")
 
     if request.constraints.preferred_country:
         if country_field.status == FieldEvidenceStatus.CONTRADICTED:
             hard_failure = True
             reasons.append("company geography contradicts the requested country")
-        elif country_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED} and dossier.company.country_code != request.constraints.preferred_country:
+        elif country_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
             reasons.append("company geography is not yet firmly proven")
         elif dossier.company.country_code != request.constraints.preferred_country:
             hard_failure = True
@@ -1536,7 +1992,7 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
         if size_field.status == FieldEvidenceStatus.CONTRADICTED:
             hard_failure = True
             reasons.append("public evidence for company size is contradictory")
-        elif size is None:
+        elif size is None or size_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
             reasons.append("company size is not yet proven")
         else:
             minimum = request.constraints.min_company_size
@@ -1554,6 +2010,9 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
         reasons.append("named person is still weak or missing")
     elif dossier.person and dossier.person.full_name:
         reasons.append("named person is supported by the evidence")
+    elif request.constraints.prefer_named_person:
+        reasons.append("named person is not preserved in the final dossier")
+        missed_filters.append("named person")
 
     if fit_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and dossier.fit_signals:
         reasons.append("company shows relevant automation or AI signals")
@@ -1566,12 +2025,21 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
         hard_unknown = True
     if (request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and size_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
         hard_unknown = True
+    named_person_present = bool(dossier.person and dossier.person.full_name)
+    role_title_present = bool(dossier.person and dossier.person.role_title)
 
     if hard_failure:
         return QualificationDecision(outcome=QualificationOutcome.REJECT, score=score, summary="Candidate fails a hard constraint or the company entity is unreliable.", reasons=dedupe_preserve_order(reasons + rubric.contradictions), type=lead_type, region=region, qualification_rubric=rubric)
     if hard_unknown:
         return QualificationDecision(outcome=QualificationOutcome.ENRICH, score=score, summary="Candidate is plausible but still needs stronger proof for one or more hard constraints.", reasons=dedupe_preserve_order(reasons), type=lead_type, region=region, qualification_rubric=rubric)
-    if role_exact and person_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and field_map["role_title"].status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and fit_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+    if (
+        role_exact
+        and website_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED}
+        and person_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED}
+        and role_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED}
+        and fit_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED}
+        and (not request.constraints.prefer_named_person or (named_person_present and role_title_present))
+    ):
         return QualificationDecision(outcome=QualificationOutcome.ACCEPT, match_type=MatchType.EXACT, score=score, summary="Candidate is a strong exact match backed by structured public evidence.", reasons=dedupe_preserve_order(reasons), type=lead_type, region=region, qualification_rubric=rubric)
     return build_close_match_decision(score=score, reasons=dedupe_preserve_order(reasons), lead_type=lead_type, region=region, missed_filters=missed_filters or ["exact buyer persona"], summary="Candidate is commercially interesting but still misses part of the preferred fit.", qualification_rubric=rubric)
 

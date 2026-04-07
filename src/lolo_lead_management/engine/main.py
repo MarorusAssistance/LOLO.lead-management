@@ -23,6 +23,7 @@ from lolo_lead_management.engine.stages.qualify import QualifyStage
 from lolo_lead_management.engine.stages.source import SourceStage
 from lolo_lead_management.infrastructure.run_archive import ExecutionArchiveWriter
 from lolo_lead_management.ports.stores import SearchRunStore, ShortlistStore
+from lolo_lead_management.engine.rules import downgrade_enrich_to_close_match
 
 
 class LeadManagementEngine:
@@ -179,6 +180,15 @@ class LeadManagementEngine:
                     state.current_qualification = self._qualify_stage.execute(
                         request_payload=state.run.request.model_dump(mode="json"),
                         dossier_payload=state.current_dossier.model_dump(mode="json"),
+                    )
+                if (
+                    state.current_qualification.outcome == QualificationOutcome.ENRICH
+                    and not state.run.budget.can_enrich()
+                ):
+                    state.current_qualification = downgrade_enrich_to_close_match(
+                        state.current_qualification,
+                        state.current_dossier,
+                        state.run.request,
                     )
 
                 if state.current_qualification.outcome in {

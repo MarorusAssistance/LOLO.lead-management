@@ -85,12 +85,32 @@ class EnrichStage:
                     research_phase=query.research_phase,
                     objective=query.objective,
                     candidate_company_name=query.candidate_company_name,
+                    source_tier_target=query.source_tier_target,
+                    expected_field=query.expected_field,
                     documents_considered=len(filtered),
                     documents_selected=len(selected),
                     selected_urls=[item.url for item in selected],
                 )
             )
             documents.extend(selected)
+        extracted_documents = self._extract_anchor_documents(merge_documents(documents), dossier.company.name)
+        if extracted_documents:
+            state.run.budget.search_calls_used += 1
+            documents.extend(extracted_documents)
+            research_trace.append(
+                ResearchTraceEntry(
+                    query_planned=f'"{dossier.company.name}" extract anchored pages',
+                    query_executed=f'"{dossier.company.name}" extract anchored pages',
+                    research_phase="evidence_closing",
+                    objective="Extract richer content from the most relevant anchored pages.",
+                    candidate_company_name=dossier.company.name,
+                    source_tier_target="tier_a",
+                    expected_field="multi",
+                    documents_considered=len(extracted_documents),
+                    documents_selected=len(extracted_documents),
+                    selected_urls=[item.url for item in extracted_documents],
+                )
+            )
         return SourcePassResult(
             sourcing_status=SourcingStatus.FOUND if documents else SourcingStatus.NO_CANDIDATE,
             query_plan=plan,
@@ -120,6 +140,39 @@ class EnrichStage:
                 anchor_company=item.company_anchor,
             )
             for item in documents
+        ]
+
+    def _extract_anchor_documents(self, documents, anchor_company: str):
+        candidate_urls = []
+        for item in documents:
+            if item.is_publisher_like:
+                continue
+            text = f"{item.title}\n{item.snippet}\n{item.raw_content}".lower()
+            if anchor_company.lower() not in text and not item.is_company_controlled_source:
+                continue
+            candidate_urls.append(item.url)
+            if len(candidate_urls) >= 3:
+                break
+        if not candidate_urls:
+            return []
+        try:
+            extracted = self._search_port.extract_pages(candidate_urls, extract_depth="advanced")
+        except Exception:
+            return []
+        return [
+            enrich_document_metadata(
+                item.model_copy(
+                    update={
+                        "query_planned": f'"{anchor_company}" extract anchored pages',
+                        "query_executed": f'"{anchor_company}" extract anchored pages',
+                        "research_phase": "evidence_closing",
+                        "objective": "Extract richer content from the most relevant anchored pages.",
+                        "company_anchor": anchor_company,
+                    }
+                ),
+                anchor_company=anchor_company,
+            )
+            for item in extracted
         ]
 
     def _safe_fetch_page(self, url: str) -> str:

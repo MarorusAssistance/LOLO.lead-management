@@ -13,3 +13,7 @@ class SearchPort(ABC):
     @abstractmethod
     def fetch_page(self, url: str) -> str:
         raise NotImplementedError
+
+    @abstractmethod
+    def extract_pages(self, urls: list[str], *, extract_depth: str = "advanced") -> list[EvidenceDocument]:
+        raise NotImplementedError

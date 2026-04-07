@@ -37,7 +37,8 @@ class AssembleStage:
         working_dossier = prior_dossier
         step_traces: list[dict] = []
         successful_resolution = False
-        for index, document in enumerate(focused_result.documents[:4], start=1):
+        prioritized_documents = self._prioritize_documents(focused_result.documents, focused_result.research_trace)
+        for index, document in enumerate(prioritized_documents[:6], start=1):
             document_result = self._single_document_source_result(focused_result, document)
             assembler_payload = {
                 "request": state.run.request.model_dump(mode="json"),
@@ -50,6 +51,10 @@ class AssembleStage:
                     "reuse_prior_dossier_when_still_coherent": True,
                     "prefer_cautious_partial_dossier_over_guessing": True,
                     "fields_may_come_from_different_documents_and_different_passes": True,
+                    "subject_company_must_match_focus_when_present": True,
+                    "do_not_close_every_field_from_one_document": True,
+                    "host_site_is_not_subject_company": True,
+                    "website_person_role_size_require_corroborated_support": True,
                 },
                 "source_result": self._compact_source_result_payload(document_result.model_dump(mode="json")),
                 "prior_dossier": self._compact_dossier_payload(working_dossier.model_dump(mode="json")) if working_dossier else prior_payload,
@@ -76,6 +81,9 @@ class AssembleStage:
                     "used_fallback": attempt.parsed is None,
                     "assembler_input": assembler_payload,
                     "assembler_raw_output": self._compact_resolution_payload(attempt.raw) if isinstance(attempt.raw, dict) else None,
+                    "assertions_proposed": self._compact_assertions(attempt.parsed.field_assertions) if attempt.parsed is not None else [],
+                    "assertions_accepted": self._accepted_assertions(working_dossier) if working_dossier else [],
+                    "assertions_rejected": self._rejected_assertions(attempt.parsed, working_dossier) if attempt.parsed is not None and working_dossier else [],
                     "current_dossier": self._compact_dossier_payload(working_dossier.model_dump(mode="json")) if working_dossier else None,
                 }
             )
@@ -97,6 +105,46 @@ class AssembleStage:
             "sanitized_output": self._compact_dossier_payload(sanitized.model_dump(mode="json")),
         }
         return sanitized
+
+    def _prioritize_documents(self, documents, research_trace: list[ResearchTraceEntry]):
+        trace_by_url: dict[str, ResearchTraceEntry] = {}
+        for entry in research_trace:
+            for url in entry.selected_urls:
+                trace_by_url[url] = entry
+
+        indexed_documents = list(enumerate(documents))
+
+        def priority(indexed_document) -> tuple[int, int]:
+            index, document = indexed_document
+            trace = trace_by_url.get(document.url)
+            score = 0
+            if document.is_company_controlled_source:
+                score += 40
+            if document.source_tier == "tier_a":
+                score += 30
+            elif document.source_tier == "tier_b":
+                score += 18
+            elif document.source_tier == "tier_c":
+                score -= 12
+            if trace is not None:
+                if trace.expected_field == "employee_estimate":
+                    score += 35
+                elif trace.expected_field in {"person_name", "role_title"}:
+                    score += 30
+                elif trace.expected_field == "website":
+                    score += 26
+                elif trace.expected_field == "fit_signals":
+                    score += 12
+                if trace.research_phase == "evidence_closing":
+                    score += 18
+                elif trace.research_phase == "field_acquisition":
+                    score += 14
+                elif trace.research_phase == "company_anchoring":
+                    score += 10
+            score += min(len(document.raw_content or ""), 2400) // 120
+            return score, -index
+
+        return [item for _, item in sorted(indexed_documents, key=priority, reverse=True)]
 
     def _select_focus_company(
         self,
@@ -175,6 +223,9 @@ class AssembleStage:
                     "objective": item.get("objective"),
                     "research_phase": item.get("research_phase"),
                     "candidate_company_name": item.get("candidate_company_name"),
+                    "source_tier_target": item.get("source_tier_target"),
+                    "expected_field": item.get("expected_field"),
+                    "stop_if_resolved": item.get("stop_if_resolved"),
                 }
                 for item in payload.get("executed_queries", [])[:4]
             ],
@@ -183,6 +234,8 @@ class AssembleStage:
                     "query_executed": item.get("query_executed"),
                     "research_phase": item.get("research_phase"),
                     "objective": item.get("objective"),
+                    "source_tier_target": item.get("source_tier_target"),
+                    "expected_field": item.get("expected_field"),
                     "documents_considered": item.get("documents_considered"),
                     "documents_selected": item.get("documents_selected"),
                     "selected_urls": item.get("selected_urls", [])[:4],
@@ -210,6 +263,8 @@ class AssembleStage:
                     "status": item.get("status"),
                     "supporting_urls": [doc.get("url") for doc in item.get("supporting_evidence", [])[:3]],
                     "contradicting_urls": [doc.get("url") for doc in item.get("contradicting_evidence", [])[:2]],
+                    "source_tier": item.get("source_tier"),
+                    "support_type": item.get("support_type"),
                     "reasoning_note": item.get("reasoning_note"),
                 }
                 for item in payload.get("field_evidence", [])
@@ -229,6 +284,7 @@ class AssembleStage:
             "field_assertions": payload.get("field_assertions", [])[:6],
             "contradictions": payload.get("contradictions", [])[:5],
             "unresolved_fields": payload.get("unresolved_fields", [])[:6],
+            "confidence_notes": payload.get("confidence_notes", [])[:6],
             "notes": payload.get("notes", [])[:6],
         }
 
@@ -246,4 +302,62 @@ class AssembleStage:
             "objective": payload.get("objective"),
             "is_company_controlled_source": payload.get("is_company_controlled_source"),
             "is_publisher_like": payload.get("is_publisher_like"),
+            "source_tier": payload.get("source_tier"),
         }
+
+    def _compact_assertions(self, assertions) -> list[dict]:
+        return [
+            {
+                "field_name": item.field_name,
+                "value": item.value,
+                "status": item.status,
+                "source_tier": item.source_tier,
+                "support_type": item.support_type,
+                "evidence_urls": item.evidence_urls[:3],
+                "contradicting_urls": item.contradicting_urls[:2],
+            }
+            for item in assertions[:6]
+        ]
+
+    def _accepted_assertions(self, dossier: AssembledLeadDossier) -> list[dict]:
+        return [
+            {
+                "field_name": item.field_name,
+                "value": item.value,
+                "status": item.status,
+                "source_tier": item.source_tier,
+                "support_type": item.support_type,
+            }
+            for item in dossier.field_evidence
+            if getattr(item.status, "value", item.status) != "unknown" and item.value is not None
+        ]
+
+    def _rejected_assertions(self, resolution: AssemblyResolution, dossier: AssembledLeadDossier) -> list[dict]:
+        accepted_fields = {item.field_name for item in dossier.field_evidence if item.value is not None}
+        rejected = []
+        for item in resolution.field_assertions:
+            if item.field_name in accepted_fields and item.value is not None:
+                continue
+            rejected.append(
+                {
+                    "field_name": item.field_name,
+                    "value": item.value,
+                    "source_tier": item.source_tier,
+                    "support_type": item.support_type,
+                    "reason": self._rejection_reason(item),
+                }
+            )
+        return rejected
+
+    def _rejection_reason(self, assertion) -> str:
+        if assertion.support_type == "weak_inference":
+            return "weak_inference"
+        if assertion.source_tier == "tier_c":
+            return "host_not_subject_or_publisher_weight"
+        if assertion.field_name == "website":
+            return "website_not_official"
+        if assertion.field_name == "employee_estimate":
+            return "size_unproven"
+        if assertion.field_name == "role_title":
+            return "weak_role"
+        return "not_preserved_after_validation"

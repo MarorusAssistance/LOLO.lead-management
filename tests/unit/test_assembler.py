@@ -335,3 +335,224 @@ def test_assembler_processes_documents_incrementally() -> None:
     assert dossier.person.role_title == "CTO"
     assert state.current_assembler_trace is not None
     assert len(state.current_assembler_trace["document_steps"]) == 2
+
+
+def test_assembler_rejects_directory_as_official_website() -> None:
+    request = NormalizeStage(StageAgentExecutor(None)).execute(
+        LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
+    )
+    source_result = SourcePassResult(
+        sourcing_status=SourcingStatus.FOUND,
+        anchored_company_name="Narrativa",
+        documents=[
+            EvidenceDocument(
+                url="https://startupshub.example.com/narrativa",
+                title="Narrativa profile",
+                snippet="Narrativa company profile",
+                source_type="fixture",
+                raw_content="Company: Narrativa\nCountry: Spain\nEmployees: 25\nWebsite: startupshub.example.com/narrativa",
+            ),
+            EvidenceDocument(
+                url="https://www.narrativa.com/about",
+                title="Narrativa about",
+                snippet="Narrativa official site",
+                source_type="fixture",
+                raw_content="Company: Narrativa\nCountry: Spain\nAbout Narrativa\n",
+            ),
+        ],
+    )
+    state = EngineRuntimeState(run=SearchRunSnapshot(request=request), memory=ExplorationMemoryState(), current_source_result=source_result)
+    llm = FakeAssemblerLlmPort(
+        {
+            "subject_company_name": "Narrativa",
+            "website": "https://startupshub.example.com/narrativa",
+            "country_code": "es",
+            "employee_estimate": None,
+            "person_name": None,
+            "role_title": None,
+            "fit_signals": ["genai"],
+            "selected_evidence_urls": ["https://startupshub.example.com/narrativa", "https://www.narrativa.com/about"],
+            "field_assertions": [
+                {
+                    "field_name": "company_name",
+                    "value": "Narrativa",
+                    "status": "satisfied",
+                    "evidence_urls": ["https://www.narrativa.com/about"],
+                    "contradicting_urls": [],
+                    "reasoning_note": "ok",
+                },
+                {
+                    "field_name": "website",
+                    "value": "https://startupshub.example.com/narrativa",
+                    "status": "satisfied",
+                    "evidence_urls": ["https://startupshub.example.com/narrativa"],
+                    "contradicting_urls": [],
+                    "source_tier": "tier_b",
+                    "support_type": "weak_inference",
+                    "reasoning_note": "directory profile",
+                },
+            ],
+        }
+    )
+
+    dossier = AssembleStage(StageAgentExecutor(llm)).execute(state)
+
+    assert dossier.company is not None
+    assert dossier.company.website == "https://www.narrativa.com"
+
+
+def test_assembler_rejects_product_copy_as_role_title() -> None:
+    request = NormalizeStage(StageAgentExecutor(None)).execute(
+        LeadSearchStartRequest(user_text="busca 1 lead founder en espana entre 5 y 50 empleados con genai")
+    )
+    source_result = SourcePassResult(
+        sourcing_status=SourcingStatus.FOUND,
+        anchored_company_name="Narrativa",
+        documents=[
+            EvidenceDocument(
+                url="https://www.narrativa.com/",
+                title="Narrativa home",
+                snippet="In drug development, agentic AI plays a critical role in authoring clinical study reports required by regulatory authorities.",
+                source_type="fixture",
+                raw_content="Company: Narrativa\nCountry: Spain\nIn drug development, agentic AI plays a critical role in authoring clinical study reports required by regulatory authorities.\n",
+            )
+        ],
+    )
+    state = EngineRuntimeState(run=SearchRunSnapshot(request=request), memory=ExplorationMemoryState(), current_source_result=source_result)
+    llm = FakeAssemblerLlmPort(
+        {
+            "subject_company_name": "Narrativa",
+            "website": "https://www.narrativa.com",
+            "country_code": "es",
+            "employee_estimate": None,
+            "person_name": "Sindhu Joseph",
+            "role_title": "in authoring clinical study reports required by regulatory authorities",
+            "fit_signals": ["genai"],
+            "selected_evidence_urls": ["https://www.narrativa.com/"],
+            "field_assertions": [
+                {
+                    "field_name": "company_name",
+                    "value": "Narrativa",
+                    "status": "satisfied",
+                    "evidence_urls": ["https://www.narrativa.com/"],
+                    "contradicting_urls": [],
+                    "reasoning_note": "ok",
+                },
+                {
+                    "field_name": "person_name",
+                    "value": "Sindhu Joseph",
+                    "status": "weakly_supported",
+                    "evidence_urls": ["https://www.narrativa.com/"],
+                    "contradicting_urls": [],
+                    "source_tier": "tier_a",
+                    "support_type": "weak_inference",
+                    "reasoning_note": "not explicit",
+                },
+                {
+                    "field_name": "role_title",
+                    "value": "in authoring clinical study reports required by regulatory authorities",
+                    "status": "weakly_supported",
+                    "evidence_urls": ["https://www.narrativa.com/"],
+                    "contradicting_urls": [],
+                    "source_tier": "tier_a",
+                    "support_type": "weak_inference",
+                    "reasoning_note": "taken from product copy",
+                },
+            ],
+        }
+    )
+
+    dossier = AssembleStage(StageAgentExecutor(llm)).execute(state)
+
+    assert dossier.person is None or dossier.person.role_title is None
+
+
+def test_assembler_rejects_person_not_tied_to_company_evidence() -> None:
+    request = NormalizeStage(StageAgentExecutor(None)).execute(
+        LeadSearchStartRequest(user_text="busca 1 lead founder en espana entre 5 y 50 empleados con genai")
+    )
+    source_result = SourcePassResult(
+        sourcing_status=SourcingStatus.FOUND,
+        anchored_company_name="BitBrain",
+        documents=[
+            EvidenceDocument(
+                url="https://www.seedtable.com/best-ai-startups-in-spain",
+                title="36 Best AI Startups in Spain to Watch in 2026 - Seedtable",
+                snippet="BitBrain appears in the ranking. Onna is founded by Ignacio Gaminde.",
+                source_type="fixture",
+                raw_content="BitBrain is a Spanish neurotechnology startup. Onna was founded by Ignacio Gaminde.",
+                source_tier="tier_b",
+            ),
+            EvidenceDocument(
+                url="https://www.bitbrain.com/careers",
+                title="Careers | List of Job Opportunities - Bitbrain",
+                snippet="About us. Blog. Contact.",
+                source_type="fixture",
+                raw_content="About us. Blog. Contact. BitBrain careers page.",
+                source_tier="tier_a",
+                is_company_controlled_source=True,
+            ),
+        ],
+    )
+    state = EngineRuntimeState(run=SearchRunSnapshot(request=request), memory=ExplorationMemoryState(), current_source_result=source_result)
+    llm = FakeAssemblerLlmPort(
+        {
+            "subject_company_name": "BitBrain",
+            "website": "https://www.bitbrain.com",
+            "country_code": "es",
+            "employee_estimate": 45,
+            "person_name": "Ignacio Gaminde",
+            "role_title": "Founder",
+            "fit_signals": ["genai"],
+            "selected_evidence_urls": [
+                "https://www.seedtable.com/best-ai-startups-in-spain",
+                "https://www.bitbrain.com/careers",
+            ],
+            "field_assertions": [
+                {
+                    "field_name": "company_name",
+                    "value": "BitBrain",
+                    "status": "satisfied",
+                    "evidence_urls": ["https://www.seedtable.com/best-ai-startups-in-spain"],
+                    "contradicting_urls": [],
+                    "reasoning_note": "ok",
+                },
+                {
+                    "field_name": "website",
+                    "value": "https://www.bitbrain.com",
+                    "status": "satisfied",
+                    "evidence_urls": ["https://www.bitbrain.com/careers"],
+                    "contradicting_urls": [],
+                    "source_tier": "tier_a",
+                    "support_type": "explicit",
+                    "reasoning_note": "ok",
+                },
+                {
+                    "field_name": "person_name",
+                    "value": "Ignacio Gaminde",
+                    "status": "weakly_supported",
+                    "evidence_urls": ["https://www.seedtable.com/best-ai-startups-in-spain"],
+                    "contradicting_urls": [],
+                    "source_tier": "tier_b",
+                    "support_type": "explicit",
+                    "reasoning_note": "wrong person from another startup in same article",
+                },
+                {
+                    "field_name": "role_title",
+                    "value": "Founder",
+                    "status": "weakly_supported",
+                    "evidence_urls": ["https://www.seedtable.com/best-ai-startups-in-spain"],
+                    "contradicting_urls": [],
+                    "source_tier": "tier_b",
+                    "support_type": "explicit",
+                    "reasoning_note": "wrong role from another startup in same article",
+                },
+            ],
+        }
+    )
+
+    dossier = AssembleStage(StageAgentExecutor(llm)).execute(state)
+
+    assert dossier.company is not None
+    assert dossier.company.name == "BitBrain"
+    assert dossier.person is None or dossier.person.full_name is None

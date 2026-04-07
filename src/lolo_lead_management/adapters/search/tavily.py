@@ -73,6 +73,7 @@ class TavilySearchPort(SearchPort):
                     query_executed=query.query,
                     research_phase=query.research_phase,
                     objective=query.objective,
+                    source_tier=query.source_tier_target or "unknown",
                     company_anchor=query.candidate_company_name,
                 )
             )
@@ -86,6 +87,44 @@ class TavilySearchPort(SearchPort):
         payload = re.sub(r"<style.*?</style>", " ", payload, flags=re.IGNORECASE | re.DOTALL)
         payload = re.sub(r"<[^>]+>", " ", payload)
         return re.sub(r"\s+", " ", payload).strip()
+
+    def extract_pages(self, urls: list[str], *, extract_depth: str = "advanced") -> list[EvidenceDocument]:
+        cleaned_urls = [url for url in urls if url]
+        if not cleaned_urls:
+            return []
+        payload = {
+            "urls": cleaned_urls[:5],
+            "extract_depth": extract_depth,
+            "include_images": False,
+        }
+        req = request.Request(
+            self._endpoint("extract"),
+            method="POST",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self._api_key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+        )
+        with request.urlopen(req, timeout=self._timeout_seconds) as response:
+            raw = json.loads(response.read().decode("utf-8"))
+
+        documents: list[EvidenceDocument] = []
+        for item in raw.get("results", [])[:5]:
+            url = item.get("url", "")
+            raw_content = item.get("raw_content", "") or ""
+            documents.append(
+                EvidenceDocument(
+                    url=url,
+                    title=item.get("title", ""),
+                    snippet=raw_content[:400],
+                    source_type="tavily_extract",
+                    raw_content=raw_content,
+                    domain=self._domain_from_url(url),
+                )
+            )
+        return documents
 
     def _country_name(self, code: str) -> str:
         mapping = {
@@ -103,3 +142,9 @@ class TavilySearchPort(SearchPort):
             return (urlparse(url).hostname or "").removeprefix("www.") or None
         except ValueError:
             return None
+
+    def _endpoint(self, name: str) -> str:
+        base = self._base_url.rstrip("/")
+        if base.endswith("/search"):
+            return f"{base[:-7]}/{name}"
+        return f"{base}/{name}"

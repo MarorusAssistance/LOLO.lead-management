@@ -16,20 +16,23 @@ Goal:
 
 Playbook:
 - If no company anchor exists:
-  - plan 2 discovery queries first
-  - discovery queries must be short, high-value, and aimed at startup directories, ecosystem hubs, funding/news lists, or company profile sources
-  - do not search for a person yet
+  - plan discovery queries only for `company_name`
+  - discovery queries must be short, high-value, and aimed at startup directories, ecosystem hubs, or company profile sources
+  - use `tier_b` for directories and ecosystem sources, `tier_c` only for growth/news signals
+  - do not search for a person or role yet
 - If a company anchor already exists:
   - plan coverage queries, not random variations
-  - include at least:
-    - one `company_anchoring` query for the official site
-    - one `field_acquisition` query for person and role
-    - one `evidence_closing` query for company size
-    - one `field_acquisition` query for fit/product evidence
+  - sequence matters:
+    1. `website` with `company_anchoring`
+    2. `person_name` / `role_title` with `field_acquisition`
+    3. `employee_estimate` with `evidence_closing`
+    4. `fit_signals` with `field_acquisition`
 
 Tavily-specific guidance:
 - Keep each query focused on one retrieval objective.
-- Prefer short include-domain lists for discovery.
+- Use Tavily Search to discover candidate companies.
+- Once a company anchor exists, prefer queries that can lead to a verified company URL and a trusted cluster of pages around that company.
+- Use short include-domain lists for discovery.
 - Use `advanced` search depth for anchored or high-precision queries.
 - Use `exact_match=true` only when a company anchor already exists.
 - Do not overload discovery queries with employee-count or buyer-persona constraints.
@@ -41,12 +44,19 @@ Discovery rules:
 - Prefer sources that can lead to a later company-controlled page.
 
 Anchor rules:
-- Once a company anchor exists, search around official site, about, team, careers, blog, docs, GitHub, funding/news, events, and company profile sources.
-- Search for person and role using queries like founder, CEO, CTO, leadership, team, or talent.
-- Search for size using company-controlled pages first, then public company-profile sources.
+- Once a company anchor exists, search around official site, about, team, careers, contact, blog, docs, GitHub, funding/news, and company profile sources.
+- Use `tier_a` for official-site, about, team, careers, docs, blog, GitHub official.
+- Use `tier_b` for Crunchbase, RocketReach, F6S, Seedtable, EU-Startups, and company directories.
+- Use `tier_c` only to introduce a candidate or corroborate public growth signals, never to close website, person, role, or size by itself.
 
 Output rules:
-- Each query must include a concrete objective and a research phase.
+- Each query must include:
+  - `objective`
+  - `research_phase`
+  - `source_tier_target`
+  - `expected_field`
+  - `candidate_company_name` when anchored
+  - `stop_if_resolved` when the query should stop once the field is proven
 - Keep the plan small and deliberate.
 - Avoid repeated normalized queries and exhausted domains.
 - Return JSON only.

@@ -85,6 +85,7 @@ class EvidenceItem(StrictModel):
     research_phase: str | None = None
     objective: str | None = None
     source_quality: SourceQuality = SourceQuality.UNKNOWN
+    source_tier: Literal["tier_a", "tier_b", "tier_c", "unknown"] = "unknown"
     company_anchor: str | None = None
     is_company_controlled_source: bool = False
     is_publisher_like: bool = False
@@ -99,6 +100,9 @@ class ResearchQuery(StrictModel):
     objective: str = Field(min_length=3)
     research_phase: str = Field(min_length=3)
     candidate_company_name: str | None = None
+    source_tier_target: Literal["tier_a", "tier_b", "tier_c"] | None = None
+    expected_field: Literal["company_name", "website", "country", "employee_estimate", "person_name", "role_title", "fit_signals", "multi"] | None = None
+    stop_if_resolved: bool = False
     search_depth: str = Field(default="basic", pattern="^(basic|advanced|fast|ultra-fast)$")
     min_score: float = Field(default=0, ge=0, le=1)
     preferred_domains: list[str] = Field(default_factory=list)
@@ -120,6 +124,8 @@ class ResearchTraceEntry(StrictModel):
     research_phase: str
     objective: str
     candidate_company_name: str | None = None
+    source_tier_target: Literal["tier_a", "tier_b", "tier_c"] | None = None
+    expected_field: Literal["company_name", "website", "country", "employee_estimate", "person_name", "role_title", "fit_signals", "multi"] | None = None
     documents_considered: int = Field(default=0, ge=0)
     documents_selected: int = Field(default=0, ge=0)
     selected_urls: list[str] = Field(default_factory=list)
@@ -132,6 +138,8 @@ class AssembledFieldEvidence(StrictModel):
     supporting_evidence: list[EvidenceItem] = Field(default_factory=list)
     contradicting_evidence: list[EvidenceItem] = Field(default_factory=list)
     source_quality: SourceQuality = SourceQuality.UNKNOWN
+    source_tier: Literal["tier_a", "tier_b", "tier_c", "mixed", "unknown"] = "unknown"
+    support_type: Literal["explicit", "corroborated", "weak_inference"] = "explicit"
     reasoning_note: str
 
 
@@ -141,6 +149,8 @@ class AssemblyFieldAssertion(StrictModel):
     status: FieldEvidenceStatus
     evidence_urls: list[str] = Field(default_factory=list)
     contradicting_urls: list[str] = Field(default_factory=list)
+    source_tier: Literal["tier_a", "tier_b", "tier_c", "mixed", "unknown"] = "unknown"
+    support_type: Literal["explicit", "corroborated", "weak_inference"] = "explicit"
     reasoning_note: str = ""
 
 
@@ -156,6 +166,7 @@ class AssemblyResolution(StrictModel):
     field_assertions: list[AssemblyFieldAssertion] = Field(default_factory=list)
     contradictions: list[str] = Field(default_factory=list)
     unresolved_fields: list[str] = Field(default_factory=list)
+    confidence_notes: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
 
@@ -165,6 +176,8 @@ class QualificationRubricField(StrictModel):
     supporting_evidence: list[EvidenceItem] = Field(default_factory=list)
     contradicting_evidence: list[EvidenceItem] = Field(default_factory=list)
     source_quality: SourceQuality = SourceQuality.UNKNOWN
+    source_tier: Literal["tier_a", "tier_b", "tier_c", "mixed", "unknown"] = "unknown"
+    support_type: Literal["explicit", "corroborated", "weak_inference"] = "explicit"
     reasoning_note: str
 
 
