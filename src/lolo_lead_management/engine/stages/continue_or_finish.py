@@ -29,10 +29,6 @@ class ContinueOrFinishStage:
             should_finish = True
             run.completed_reason = "search_call_budget_exhausted_with_shortlist" if run.shortlist_options else "search_call_budget_exhausted_without_results"
             reasons.append("search_call_budget_exhausted")
-        elif state.discovery_ladder_exhausted_in_run and not state.focus_company_locked:
-            should_finish = True
-            run.completed_reason = "discovery_ladder_exhausted_with_shortlist" if run.shortlist_options else "discovery_ladder_exhausted_without_results"
-            reasons.append("discovery_ladder_exhausted")
         elif not run.budget.can_source():
             should_finish = True
             run.completed_reason = "budget_exhausted_with_shortlist" if run.shortlist_options else "budget_exhausted_without_results"
@@ -50,6 +46,8 @@ class ContinueOrFinishStage:
         else:
             run.status = RunStatus.RUNNING
             state.should_continue = True
+            if state.discovery_ladder_exhausted_in_run and not state.focus_company_locked:
+                reasons.append("discovery_ladder_exhausted_continue_broader_web")
             reasons.append("continue_sourcing")
 
         run.updated_at = datetime.now(timezone.utc)

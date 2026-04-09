@@ -3,16 +3,20 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 
-from lolo_lead_management.domain.enums import SourcingStatus, StageName
+from lolo_lead_management.domain.enums import FieldEvidenceStatus, SourceQuality, SourcingStatus, StageName
 from lolo_lead_management.domain.models import (
+    AssembledFieldEvidence,
     AssembledLeadDossier,
     AssemblyResolution,
     ChunkExtractionResolution,
+    CompanyCandidate,
     CompanyFocusResolution,
     DiscoveryCompanyCandidate,
     EvidenceDocument,
+    PersonCandidate,
     RejectedCompanyCandidate,
     SourcePassResult,
+    WebsiteResolution,
 )
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.agents.specs import STAGE_AGENT_SPECS
@@ -34,9 +38,7 @@ from lolo_lead_management.engine.rules import (
     extract_employee_size_hint,
     merge_documents,
     normalize_text,
-    overlay_explicit_dossier_fields,
     parse_candidate_from_text,
-    sanitize_assembly_resolution,
     text_has_spanish_non_operational_signal,
 )
 from lolo_lead_management.engine.state import EngineRuntimeState
@@ -77,105 +79,72 @@ class AssembleStage:
         if state.current_focus_company_resolution and state.current_focus_company_resolution.selected_company:
             focus_company = state.current_focus_company_resolution.selected_company
         focused_source = self._focus_source_result(source_result, focus_company)
-        documents = self._prioritize_documents(focused_source.documents, focus_company)
-        if not documents:
-            documents = focused_source.documents[:]
-
-        current = state.current_dossier
-        used_fallback = False
-        document_steps: list[dict] = []
-        llm_errors: list[str] = []
+        documents = self._prioritize_documents(focused_source.documents, focus_company)[:8]
+        compact_source = focused_source.model_copy(update={"documents": documents})
         chunk_inputs: list[dict] = []
         chunk_raw_outputs: list[dict] = []
         chunk_sanitized_outputs: list[dict] = []
         chunk_merge_summary: list[dict] = []
-        chunked_documents_used = 0
         for document in documents:
-            single_source = self._single_document_source_result(focused_source, document)
-            chunk_summary = self._extract_chunk_clues(
+            self._extract_chunk_clues(
                 state,
                 document,
                 focus_company=focus_company,
-                allow_chunking=chunked_documents_used < 3,
+                allow_chunking=True,
                 chunk_inputs=chunk_inputs,
                 chunk_raw_outputs=chunk_raw_outputs,
                 chunk_sanitized_outputs=chunk_sanitized_outputs,
                 chunk_merge_summary=chunk_merge_summary,
             )
-            if chunk_summary is not None:
-                chunked_documents_used += 1
-            payload = self._assembly_payload(
-                state,
-                single_source,
-                current,
-                focus_company,
-                chunk_summary=chunk_summary,
+        payload = self._assembly_payload(
+            state,
+            compact_source,
+            state.current_dossier,
+            focus_company,
+            chunk_summary=chunk_merge_summary or None,
+        )
+        attempt = self._agent_executor.generate_structured_attempt(
+            spec=STAGE_AGENT_SPECS[StageName.ASSEMBLE],
+            payload=payload,
+            output_model=AssemblyResolution,
+        )
+        if isinstance(attempt.parsed, AssemblyResolution):
+            assembled = self._llm_first_dossier(
+                attempt.parsed,
+                source_result=compact_source,
+                prior_dossier=state.current_dossier,
+                focus_company=focus_company,
             )
-            attempt = self._agent_executor.generate_structured_attempt(
-                spec=STAGE_AGENT_SPECS[StageName.ASSEMBLE],
-                payload=payload,
-                output_model=AssemblyResolution,
-            )
-            if isinstance(attempt.parsed, AssemblyResolution):
-                assembled = sanitize_assembly_resolution(
-                    attempt.parsed,
-                    request=state.run.request,
-                    source_result=single_source,
-                    prior_dossier=current,
-                )
-                step_status = "ok"
-            else:
-                assembled = build_fallback_assembled_dossier(
-                    request=state.run.request,
-                    source_result=single_source,
-                    prior_dossier=current,
-                )
-                step_status = attempt.error or "fallback"
-                used_fallback = True
-                if attempt.error:
-                    llm_errors.append(attempt.error)
-            if current is not None:
-                assembled = overlay_explicit_dossier_fields(assembled, current)
-            current = assembled
-            document_steps.append(
-                {
-                    "url": document.url,
-                    "title": document.title,
-                    "status": step_status,
-                    "input_document": self._document_snapshot(document),
-                    "llm_input_payload": payload,
-                    "chunk_merge_summary": chunk_summary,
-                    "used_fallback": not isinstance(attempt.parsed, AssemblyResolution),
-                    "llm_error": attempt.error,
-                    "raw_output": attempt.raw if isinstance(attempt.raw, dict) else None,
-                    "sanitized_resolution_per_step": assembled.model_dump(mode="json"),
-                }
-            )
-
-        if current is None:
-            current = build_fallback_assembled_dossier(
+            used_fallback = False
+            status = "ok"
+        else:
+            assembled = build_fallback_assembled_dossier(
                 request=state.run.request,
-                source_result=focused_source,
+                source_result=compact_source,
                 prior_dossier=state.current_dossier,
             )
             used_fallback = True
+            status = attempt.error or "fallback"
 
         state.current_assembler_trace = {
-            "status": "ok" if not used_fallback else "fallback",
+            "status": status,
             "used_fallback": used_fallback,
             "focus_company": focus_company,
             "input_documents": [self._document_snapshot(item) for item in documents],
-            "document_steps": document_steps,
-            "llm_error": dedupe_preserve_order(llm_errors) if llm_errors else None,
-            "llm_raw_output_per_step": [item["raw_output"] for item in document_steps if item["raw_output"] is not None],
-            "sanitized_resolution_per_step": [item["sanitized_resolution_per_step"] for item in document_steps],
+            "llm_input_payload": payload,
+            "llm_error": attempt.error,
+            "llm_raw_output": attempt.raw if isinstance(attempt.raw, dict) else None,
+            "evidence_classification": self._evidence_classification(attempt.parsed, documents),
+            "field_confidence": self._field_confidence(attempt.parsed),
+            "cross_company_reasons": attempt.parsed.contradictions if isinstance(attempt.parsed, AssemblyResolution) else [],
+            "document_steps": [],
             "chunk_inputs": chunk_inputs,
             "chunk_raw_outputs": chunk_raw_outputs,
             "chunk_sanitized_outputs": chunk_sanitized_outputs,
             "chunk_merge_summary": chunk_merge_summary,
-            "final_dossier_after_overlay": current.model_dump(mode="json"),
+            "final_dossier_after_overlay": assembled.model_dump(mode="json"),
         }
-        return current
+        return assembled
 
     def select_focus_company(self, state: EngineRuntimeState) -> CompanyFocusResolution:
         source_result = state.current_source_result
@@ -218,23 +187,11 @@ class AssembleStage:
             attempt.parsed.discovery_candidates if isinstance(attempt.parsed, CompanyFocusResolution) else [],
             allowed_urls=allowed_urls,
         )
-        scored_llm_candidates = [
-            self._score_discovery_candidate(
-                item,
-                preferred_country=state.run.request.constraints.preferred_country,
-                min_size=state.run.request.constraints.min_company_size,
-                max_size=state.run.request.constraints.max_company_size,
-                request_text=state.run.request.user_text,
-            )
-            for item in sanitized_llm_candidates
-        ]
-        resolution = self._sanitize_focus_resolution(
+        resolution = self._llm_first_focus_resolution(
             attempt.parsed if isinstance(attempt.parsed, CompanyFocusResolution) else None,
             documents=source_result.documents,
-            attempts=attempts,
             fallback_candidates=fallback_candidates,
-            excluded_companies=excluded_companies,
-            llm_candidates=scored_llm_candidates,
+            allowed_urls=allowed_urls,
         )
         self.last_company_selection_trace = {
             "mode": "company_selection_mode",
@@ -244,7 +201,7 @@ class AssembleStage:
             "excluded_companies": excluded_companies,
             "llm_input_payload": payload,
             "llm_raw_output": attempt.raw if isinstance(attempt.raw, dict) else None,
-            "sanitized_discovery_candidates": [item.model_dump(mode="json") for item in scored_llm_candidates],
+            "sanitized_discovery_candidates": [item.model_dump(mode="json") for item in sanitized_llm_candidates],
             "discovery_batches_considered": attempts,
             "focus_selection_basis": [item.model_dump(mode="json") for item in resolution.discovery_candidates],
             "focus_selection_mode": resolution.selection_mode,
@@ -269,10 +226,10 @@ class AssembleStage:
             "request_summary": self._request_summary(state),
             "focus_company": focus_company,
             "prior_dossier": self._prior_dossier_summary(prior_dossier),
-            "documents": [self._compact_document_payload(item) for item in source_result.documents],
-            "website_candidates": [item.model_dump(mode="json") for item in source_result.website_candidates],
+            "documents": [self._compact_document_payload(item, raw_limit=120) for item in source_result.documents[:3]],
+            "website_candidates": [item.model_dump(mode="json") for item in source_result.website_candidates[:2]],
             "chunk_merge_summary": chunk_summary,
-            "excluded_companies": self._excluded_company_names(state),
+            "excluded_companies": [],
         }
 
     def _company_selection_payload(
@@ -286,21 +243,21 @@ class AssembleStage:
             "mode": "company_selection_mode",
             "request_summary": self._request_summary(state),
             "discovery_attempts_for_current_pass": state.discovery_attempts_for_current_pass,
-            "excluded_companies": excluded_companies,
-            "documents": [self._compact_document_payload(item) for item in source_result.documents],
-            "fallback_candidates": [item.model_dump(mode="json") for item in fallback_candidates],
+            "excluded_companies": [],
+            "documents": [self._compact_document_payload(item, raw_limit=90) for item in source_result.documents[:3]],
+            "fallback_candidates": [self._compact_fallback_candidate_payload(item) for item in fallback_candidates[:2]],
         }
 
     def _request_summary(self, state: EngineRuntimeState) -> dict:
         request = state.run.request
         return {
-            "user_text": request.user_text,
+            "user_text": request.user_text[:220],
             "preferred_country": request.constraints.preferred_country,
-            "preferred_regions": request.constraints.preferred_regions,
+            "preferred_regions": request.constraints.preferred_regions[:3],
             "min_company_size": request.constraints.min_company_size,
             "max_company_size": request.constraints.max_company_size,
-            "buyer_targets": request.buyer_targets,
-            "search_themes": request.search_themes,
+            "buyer_targets": request.buyer_targets[:4],
+            "search_themes": request.search_themes[:4],
         }
 
     def _prior_dossier_summary(self, dossier: AssembledLeadDossier | None) -> dict | None:
@@ -314,20 +271,260 @@ class AssembleStage:
             "person_name": dossier.person.full_name if dossier.person else None,
             "role_title": dossier.person.role_title if dossier.person else None,
             "fit_signals": dossier.fit_signals,
-            "notes": dossier.notes[-6:],
+            "notes": dossier.notes[-3:],
         }
 
-    def _compact_document_payload(self, document: EvidenceDocument, *, raw_limit: int = 1200) -> dict:
+    def _compact_document_payload(self, document: EvidenceDocument, *, raw_limit: int = 180) -> dict:
         return {
             "url": document.url,
-            "title": document.title,
-            "snippet": document.snippet,
+            "title": (document.title or "")[:110],
+            "snippet": (document.snippet or "")[:140],
             "raw_content_preview": (document.raw_content or "")[:raw_limit],
             "source_tier": document.source_tier,
             "source_quality": document.source_quality.value if hasattr(document.source_quality, "value") else str(document.source_quality),
             "company_anchor": document.company_anchor,
             "is_company_controlled_source": document.is_company_controlled_source,
             "source_type": document.source_type,
+        }
+
+    def _compact_fallback_candidate_payload(self, candidate: DiscoveryCompanyCandidate) -> dict:
+        return {
+            "company_name": candidate.company_name,
+            "legal_name": candidate.legal_name,
+            "query_name": candidate.query_name,
+            "country_code": candidate.country_code,
+            "location_hint": candidate.location_hint,
+            "theme_tags": candidate.theme_tags[:3],
+            "candidate_website": candidate.candidate_website,
+            "employee_count_hint_value": candidate.employee_count_hint_value,
+            "employee_count_hint_type": candidate.employee_count_hint_type,
+            "evidence_urls": candidate.evidence_urls[:2],
+            "selection_score": candidate.selection_score,
+            "selection_reasons": candidate.selection_reasons[:2],
+            "hard_rejections": candidate.hard_rejections[:2],
+        }
+
+    def _llm_first_focus_resolution(
+        self,
+        generated: CompanyFocusResolution | None,
+        *,
+        documents: list[EvidenceDocument],
+        fallback_candidates: list[DiscoveryCompanyCandidate],
+        allowed_urls: set[str],
+    ) -> CompanyFocusResolution:
+        if generated is not None and generated.selected_company:
+            selected_company = clean_company_name(generated.selected_company) or generated.selected_company
+            legal_name = clean_company_name(generated.legal_name) or selected_company
+            query_name = clean_company_name(generated.query_name) or selected_company
+            evidence_urls = [url for url in generated.evidence_urls if url in allowed_urls]
+            if not evidence_urls and documents:
+                evidence_urls = [documents[0].url]
+            return generated.model_copy(
+                update={
+                    "selected_company": selected_company,
+                    "legal_name": legal_name,
+                    "query_name": query_name,
+                    "brand_aliases": dedupe_preserve_order(
+                        [clean_company_name(alias) for alias in generated.brand_aliases if clean_company_name(alias)]
+                    ),
+                    "evidence_urls": evidence_urls,
+                    "selection_mode": generated.selection_mode if generated.selection_mode != "none" else "plausible",
+                    "notes": dedupe_preserve_order([*generated.notes, "focus_selected_by_llm_first"]),
+                }
+            )
+        if fallback_candidates:
+            top = fallback_candidates[0]
+            return CompanyFocusResolution(
+                selected_company=top.legal_name or top.company_name,
+                legal_name=top.legal_name or top.company_name,
+                query_name=top.query_name or top.company_name,
+                brand_aliases=top.brand_aliases,
+                selection_mode="fallback",
+                confidence=max(0.2, min(top.selection_score, 0.8)),
+                evidence_urls=top.evidence_urls[:4],
+                selection_reasons=top.selection_reasons,
+                hard_rejections=top.hard_rejections,
+                discovery_candidates=fallback_candidates,
+                notes=["focus_selected_by_minimal_fallback"],
+            )
+        return CompanyFocusResolution(selection_mode="none", discovery_candidates=[], notes=["no_company_selected"])
+
+    def _llm_first_dossier(
+        self,
+        generated: AssemblyResolution,
+        *,
+        source_result: SourcePassResult,
+        prior_dossier: AssembledLeadDossier | None,
+        focus_company: str | None,
+    ) -> AssembledLeadDossier:
+        allowed_docs = {
+            item.url: item
+            for item in merge_documents([*(prior_dossier.evidence if prior_dossier else []), *source_result.documents])
+        }
+        assertion_map = {item.field_name: item for item in generated.field_assertions}
+        selected_urls = dedupe_preserve_order(
+            [
+                *generated.selected_evidence_urls,
+                *[url for item in generated.field_assertions for url in item.evidence_urls],
+                *[url for item in generated.field_assertions for url in item.contradicting_urls],
+            ]
+        )
+        evidence = [allowed_docs[url] for url in selected_urls if url in allowed_docs] or source_result.documents[:6]
+        company_name = clean_company_name(generated.subject_company_name) or focus_company or source_result.anchored_company_name
+        if not company_name:
+            return AssembledLeadDossier(
+                sourcing_status=SourcingStatus.NO_CANDIDATE,
+                query_used=source_result.executed_queries[0].query if source_result.executed_queries else None,
+                notes=dedupe_preserve_order([*source_result.notes, "llm_subject_company_missing"]),
+                evidence=source_result.documents[:6],
+                research_trace=source_result.research_trace,
+                documents_considered=sum(item.documents_considered for item in source_result.research_trace),
+                documents_selected=len(source_result.documents[:6]),
+            )
+        website = canonicalize_website(generated.candidate_website or generated.website)
+        country_code = generated.country_code or (prior_dossier.company.country_code if prior_dossier and prior_dossier.company else None)
+        employee_estimate = generated.employee_estimate if generated.employee_estimate is not None else (prior_dossier.company.employee_estimate if prior_dossier and prior_dossier.company else None)
+        person_name = generated.person_name or (prior_dossier.person.full_name if prior_dossier and prior_dossier.person else None)
+        role_title = generated.role_title or (prior_dossier.person.role_title if prior_dossier and prior_dossier.person else None)
+        fit_signals = dedupe_preserve_order([*generated.fit_signals, *(prior_dossier.fit_signals if prior_dossier else [])])
+
+        company = CompanyCandidate(name=company_name, website=website, country_code=country_code, employee_estimate=employee_estimate)
+        person = PersonCandidate(full_name=person_name, role_title=role_title) if person_name or role_title else None
+        website_resolution = WebsiteResolution(
+            candidate_website=website,
+            officiality=generated.website_officiality or "unknown",
+            confidence=generated.website_confidence or 0,
+            evidence_urls=[url for url in generated.website_evidence_urls if url in allowed_docs],
+            signals=dedupe_preserve_order(generated.website_signals),
+            risks=dedupe_preserve_order(generated.website_risks),
+        )
+        field_evidence = [
+            self._field_evidence_from_assertion("company_name", company.name, assertion_map.get("company_name"), allowed_docs),
+            self._field_evidence_from_assertion("website", company.website, assertion_map.get("website"), allowed_docs),
+            self._field_evidence_from_assertion("country", company.country_code, assertion_map.get("country"), allowed_docs),
+            self._field_evidence_from_assertion("employee_estimate", company.employee_estimate, assertion_map.get("employee_estimate"), allowed_docs),
+            self._field_evidence_from_assertion("person_name", person.full_name if person else None, assertion_map.get("person_name"), allowed_docs),
+            self._field_evidence_from_assertion("role_title", person.role_title if person else None, assertion_map.get("role_title"), allowed_docs),
+        ]
+        if fit_signals:
+            field_evidence.append(
+                AssembledFieldEvidence(
+                    field_name="fit_signals",
+                    value=", ".join(fit_signals),
+                    status=FieldEvidenceStatus.SATISFIED,
+                    supporting_evidence=evidence[:3],
+                    contradicting_evidence=[],
+                    source_quality=self._source_quality_from_docs(evidence[:3]),
+                    source_tier=self._source_tier_from_docs(evidence[:3]),
+                    support_type="corroborated" if len(evidence[:3]) >= 2 else "explicit",
+                    reasoning_note="Fit signals preserved directly from LLM-reviewed evidence.",
+                )
+            )
+        return AssembledLeadDossier(
+            sourcing_status=SourcingStatus.FOUND,
+            query_used=source_result.executed_queries[0].query if source_result.executed_queries else None,
+            person=person,
+            company=company,
+            lead_source_type=prior_dossier.lead_source_type if prior_dossier else None,
+            person_confidence=prior_dossier.person_confidence if prior_dossier else None,
+            primary_person_source_url=prior_dossier.primary_person_source_url if prior_dossier else None,
+            fit_signals=fit_signals,
+            evidence=evidence,
+            notes=dedupe_preserve_order([*source_result.notes, *generated.confidence_notes, *generated.notes, "assembled_by_llm_first"]),
+            anchored_company_name=company_name,
+            website_resolution=website_resolution,
+            research_trace=source_result.research_trace,
+            field_evidence=field_evidence,
+            contradictions=dedupe_preserve_order(generated.contradictions),
+            evidence_quality=self._source_quality_from_docs(evidence),
+            documents_considered=sum(item.documents_considered for item in source_result.research_trace),
+            documents_selected=len(evidence),
+        )
+
+    def _field_evidence_from_assertion(
+        self,
+        field_name: str,
+        value,
+        assertion,
+        allowed_docs: dict[str, EvidenceDocument],
+    ) -> AssembledFieldEvidence:
+        supporting = [allowed_docs[url] for url in (assertion.evidence_urls if assertion is not None else []) if url in allowed_docs]
+        contradicting = [allowed_docs[url] for url in (assertion.contradicting_urls if assertion is not None else []) if url in allowed_docs]
+        if assertion is not None:
+            return AssembledFieldEvidence(
+                field_name=field_name,
+                value=value,
+                status=assertion.status,
+                supporting_evidence=supporting,
+                contradicting_evidence=contradicting,
+                source_quality=self._source_quality_from_docs(supporting or contradicting),
+                source_tier=assertion.source_tier,
+                support_type=assertion.support_type,
+                reasoning_note=assertion.reasoning_note or f"{field_name} preserved from LLM field assertion.",
+            )
+        return AssembledFieldEvidence(
+            field_name=field_name,
+            value=value,
+            status=FieldEvidenceStatus.UNKNOWN if value is None else FieldEvidenceStatus.WEAKLY_SUPPORTED,
+            supporting_evidence=supporting[:2],
+            contradicting_evidence=[],
+            source_quality=self._source_quality_from_docs(supporting[:2]),
+            source_tier=self._source_tier_from_docs(supporting[:2]),
+            support_type="weak_inference" if value is not None else "explicit",
+            reasoning_note=f"{field_name} has no explicit field assertion from the LLM.",
+        )
+
+    def _source_quality_from_docs(self, documents: list[EvidenceDocument]) -> SourceQuality:
+        priority = {
+            SourceQuality.HIGH: 3,
+            SourceQuality.MEDIUM: 2,
+            SourceQuality.LOW: 1,
+            SourceQuality.UNKNOWN: 0,
+        }
+        best = SourceQuality.UNKNOWN
+        for item in documents:
+            quality = item.source_quality if isinstance(item.source_quality, SourceQuality) else SourceQuality.UNKNOWN
+            if priority[quality] > priority[best]:
+                best = quality
+        return best
+
+    def _source_tier_from_docs(self, documents: list[EvidenceDocument]) -> str:
+        tiers = {item.source_tier for item in documents if item.source_tier}
+        if not tiers:
+            return "unknown"
+        if len(tiers) == 1:
+            return next(iter(tiers))
+        return "mixed"
+
+    def _evidence_classification(self, generated: AssemblyResolution | None, documents: list[EvidenceDocument]) -> list[dict]:
+        if generated is None:
+            return []
+        assertion_map = {item.field_name: item for item in generated.field_assertions}
+        return [
+            {
+                "field_name": field_name,
+                "status": assertion.status,
+                "support_type": assertion.support_type,
+                "evidence_urls": assertion.evidence_urls,
+                "contradicting_urls": assertion.contradicting_urls,
+            }
+            for field_name, assertion in assertion_map.items()
+        ]
+
+    def _field_confidence(self, generated: AssemblyResolution | None) -> dict[str, str]:
+        if generated is None:
+            return {}
+        return {
+            item.field_name: (
+                "strong"
+                if item.status == FieldEvidenceStatus.SATISFIED and item.support_type == "corroborated"
+                else "corroborated"
+                if item.status == FieldEvidenceStatus.SATISFIED
+                else "weak"
+                if item.status == FieldEvidenceStatus.WEAKLY_SUPPORTED
+                else "unknown"
+            )
+            for item in generated.field_assertions
         }
 
     def _extract_chunk_clues(
@@ -393,46 +590,35 @@ class AssembleStage:
 
     def _chunk_document(self, document: EvidenceDocument) -> list[dict]:
         text = document.raw_content or ""
-        if len(text) <= 3000:
+        chunk_size = 4000
+        overlap = 300
+        if len(text) <= chunk_size:
             return []
         chunks: list[dict] = []
-        remaining = text
-        truncated = False
-        for index in range(4):
-            if not remaining:
-                break
-            piece, remaining, used_fallback = self._take_chunk_piece(remaining)
+        start = 0
+        index = 0
+        total_length = len(text)
+        while start < total_length:
+            end = min(start + chunk_size, total_length)
+            piece = text[start:end]
             if not piece:
                 break
+            index += 1
             chunks.append(
                 {
-                    "index": index + 1,
+                    "index": index,
                     "text": piece,
-                    "used_fallback_split": used_fallback,
+                    "used_fallback_split": False,
                     "truncated": False,
                 }
             )
-        if remaining:
-            truncated = True
+            if end >= total_length:
+                break
+            start = max(start + 1, end - overlap)
         total = len(chunks)
         for item in chunks:
             item["total"] = total
-            if truncated and item["index"] == total:
-                item["truncated"] = True
         return chunks
-
-    def _take_chunk_piece(self, text: str) -> tuple[str, str, bool]:
-        if len(text) <= 3000:
-            return text, "", False
-        window = text[:3000]
-        for separator in ("\n\n", "\n", ". "):
-            cutoff = window.rfind(separator)
-            if cutoff >= 1800:
-                end = cutoff + len(separator)
-                return text[:end], text[end:].lstrip(), False
-        end = min(2500, len(text))
-        next_start = max(0, end - 200)
-        return text[:end], text[next_start:].lstrip(), True
 
     def _sanitize_chunk_resolution(
         self,
@@ -498,35 +684,10 @@ class AssembleStage:
         return merged
 
     def _excluded_company_names(self, state: EngineRuntimeState) -> list[str]:
-        traced = state.current_source_result.source_trace.request_scoped_company_exclusions if state.current_source_result and state.current_source_result.source_trace else []
-        if normalize_text(state.environment) == "development":
-            return []
-        return dedupe_preserve_order([*state.memory.searched_company_names, *traced])
+        return []
 
     def _focus_source_result(self, source_result: SourcePassResult, focus_company: str | None) -> SourcePassResult:
-        if not focus_company:
-            return source_result
-        focused_documents = [
-            item for item in source_result.documents if document_matches_anchor_strong(item, focus_company)
-        ]
-        if not focused_documents:
-            return source_result
-        focused_urls = {item.url for item in focused_documents}
-        research_trace = [
-            item.model_copy(
-                update={
-                    "selected_urls": [url for url in item.selected_urls if url in focused_urls],
-                    "documents_selected": len([url for url in item.selected_urls if url in focused_urls]),
-                }
-            )
-            for item in source_result.research_trace
-        ]
-        return source_result.model_copy(
-            update={
-                "documents": focused_documents,
-                "research_trace": research_trace,
-            }
-        )
+        return source_result
 
     def _single_document_source_result(self, source_result: SourcePassResult, document: EvidenceDocument) -> SourcePassResult:
         matching_trace = []

@@ -670,6 +670,38 @@ def deterministic_discovery_queries(request: NormalizedLeadSearchRequest, relaxa
                     expected_source_types=["directory", "company_registry"],
                 )
             )
+        discovery_queries.append(
+            ResearchQuery(
+                query=f"espana empresa {primary_term} software tecnologia",
+                objective="Open discovery to broader public web results when the Spanish directory ladder yields too few plausible company fichas.",
+                research_phase="company_discovery",
+                source_role="entity_validation",
+                source_tier_target="tier_b",
+                expected_field="company_name",
+                stop_if_resolved=True,
+                country=request.constraints.preferred_country,
+                search_depth="advanced",
+                min_score=0.34 if size_sensitive else 0.4,
+                excluded_domains=SPAIN_DISCOVERY_EXCLUDED_DOMAINS,
+                expected_source_types=["company_site", "directory", "news"],
+            )
+        )
+        discovery_queries.append(
+            ResearchQuery(
+                query=f"espana {primary_term} startup saas empresa",
+                objective="Broaden discovery beyond mercantile directories to startup, news, and company-profile sources when Spain-first recall is weak.",
+                research_phase="company_discovery",
+                source_role="signal_detection",
+                source_tier_target="tier_c",
+                expected_field="company_name",
+                stop_if_resolved=True,
+                country=request.constraints.preferred_country,
+                search_depth="advanced",
+                min_score=0.3 if size_sensitive else 0.36,
+                excluded_domains=SPAIN_DISCOVERY_EXCLUDED_DOMAINS,
+                expected_source_types=["company_site", "directory", "news", "event"],
+            )
+        )
         if relaxation_stage >= 1:
             discovery_queries.append(
                 ResearchQuery(

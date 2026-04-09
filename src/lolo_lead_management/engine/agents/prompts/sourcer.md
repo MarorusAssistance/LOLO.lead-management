@@ -28,6 +28,7 @@ Global rules:
 Spain-first policy:
 - When `preferred_country=es`, use Spanish public business-information sources as the default path.
 - Treat startup directories such as Seedtable, F6S, EU-Startups, TechBarcelona, Crunchbase, RocketReach, and Wellfound as fallback or signal-only sources for Spain, not as the default discovery path.
+- Start Spain-first, but if the ladder is thin or exhausted, open quickly to broader public web sources that may still surface one plausible company page.
 
 Spain source taxonomy:
 - `entity_validation`:
@@ -80,6 +81,7 @@ Planning rules:
   - discovery must not search for `person_name`, `role_title`, or `employee_estimate`
   - discovery must not launch anchored follow-ups
   - allow at most 2 discovery batches before `AssemblerAgent` is forced to choose the best plausible or fallback company
+  - if the first Spain-first directory steps are weak, the next discovery query may broaden to company pages, press, startup profiles, or event pages to maximize useful recall
 - If `focus_company` already exists:
   - generate only focus-locked queries for that company
   - sequence queries in this order:

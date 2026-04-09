@@ -339,7 +339,7 @@ def test_development_ignores_blocked_official_domains_for_recall() -> None:
     assert any(item.url == "https://acme.ai/about" for item in result.documents)
 
 
-def test_production_blocks_official_domains_for_recall() -> None:
+def test_production_no_longer_blocks_official_domains_for_recall() -> None:
     tmp_path = workspace_tmp_dir("sourcer-prod-blocked-domains")
     request = NormalizeStage(StageAgentExecutor(None)).execute(
         LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con software")
@@ -363,7 +363,7 @@ def test_production_blocks_official_domains_for_recall() -> None:
 
     result = SourceStage(search_port=FakeSearchPort(search_index=search_index, pages={}), agent_executor=StageAgentExecutor(None), max_results=5).execute(state)
 
-    assert not result.documents
+    assert result.documents
 
 
 def test_ambiguous_discovery_document_is_not_excluded_too_early() -> None:
@@ -1057,7 +1057,7 @@ def test_select_anchor_company_prefers_real_company_over_portal_fragments() -> N
     assert select_anchor_company([bitbrain_doc, noisy_doc]) == "BitBrain"
 
 
-def test_sourcer_prioritizes_field_targeted_documents_for_assembler() -> None:
+def test_sourcer_passes_raw_focus_batch_to_assembler() -> None:
     tmp_path = workspace_tmp_dir("sourcer_field_batch")
     search_index = {
         "empresite empresa IA software espana cif": [
@@ -1130,13 +1130,13 @@ def test_sourcer_prioritizes_field_targeted_documents_for_assembler() -> None:
 
     source_result = source_stage.execute(state)
 
-    selected_fields = [item.selected_for_field for item in source_result.documents]
-
     assert source_result.anchored_company_name == "BDEO SPAIN SL"
-    assert selected_fields[0] == "company_name"
-    assert "person_name" in selected_fields
-    assert "promising_missing_fields=employee_estimate" in source_result.notes
-    assert all(item.why_selected for item in source_result.documents)
+    assert "assembler_receives_raw_focus_batch" in source_result.notes
+    assert "https://www.infoempresa.com/es-es/es/empresa/bdeo-spain-sl-directivos" in {
+        item.url for item in source_result.documents
+    }
+    assert "https://bdeo.io/contact" in {item.url for item in source_result.documents}
+    assert len(source_result.documents) >= 2
 
 
 def test_resolve_person_signal_rejects_generic_editorial_cto_page() -> None:
@@ -1479,7 +1479,7 @@ def test_source_stops_branch_after_failed_domain_validation() -> None:
     assert source_result.source_trace.anchor_raw_name == "BDEO SPAIN SL"
     assert source_result.source_trace.anchor_query_name == "Bdeo"
     assert source_result.source_trace.candidate_branch_stop_reason == "zero_results_on_domain_validation"
-    assert state.run.budget.search_calls_used <= 5
+    assert state.run.budget.search_calls_used <= 6
 
 
 def test_sourcer_continues_when_one_search_query_fails() -> None:

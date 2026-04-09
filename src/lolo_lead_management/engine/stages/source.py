@@ -113,10 +113,10 @@ class SourceStage:
             mode="source_discovery",
         )
         plan_input = {
-            "request": request.model_dump(mode="json"),
+            "request": self._request_payload(request),
             "memory": self._memory_payload(state),
             "relaxation_stage": state.run.applied_relaxation_stage,
-            "fallback_plan": fallback_plan.model_dump(mode="json"),
+            "fallback_plan": self._plan_summary_payload(fallback_plan),
         }
         plan_attempt = self._agent_executor.generate_structured_attempt(
             spec=STAGE_AGENT_SPECS[StageName.SOURCE],
@@ -185,11 +185,7 @@ class SourceStage:
                 query_notes.append(error_note)
 
         documents = merge_documents(documents)
-        documents, excluded_terminal_company_urls = self._exclude_terminal_discovery_documents(
-            documents,
-            excluded_companies=excluded_companies,
-        )
-        stage_trace.excluded_terminal_company_documents = excluded_terminal_company_urls
+        stage_trace.excluded_terminal_company_documents = []
         stage_trace.anchor_candidates = self._anchor_candidates(documents, excluded_companies)
         stage_trace.cross_company_rejections = self._cross_company_rejections(stage_trace.query_traces)
         stage_trace.documents_passed_to_assembler = self._document_snapshots(documents)
@@ -230,7 +226,7 @@ class SourceStage:
         assert focus is not None and focus.selected_company is not None
         query_history = state.memory.query_history + ([state.current_query] if state.current_query else [])
         seed_result = state.current_source_result
-        seed_documents = self._focus_documents(seed_result.documents if seed_result else [], focus.selected_company)
+        seed_documents = merge_documents(seed_result.documents if seed_result else [])
         seed_queries = seed_result.executed_queries[:] if seed_result else []
         seed_trace = seed_result.research_trace[:] if seed_result else []
         fallback_plan = build_research_query_plan(
@@ -240,11 +236,11 @@ class SourceStage:
             mode="source_focus_locked",
         )
         plan_input = {
-            "request": request.model_dump(mode="json"),
-            "focus_company": focus.model_dump(mode="json"),
+            "request": self._request_payload(request),
+            "focus_company": self._focus_company_payload(focus),
             "memory": self._memory_payload(state),
             "relaxation_stage": state.run.applied_relaxation_stage,
-            "fallback_plan": fallback_plan.model_dump(mode="json"),
+            "fallback_plan": self._plan_summary_payload(fallback_plan),
         }
         plan_attempt = self._agent_executor.generate_structured_attempt(
             spec=STAGE_AGENT_SPECS[StageName.SOURCE],
@@ -309,7 +305,7 @@ class SourceStage:
             if error_note:
                 query_notes.append(error_note)
 
-        documents = self._focus_documents(merge_documents(documents), focus.selected_company)
+        documents = merge_documents(documents)
         official_domain = self._official_domain_for_company(documents, focus.selected_company)
         website_candidates = self._website_candidates_for_company(documents, focus.selected_company)
         stage_trace.domain_validation_strategy = "domain_based" if official_domain else "name_based"
@@ -340,7 +336,7 @@ class SourceStage:
                 executed_queries.append(query)
                 if error_note:
                     query_notes.append(error_note)
-            documents = self._focus_documents(merge_documents(documents), focus.selected_company)
+            documents = merge_documents(documents)
             website_candidates = self._website_candidates_for_company(documents, focus.selected_company)
             official_domain = self._official_domain_for_company(documents, focus.selected_company)
             size_hint_value, size_hint_type = self._size_hint_for_documents(documents)
@@ -371,7 +367,7 @@ class SourceStage:
             if extra_website_queries:
                 stage_trace.selected_queries = [*stage_trace.selected_queries, *[item.query for item in extra_website_queries]]
                 stage_trace.selected_query_count = len(stage_trace.selected_queries)
-                documents = self._focus_documents(merge_documents(documents), focus.selected_company)
+                documents = merge_documents(documents)
                 official_domain = self._official_domain_for_company(documents, focus.selected_company)
                 website_candidates = self._website_candidates_for_company(documents, focus.selected_company)
 
@@ -392,7 +388,7 @@ class SourceStage:
                 executed_queries.append(query)
                 if error_note:
                     query_notes.append(error_note)
-            documents = self._focus_documents(merge_documents(documents), focus.selected_company)
+            documents = merge_documents(documents)
 
         official_domain = self._official_domain_for_company(documents, focus.selected_company)
         website_candidates = self._website_candidates_for_company(documents, focus.selected_company)
@@ -427,16 +423,8 @@ class SourceStage:
                 source_trace=stage_trace,
             )
 
-        selected_documents, selection_notes = self._select_documents_for_assembler(
-            documents,
-            anchored_company=focus.selected_company,
-            official_domain=official_domain,
-            research_trace=research_trace,
-        )
-        if not selected_documents:
-            selected_documents = documents[:4]
-            selection_notes = [*selection_notes, "assembler_selection_fallback_used"]
-        filtered_trace = self._filter_research_trace(research_trace, selected_documents)
+        selected_documents = merge_documents(documents)
+        selection_notes = ["assembler_receives_raw_focus_batch"]
         stage_trace.selected_documents = self._selected_document_trace(selected_documents, research_trace)
         stage_trace.documents_passed_to_assembler = self._document_snapshots(selected_documents)
         notes = [f"queries_executed={len(executed_queries)}", f"anchor_confidence={stage_trace.anchor_confidence}", *query_notes, *selection_notes]
@@ -454,7 +442,7 @@ class SourceStage:
             documents=selected_documents,
             website_candidates=website_candidates,
             anchored_company_name=focus.selected_company,
-            research_trace=filtered_trace or research_trace,
+            research_trace=research_trace,
             notes=stage_trace.notes,
             source_trace=stage_trace,
         )
@@ -555,13 +543,8 @@ class SourceStage:
 
     def _result_rejection_reasons(self, item, query: ResearchQuery, state: EngineRuntimeState) -> list[str]:
         reasons: list[str] = []
-        if item.url in state.visited_urls_run_scoped and not self._can_reuse_anchor_directory_result_in_run(item, query, state):
-            reasons.append("visited_url_in_run")
-        if self._is_globally_blocked_official_domain(domain_from_url(item.url), state):
-            reasons.append("blocked_official_domain")
         if not self._is_usable_search_result(item.url):
             reasons.append("blocked_host")
-        reasons.extend(self._query_policy_rejection_reasons(item, query, request=state.run.request))
         return reasons
 
     def _query_trace_notes(
@@ -663,6 +646,14 @@ class SourceStage:
                     SPAIN_DISCOVERY_DIRECTORY_LADDER
                 )
                 return [query], domain, index
+        non_ladder_queries = [
+            query
+            for query in available
+            if self._discovery_directory_for_query(query) not in SPAIN_DISCOVERY_DIRECTORY_LADDER
+        ]
+        if non_ladder_queries:
+            state.discovery_ladder_exhausted_in_run = False
+            return [non_ladder_queries[0]], self._discovery_directory_for_query(non_ladder_queries[0]), None
         state.discovery_ladder_exhausted_in_run = True
         return [], None, len(state.discovery_directories_consumed_in_run) or None
 
@@ -695,28 +686,12 @@ class SourceStage:
 
     def _choose_focus_locked_queries(self, plan: ResearchQueryPlan, query_history: list[str], *, current_documents, anchored_company: str | None):
         selected: list[ResearchQuery] = []
-        seen_queries: set[str] = set()
-        size_hint_value, _ = self._size_hint_for_documents(current_documents)
-        person_supported, role_supported = self._has_person_role_support(current_documents, anchored_company)
-        desired_fields = ["company_name"]
-        if size_hint_value is None:
-            desired_fields.append("employee_estimate")
-        elif not person_supported:
-            desired_fields.append("person_name")
-        elif not role_supported:
-            desired_fields.append("role_title")
-        else:
-            desired_fields.append("fit_signals")
-        for desired_field in desired_fields:
-            for query in choose_queries(plan, query_history + [item.query for item in selected], limit=20):
-                if query.query in seen_queries or query.expected_field != desired_field:
-                    continue
-                if query.stop_if_resolved and self._query_already_resolved(query, current_documents):
-                    continue
-                selected.append(query)
-                seen_queries.add(query.query)
-                if len(selected) >= 2:
-                    return selected
+        used = {normalize_text(item) for item in query_history}
+        for query in plan.planned_queries:
+            if normalize_text(query.query) in used:
+                continue
+            selected.append(query)
+            if len(selected) >= 2:
                 break
         return selected
 
@@ -732,10 +707,11 @@ class SourceStage:
         extra: list[ResearchQuery] = []
         website_attempts_used = sum(1 for item in already_selected if item.expected_field == "website")
         remaining_attempts = max(0, 2 - website_attempts_used)
-        for query in choose_queries(plan, query_history, limit=20):
-            if query.query in seen_queries or query.expected_field != "website":
+        used = {normalize_text(item) for item in query_history}
+        for query in plan.planned_queries:
+            if normalize_text(query.query) in used:
                 continue
-            if query.stop_if_resolved and self._query_already_resolved(query, current_documents):
+            if query.query in seen_queries or query.expected_field != "website":
                 continue
             extra.append(query)
             if len(extra) >= remaining_attempts:
@@ -743,11 +719,7 @@ class SourceStage:
         return extra
 
     def _focus_documents(self, documents, anchored_company: str):
-        focused = []
-        for item in documents:
-            if document_matches_anchor_strong(item, anchored_company):
-                focused.append(item)
-        return merge_documents(focused)
+        return merge_documents(documents)
 
     def _choose_anchor_queries(self, plan: ResearchQueryPlan, query_history: list[str], *, current_documents):
         selected = []
@@ -782,19 +754,12 @@ class SourceStage:
 
     def _choose_gap_queries(self, plan: ResearchQueryPlan, query_history: list[str], *, current_documents, request, size_hint_value: int | None):
         candidates = []
-        selected_queries: set[str] = set()
-        size_first = bool((request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and size_hint_value is None)
-        desired_fields = ["employee_estimate", "person_name", "role_title", "website", "fit_signals"] if size_first else ["person_name", "role_title", "employee_estimate", "website", "fit_signals"]
-        for desired_field in desired_fields:
-            for query in choose_queries(plan, query_history, limit=20):
-                if query.query in selected_queries or query.expected_field != desired_field:
-                    continue
-                if query.stop_if_resolved and self._query_already_resolved(query, current_documents):
-                    continue
-                candidates.append(query)
-                selected_queries.add(query.query)
-                if len(candidates) >= 2:
-                    return candidates
+        used = {normalize_text(item) for item in query_history}
+        for query in plan.planned_queries:
+            if normalize_text(query.query) in used:
+                continue
+            candidates.append(query)
+            if len(candidates) >= 2:
                 break
         return candidates
 
@@ -1548,11 +1513,51 @@ class SourceStage:
             "scope": state.memory.scope,
             "query_history": state.memory.query_history[-20:],
             "visited_urls_run_scoped": state.visited_urls_run_scoped[-30:],
-            "blocked_official_domains": [] if self._ignore_persistent_search_memory(state) else state.memory.blocked_official_domains[-15:],
-            "searched_company_names": [] if self._ignore_persistent_search_memory(state) else state.memory.searched_company_names[-25:],
-            "request_scoped_company_exclusions": self._request_scoped_company_exclusions(state)[:20],
+            "blocked_official_domains": [],
+            "searched_company_names": [],
+            "request_scoped_company_exclusions": [],
             "registered_lead_names": state.memory.registered_lead_names[-15:],
             "consecutive_hard_miss_runs": state.memory.consecutive_hard_miss_runs,
+        }
+
+    def _request_payload(self, request) -> dict:
+        return {
+            "user_text": request.user_text[:220],
+            "preferred_country": request.constraints.preferred_country,
+            "preferred_regions": request.constraints.preferred_regions[:3],
+            "min_company_size": request.constraints.min_company_size,
+            "max_company_size": request.constraints.max_company_size,
+            "buyer_targets": request.buyer_targets[:4],
+            "search_themes": request.search_themes[:4],
+        }
+
+    def _focus_company_payload(self, focus) -> dict:
+        return {
+            "selected_company": focus.selected_company,
+            "legal_name": focus.legal_name,
+            "query_name": focus.query_name,
+            "brand_aliases": focus.brand_aliases[:3],
+            "evidence_urls": focus.evidence_urls[:2],
+            "selection_mode": focus.selection_mode,
+            "selection_reasons": focus.selection_reasons[:3],
+        }
+
+    def _plan_summary_payload(self, plan: ResearchQueryPlan) -> dict:
+        return {
+            "notes": plan.notes[-4:],
+            "stop_conditions": plan.stop_conditions[:4],
+            "planned_queries": [
+                {
+                    "query": item.query,
+                    "research_phase": item.research_phase,
+                    "source_role": item.source_role,
+                    "expected_field": item.expected_field,
+                    "preferred_domains": item.preferred_domains[:3],
+                    "search_depth": item.search_depth,
+                    "stop_if_resolved": item.stop_if_resolved,
+                }
+                for item in plan.planned_queries[:8]
+            ],
         }
 
     def _ignore_persistent_search_memory(self, state: EngineRuntimeState) -> bool:

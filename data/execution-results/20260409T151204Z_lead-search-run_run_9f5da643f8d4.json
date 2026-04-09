@@ -1,0 +1,240 @@
+{
+  "run_id": "run_9f5da643f8d4",
+  "response": {
+    "run_id": "run_9f5da643f8d4",
+    "status": "failed",
+    "normalized_request": {
+      "action": "lead_search.start",
+      "request_id": "req_05c69d34dff3",
+      "user_text": "busca 1 lead de una empresa espanola del sector IT con menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [
+          "eu"
+        ],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "preferred_country",
+          "company_size"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "founder",
+        "cto",
+        "ceo",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "software company"
+      ],
+      "meta": {}
+    },
+    "current_stage": "enrich",
+    "progress_message": "Search failed. Check the stored errors for details.",
+    "last_heartbeat_at": "2026-04-09T15:12:04.433279Z",
+    "accepted_leads": [],
+    "shortlist_id": null,
+    "shortlist_options": [],
+    "errors": [
+      "HTTP Error 433: "
+    ],
+    "budget_summary": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "search_call_budget": 10,
+      "source_attempts_used": 1,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 9
+    },
+    "applied_relaxation_stage": 0,
+    "completed_reason": "engine_failed"
+  },
+  "final_run": {
+    "run_id": "run_9f5da643f8d4",
+    "request": {
+      "action": "lead_search.start",
+      "request_id": "req_05c69d34dff3",
+      "user_text": "busca 1 lead de una empresa espanola del sector IT con menos de 50 empleados",
+      "constraints": {
+        "target_count": 3,
+        "preferred_country": "es",
+        "preferred_regions": [
+          "eu"
+        ],
+        "min_company_size": null,
+        "max_company_size": 50,
+        "prefer_named_person": true,
+        "hard_constraints": [
+          "preferred_country",
+          "company_size"
+        ],
+        "relaxable_constraints": [
+          "named_person"
+        ]
+      },
+      "buyer_targets": [
+        "founder",
+        "cto",
+        "ceo",
+        "head_of_engineering",
+        "technical_recruiter"
+      ],
+      "search_themes": [
+        "software company"
+      ],
+      "meta": {}
+    },
+    "status": "failed",
+    "created_at": "2026-04-09T15:10:56.922238Z",
+    "updated_at": "2026-04-09T15:12:04.433279Z",
+    "current_stage": "enrich",
+    "progress_message": "Search failed. Check the stored errors for details.",
+    "last_heartbeat_at": "2026-04-09T15:12:04.433279Z",
+    "accepted_leads": [],
+    "shortlist_id": null,
+    "shortlist_options": [],
+    "iterations": [],
+    "stage_events": [
+      {
+        "timestamp": "2026-04-09T15:10:56.922255Z",
+        "stage": "normalize",
+        "message": "Request normalized. Preparing durable search state.",
+        "run_status": "running",
+        "source_attempts_used": 0,
+        "source_attempt_budget": 6,
+        "enrich_attempts_used": 0,
+        "enrich_attempt_budget": 1,
+        "search_calls_used": 0,
+        "search_call_budget": 10
+      },
+      {
+        "timestamp": "2026-04-09T15:10:56.930774Z",
+        "stage": "load_state",
+        "message": "Loading exploration memory.",
+        "run_status": "running",
+        "source_attempts_used": 0,
+        "source_attempt_budget": 6,
+        "enrich_attempts_used": 0,
+        "enrich_attempt_budget": 1,
+        "search_calls_used": 0,
+        "search_call_budget": 10
+      },
+      {
+        "timestamp": "2026-04-09T15:10:56.937287Z",
+        "stage": "plan",
+        "message": "Planning the next step for lead 1 of 3.",
+        "run_status": "running",
+        "source_attempts_used": 0,
+        "source_attempt_budget": 6,
+        "enrich_attempts_used": 0,
+        "enrich_attempt_budget": 1,
+        "search_calls_used": 0,
+        "search_call_budget": 10
+      },
+      {
+        "timestamp": "2026-04-09T15:10:56.943127Z",
+        "stage": "source",
+        "message": "Running discovery query 1 of 2 to gather plausible Spanish company candidates.",
+        "run_status": "running",
+        "source_attempts_used": 1,
+        "source_attempt_budget": 6,
+        "enrich_attempts_used": 0,
+        "enrich_attempt_budget": 1,
+        "search_calls_used": 0,
+        "search_call_budget": 10
+      },
+      {
+        "timestamp": "2026-04-09T15:11:14.769412Z",
+        "stage": "assemble",
+        "message": "Selecting one company focus from the first discovery batch.",
+        "run_status": "running",
+        "source_attempts_used": 1,
+        "source_attempt_budget": 6,
+        "enrich_attempts_used": 0,
+        "enrich_attempt_budget": 1,
+        "search_calls_used": 1,
+        "search_call_budget": 10
+      },
+      {
+        "timestamp": "2026-04-09T15:11:19.182387Z",
+        "stage": "source",
+        "message": "Gathering precise evidence only for the selected company focus.",
+        "run_status": "running",
+        "source_attempts_used": 1,
+        "source_attempt_budget": 6,
+        "enrich_attempts_used": 0,
+        "enrich_attempt_budget": 1,
+        "search_calls_used": 1,
+        "search_call_budget": 10
+      },
+      {
+        "timestamp": "2026-04-09T15:11:55.512867Z",
+        "stage": "assemble",
+        "message": "Compacting focus-locked public web evidence into a structured lead dossier.",
+        "run_status": "running",
+        "source_attempts_used": 1,
+        "source_attempt_budget": 6,
+        "enrich_attempts_used": 0,
+        "enrich_attempt_budget": 1,
+        "search_calls_used": 7,
+        "search_call_budget": 10
+      },
+      {
+        "timestamp": "2026-04-09T15:11:58.887983Z",
+        "stage": "qualify",
+        "message": "Evaluating whether the candidate is an exact match or a close match.",
+        "run_status": "running",
+        "source_attempts_used": 1,
+        "source_attempt_budget": 6,
+        "enrich_attempts_used": 0,
+        "enrich_attempt_budget": 1,
+        "search_calls_used": 7,
+        "search_call_budget": 10
+      },
+      {
+        "timestamp": "2026-04-09T15:12:00.948760Z",
+        "stage": "enrich",
+        "message": "Collecting extra evidence for a promising candidate.",
+        "run_status": "running",
+        "source_attempts_used": 1,
+        "source_attempt_budget": 6,
+        "enrich_attempts_used": 0,
+        "enrich_attempt_budget": 1,
+        "search_calls_used": 7,
+        "search_call_budget": 10
+      },
+      {
+        "timestamp": "2026-04-09T15:12:04.433279Z",
+        "stage": "enrich",
+        "message": "Search failed. Check the stored errors for details.",
+        "run_status": "failed",
+        "source_attempts_used": 1,
+        "source_attempt_budget": 6,
+        "enrich_attempts_used": 1,
+        "enrich_attempt_budget": 1,
+        "search_calls_used": 9,
+        "search_call_budget": 10
+      }
+    ],
+    "errors": [
+      "HTTP Error 433: "
+    ],
+    "budget": {
+      "source_attempt_budget": 6,
+      "enrich_attempt_budget": 1,
+      "search_call_budget": 10,
+      "source_attempts_used": 1,
+      "enrich_attempts_used": 1,
+      "search_calls_used": 9
+    },
+    "applied_relaxation_stage": 0,
+    "completed_reason": "engine_failed"
+  }
+}

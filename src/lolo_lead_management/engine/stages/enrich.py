@@ -107,11 +107,22 @@ class EnrichStage:
                 break
             state.run.budget.search_calls_used += 1
             previously_visited = set(state.visited_urls_run_scoped)
-            results = self._search_port.web_search(query, max_results=self._max_results)
-            filtered = [item for item in results if item.url not in previously_visited]
-            enriched, fetched_urls, empty_fetch_urls = self._enrich_missing_content(filtered, query.query)
-            selected = merge_documents(enriched[: self._max_results])
-            state.visited_urls_run_scoped = list(dict.fromkeys([*state.visited_urls_run_scoped, *[item.url for item in selected]]))
+            try:
+                results = self._search_port.web_search(query, max_results=self._max_results)
+                filtered = [item for item in results if item.url not in previously_visited]
+                enriched, fetched_urls, empty_fetch_urls = self._enrich_missing_content(filtered, query.query)
+                selected = merge_documents(enriched[: self._max_results])
+                error = None
+                state.visited_urls_run_scoped = list(dict.fromkeys([*state.visited_urls_run_scoped, *[item.url for item in selected]]))
+            except Exception as exc:
+                results = []
+                filtered = []
+                enriched = []
+                selected = []
+                fetched_urls = []
+                empty_fetch_urls = []
+                error = str(exc)
+                stage_trace.notes.append(f"enrich_query_failed={query.query}: {exc}")
             research_trace.append(
                 ResearchTraceEntry(
                     query_planned=query.query,
@@ -145,6 +156,7 @@ class EnrichStage:
                     selected_urls=[item.url for item in selected],
                     fetched_urls=fetched_urls,
                     empty_fetch_urls=empty_fetch_urls,
+                    error=error,
                     results=[
                         SearchResultTrace(
                             url=item.url,
