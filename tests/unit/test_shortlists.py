@@ -110,6 +110,9 @@ def test_selecting_one_shortlist_option_keeps_remaining_options_available() -> N
         role_title="Engineering Director",
         website="https://alpha.dev",
         country_code="es",
+        lead_source_type="speaker_or_event",
+        person_confidence="corroborated",
+        primary_person_source_url="https://events.example.com/ana-ruiz",
         summary="Good close match.",
         close_match=qualification.close_match,
         qualification=qualification,
@@ -144,3 +147,6 @@ def test_selecting_one_shortlist_option_keeps_remaining_options_available() -> N
     assert [item.option_number for item in remaining.options] == [2]
     assert promoted.accepted_leads[-1].company_name == "Alpha Dev"
     assert promoted.accepted_leads[-1].website == "https://alpha.dev"
+    assert promoted.accepted_leads[-1].lead_source_type == "speaker_or_event"
+    assert promoted.accepted_leads[-1].person_confidence == "corroborated"
+    assert promoted.accepted_leads[-1].primary_person_source_url == "https://events.example.com/ana-ruiz"

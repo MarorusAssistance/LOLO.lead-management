@@ -9,6 +9,7 @@ from lolo_lead_management.domain.models import (
     QueryMemoryResetResponse,
     SearchRunSnapshot,
 )
+from lolo_lead_management.engine.rules import domain_from_url
 
 from .container import ServiceContainer
 
@@ -52,6 +53,9 @@ def select_shortlist_option(container: ServiceContainer, shortlist_id: str, opti
         container.crm_writer.upsert_accepted_lead(run, selected)
         memory = container.memory_store.get_campaign_state()
         memory.searched_company_names = list(dict.fromkeys(memory.searched_company_names + [selected.company_name]))
+        official_domain = domain_from_url(selected.website)
+        if official_domain and selected.website_resolution and selected.website_resolution.officiality in {"confirmed", "probable"}:
+            memory.blocked_official_domains = list(dict.fromkeys(memory.blocked_official_domains + [official_domain]))
         if selected.person_name:
             memory.registered_lead_names = list(dict.fromkeys(memory.registered_lead_names + [selected.person_name]))
         container.memory_store.save_campaign_state(memory)

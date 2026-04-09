@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 
+from lolo_lead_management.domain.enums import QualificationOutcome
 from lolo_lead_management.domain.models import ExplorationMemoryState, SearchRunSnapshot, ShortlistRecord, SourcingDossier
 from lolo_lead_management.infrastructure.sqlite import SqliteDatabase
 from lolo_lead_management.ports.stores import ExplorationMemoryStore, LeadStore, SearchRunStore, ShortlistStore
@@ -106,9 +107,14 @@ class SqliteExplorationMemoryStore(ExplorationMemoryStore):
             state = ExplorationMemoryState()
             self.save_campaign_state(state)
             return state
-        return ExplorationMemoryState.model_validate_json(row["payload_json"])
+        state = ExplorationMemoryState.model_validate_json(row["payload_json"])
+        sanitized = self._sanitize_memory_state(state)
+        if sanitized.model_dump(mode="json") != state.model_dump(mode="json"):
+            self.save_campaign_state(sanitized)
+        return sanitized
 
     def save_campaign_state(self, state: ExplorationMemoryState) -> None:
+        state = self._sanitize_memory_state(state)
         with self._database.connect() as connection:
             connection.execute(
                 """
@@ -125,6 +131,7 @@ class SqliteExplorationMemoryStore(ExplorationMemoryStore):
             state.query_history = []
         if "visitedUrls" in reset_fields:
             state.visited_urls = []
+            state.blocked_official_domains = []
         if "searchedCompanyNames" in reset_fields:
             state.searched_company_names = []
         if "consecutiveHardMissRuns" in reset_fields:
@@ -132,3 +139,24 @@ class SqliteExplorationMemoryStore(ExplorationMemoryStore):
         if include_registered_lead_names:
             state.registered_lead_names = []
         self.save_campaign_state(state)
+
+    def _sanitize_memory_state(self, state: ExplorationMemoryState) -> ExplorationMemoryState:
+        enrich_company_keys: set[str] = set()
+        for item in state.company_observations:
+            if (item.last_outcome or "").upper() != QualificationOutcome.ENRICH.value:
+                continue
+            for candidate in (item.company_name, item.legal_name, item.query_name):
+                key = self._normalize_key(candidate)
+                if key:
+                    enrich_company_keys.add(key)
+        if not enrich_company_keys:
+            return state
+        searched_company_names = [
+            item
+            for item in state.searched_company_names
+            if self._normalize_key(item) not in enrich_company_keys
+        ]
+        return state.model_copy(update={"searched_company_names": searched_company_names})
+
+    def _normalize_key(self, value: str | None) -> str:
+        return " ".join((value or "").strip().lower().split())

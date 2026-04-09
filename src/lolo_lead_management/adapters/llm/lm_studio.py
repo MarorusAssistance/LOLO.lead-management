@@ -40,7 +40,6 @@ class LmStudioLlmPort(LlmPort):
                     "content": json.dumps(
                         {
                             "agent": agent_name,
-                            "schema": schema,
                             "input": input_payload,
                             "instructions": "Return only valid JSON matching the schema.",
                         }

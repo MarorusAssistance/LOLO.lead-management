@@ -74,6 +74,7 @@ def build_test_container(
         continue_stage=ContinueOrFinishStage(run_store=run_store, memory_store=memory_store),
         run_store=run_store,
         shortlist_store=shortlist_store,
+        search_call_budget=10,
         source_attempt_budget=6,
         enrich_attempt_budget=1,
         archive_writer=archive_writer,
@@ -94,9 +95,21 @@ def build_test_container(
 
 
 def accepted_candidate_fixture() -> tuple[dict[str, list[EvidenceDocument]], dict[str, str]]:
-    query = "Spain AI startup directory"
-    search_index = {
-        query: [
+    queries = [
+        "empresite empresa IA software espana cif",
+        "infoempresa empresa IA software espana razon social",
+        "datoscif empresa IA software espana cif",
+        "camara censo empresa IA software espana actividad",
+        "empresite Madrid empresa IA software cif",
+        'empresite "Acme AI" sitio web pagina web',
+        'infoempresa "Acme AI" razon social cif',
+        'datoscif "Acme AI" sitio web pagina web',
+        'iberinform "Acme AI" sitio web pagina web',
+        "acme.ai contacto aviso legal cif",
+        '"Acme AI" administradores cargos directivos',
+        '"Acme AI" numero empleados exactos',
+    ]
+    results = [
             EvidenceDocument(
                 url="https://acme.ai/about",
                 title="Acme AI leadership",
@@ -112,7 +125,7 @@ def accepted_candidate_fixture() -> tuple[dict[str, list[EvidenceDocument]], dic
                 raw_content="Company: Acme AI\nCountry: Spain\nEmployees: 25\nAutomation and GenAI workflows for IT teams",
             ),
         ]
-    }
+    search_index = {query: results for query in queries}
     pages = {
         "https://acme.ai/about": "Company: Acme AI\nCountry: Spain\nEmployees: 25\nPerson: Laura Martin\nRole: CTO\nGenAI automation engineering",
         "https://acme.ai/blog/agentic-workflows": "Company: Acme AI\nCountry: Spain\nEmployees: 25\nAutomation and GenAI workflows for IT teams",
@@ -121,9 +134,21 @@ def accepted_candidate_fixture() -> tuple[dict[str, list[EvidenceDocument]], dic
 
 
 def close_match_candidate_fixture() -> tuple[dict[str, list[EvidenceDocument]], dict[str, str]]:
-    query = "Spain AI startup directory"
-    search_index = {
-        query: [
+    queries = [
+        "empresite empresa IA software espana cif",
+        "infoempresa empresa IA software espana razon social",
+        "datoscif empresa IA software espana cif",
+        "camara censo empresa IA software espana actividad",
+        "empresite Madrid empresa IA software cif",
+        'empresite "Bravo Dev" sitio web pagina web',
+        'infoempresa "Bravo Dev" razon social cif',
+        'datoscif "Bravo Dev" sitio web pagina web',
+        'iberinform "Bravo Dev" sitio web pagina web',
+        "bravo.dev contacto aviso legal cif",
+        '"Bravo Dev" administradores cargos directivos',
+        '"Bravo Dev" numero empleados exactos',
+    ]
+    results = [
             EvidenceDocument(
                 url="https://bravo.dev/team",
                 title="Bravo Dev engineering team",
@@ -139,7 +164,7 @@ def close_match_candidate_fixture() -> tuple[dict[str, list[EvidenceDocument]], 
                 raw_content="Company: Bravo Dev\nCountry: Spain\nEmployees: 30\nAutomation and GenAI workflows for engineering teams",
             ),
         ]
-    }
+    search_index = {query: results for query in queries}
     pages = {
         "https://bravo.dev/team": "Company: Bravo Dev\nCountry: Spain\nEmployees: 30\nPerson: Marta Diaz\nRole: Engineering Manager\nGenAI automation engineering",
         "https://bravo.dev/blog/genai": "Company: Bravo Dev\nCountry: Spain\nEmployees: 30\nAutomation and GenAI workflows for engineering teams",

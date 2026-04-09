@@ -7,9 +7,13 @@ from lolo_lead_management.domain.models import (
     AcceptedLeadRecord,
     LeadSearchStartRequest,
     LeadSearchStartResponse,
+    RunStageEvent,
     RunIteration,
     SearchBudget,
     SearchRunSnapshot,
+    SourceAnchorCandidate,
+    SourcePassResult,
+    SourceStageTrace,
 )
 from lolo_lead_management.engine.stages.continue_or_finish import ContinueOrFinishStage
 from lolo_lead_management.engine.stages.crm_write import CrmWriteStage
@@ -23,7 +27,7 @@ from lolo_lead_management.engine.stages.qualify import QualifyStage
 from lolo_lead_management.engine.stages.source import SourceStage
 from lolo_lead_management.infrastructure.run_archive import ExecutionArchiveWriter
 from lolo_lead_management.ports.stores import SearchRunStore, ShortlistStore
-from lolo_lead_management.engine.rules import downgrade_enrich_to_close_match
+from lolo_lead_management.engine.rules import dedupe_preserve_order, downgrade_enrich_to_close_match, merge_documents
 
 
 class LeadManagementEngine:
@@ -42,6 +46,7 @@ class LeadManagementEngine:
         continue_stage: ContinueOrFinishStage,
         run_store: SearchRunStore,
         shortlist_store: ShortlistStore,
+        search_call_budget: int,
         source_attempt_budget: int,
         enrich_attempt_budget: int,
         archive_writer: ExecutionArchiveWriter | None = None,
@@ -58,6 +63,7 @@ class LeadManagementEngine:
         self._continue_stage = continue_stage
         self._run_store = run_store
         self._shortlist_store = shortlist_store
+        self._search_call_budget = search_call_budget
         self._source_attempt_budget = source_attempt_budget
         self._enrich_attempt_budget = enrich_attempt_budget
         self._archive_writer = archive_writer
@@ -74,6 +80,7 @@ class LeadManagementEngine:
             budget=SearchBudget(
                 source_attempt_budget=self._source_attempt_budget,
                 enrich_attempt_budget=self._enrich_attempt_budget,
+                search_call_budget=self._search_call_budget,
             ),
         )
         self._update_progress(
@@ -119,28 +126,123 @@ class LeadManagementEngine:
                 active_stage = StageName.SOURCE
                 state.current_dossier = None
                 state.current_source_result = None
+                state.current_source_trace = None
+                state.current_discovery_source_trace = None
+                state.current_anchored_source_trace = None
+                state.current_enrich_trace = None
                 state.current_assembler_trace = None
+                state.current_qualification_trace = None
+                state.current_continue_trace = None
+                state.current_focus_company_resolution = None
+                state.focus_company_locked = False
+                state.pending_discovery_documents = []
+                state.pending_discovery_traces = []
+                state.pending_discovery_research_trace = []
+                state.pending_discovery_queries = []
+                state.discovery_attempts_for_current_pass = 0
+                state.run.budget.source_attempts_used += 1
+                aggregated_discovery: SourcePassResult | None = None
+                focus_resolution = None
+                query = None
+
+                while (
+                    state.discovery_attempts_for_current_pass < 2
+                    and state.run.budget.can_search()
+                    and not (focus_resolution and focus_resolution.selected_company)
+                ):
+                    state.discovery_attempts_for_current_pass += 1
+                    self._update_progress(
+                        state.run,
+                        stage=StageName.SOURCE,
+                        message=(
+                            "Running discovery query 1 of 2 to gather plausible Spanish company candidates."
+                            if state.discovery_attempts_for_current_pass == 1
+                            else "Running discovery query 2 of 2 to resolve a plausible company focus."
+                        ),
+                    )
+                    discovery_result = self._source_stage.execute(state)
+                    batch_query = discovery_result.executed_queries[0].query if discovery_result.executed_queries else None
+                    if batch_query is not None:
+                        query = batch_query
+                        state.current_query = batch_query
+                    state.pending_discovery_documents = merge_documents([*state.pending_discovery_documents, *discovery_result.documents])
+                    if discovery_result.source_trace is not None:
+                        state.pending_discovery_traces.append(discovery_result.source_trace)
+                    state.pending_discovery_research_trace = [*state.pending_discovery_research_trace, *discovery_result.research_trace]
+                    state.pending_discovery_queries = [*state.pending_discovery_queries, *discovery_result.executed_queries]
+                    aggregated_discovery = self._merge_discovery_results(aggregated_discovery, discovery_result, state)
+                    state.current_source_result = aggregated_discovery
+                    state.current_source_trace = aggregated_discovery.source_trace
+                    state.current_discovery_source_trace = aggregated_discovery.source_trace
+
+                    active_stage = StageName.ASSEMBLE
+                    self._update_progress(
+                        state.run,
+                        stage=StageName.ASSEMBLE,
+                        message=(
+                            "Selecting one company focus from the first discovery batch."
+                            if state.discovery_attempts_for_current_pass == 1
+                            else "Selecting one company focus from the accumulated discovery batches."
+                        ),
+                    )
+                    focus_resolution = self._assemble_stage.select_focus_company(state)
+                    state.current_focus_company_resolution = focus_resolution
+                    state.current_assembler_trace = {
+                        "company_selection": self._assemble_stage.last_company_selection_trace or {},
+                    }
+                    if focus_resolution.selected_company or not discovery_result.executed_queries:
+                        break
+
+                if not focus_resolution or not focus_resolution.selected_company:
+                    state.run.iterations.append(
+                        RunIteration(
+                            index=len(state.run.iterations) + 1,
+                            planner_action=PlannerAction.SOURCE,
+                            planner_reason=state.current_decision.reason if state.current_decision else None,
+                            planner_relaxation_stage=state.current_decision.relaxation_stage if state.current_decision else None,
+                            query=query,
+                            focus_company_resolution=focus_resolution,
+                            source_trace=state.current_discovery_source_trace,
+                            assembler_trace=state.current_assembler_trace or {},
+                        )
+                    )
+
+                    active_stage = StageName.CONTINUE_OR_FINISH
+                    self._update_progress(
+                        state.run,
+                        stage=StageName.CONTINUE_OR_FINISH,
+                        message="No clear company focus found. Checking whether another discovery attempt is needed.",
+                    )
+                    self._continue_stage.execute(state)
+                    if state.run.iterations:
+                        state.run.iterations[-1].continue_trace = state.current_continue_trace
+                        self._run_store.save_run(state.run)
+                    continue
+
+                state.focus_company_locked = True
+
+                active_stage = StageName.SOURCE
                 self._update_progress(
                     state.run,
                     stage=StageName.SOURCE,
-                    message=self._sourcing_message(state.run),
+                    message="Gathering precise evidence only for the selected company focus.",
                 )
                 source_result = self._source_stage.execute(state)
-                query = source_result.executed_queries[0].query if source_result.executed_queries else None
-                if query is None:
-                    state.run.budget.source_attempts_used = state.run.budget.source_attempt_budget
-                else:
-                    state.run.budget.source_attempts_used += 1
-                state.current_query = query
                 state.current_source_result = source_result
+                state.current_source_trace = source_result.source_trace
+                state.current_anchored_source_trace = source_result.source_trace
 
                 active_stage = StageName.ASSEMBLE
                 self._update_progress(
                     state.run,
                     stage=StageName.ASSEMBLE,
-                    message="Compacting public web evidence into a structured lead dossier.",
+                    message="Compacting focus-locked public web evidence into a structured lead dossier.",
                 )
                 state.current_dossier = self._assemble_stage.execute(state)
+                state.current_assembler_trace = {
+                    "company_selection": self._assemble_stage.last_company_selection_trace or {},
+                    "focus_locked_assembly": state.current_assembler_trace or {},
+                }
 
                 active_stage = StageName.QUALIFY
                 self._update_progress(
@@ -152,6 +254,7 @@ class LeadManagementEngine:
                     request_payload=state.run.request.model_dump(mode="json"),
                     dossier_payload=state.current_dossier.model_dump(mode="json"),
                 )
+                state.current_qualification_trace = self._qualify_stage.last_trace
 
                 if state.current_qualification.outcome == QualificationOutcome.ENRICH and state.run.budget.can_enrich():
                     active_stage = StageName.ENRICH
@@ -162,6 +265,7 @@ class LeadManagementEngine:
                     )
                     state.run.budget.enrich_attempts_used += 1
                     state.current_source_result = self._enrich_stage.execute(state)
+                    state.current_enrich_trace = state.current_source_result.source_trace
 
                     active_stage = StageName.ASSEMBLE
                     self._update_progress(
@@ -170,6 +274,10 @@ class LeadManagementEngine:
                         message="Merging newly found evidence into the current lead dossier.",
                     )
                     state.current_dossier = self._assemble_stage.execute(state)
+                    state.current_assembler_trace = {
+                        "company_selection": self._assemble_stage.last_company_selection_trace or {},
+                        "focus_locked_assembly": state.current_assembler_trace or {},
+                    }
 
                     active_stage = StageName.REQUALIFY
                     self._update_progress(
@@ -181,6 +289,7 @@ class LeadManagementEngine:
                         request_payload=state.run.request.model_dump(mode="json"),
                         dossier_payload=state.current_dossier.model_dump(mode="json"),
                     )
+                    state.current_qualification_trace = self._qualify_stage.last_trace
                 if (
                     state.current_qualification.outcome == QualificationOutcome.ENRICH
                     and not state.run.budget.can_enrich()
@@ -190,6 +299,16 @@ class LeadManagementEngine:
                         state.current_dossier,
                         state.run.request,
                     )
+                    if state.current_qualification_trace is not None:
+                        state.current_qualification_trace = state.current_qualification_trace.model_copy(
+                            update={
+                                "merged_decision": state.current_qualification,
+                                "notes": [
+                                    *state.current_qualification_trace.notes,
+                                    "downgraded_after_enrich_budget_exhausted",
+                                ],
+                            }
+                        )
 
                 if state.current_qualification.outcome in {
                     QualificationOutcome.ACCEPT,
@@ -213,13 +332,20 @@ class LeadManagementEngine:
                     RunIteration(
                         index=len(state.run.iterations) + 1,
                         planner_action=PlannerAction.SOURCE,
+                        planner_reason=state.current_decision.reason if state.current_decision else None,
+                        planner_relaxation_stage=state.current_decision.relaxation_stage if state.current_decision else None,
                         query=query,
+                        focus_company_resolution=focus_resolution,
                         dossier=state.current_dossier,
                         qualification=state.current_qualification,
                         research_trace=state.current_dossier.research_trace if state.current_dossier else [],
                         documents_considered=state.current_dossier.documents_considered if state.current_dossier else 0,
                         documents_selected=state.current_dossier.documents_selected if state.current_dossier else 0,
+                        source_trace=state.current_discovery_source_trace,
+                        anchored_source_trace=state.current_anchored_source_trace,
+                        enrich_trace=state.current_enrich_trace,
                         assembler_trace=state.current_assembler_trace or {},
+                        qualification_trace=state.current_qualification_trace,
                     )
                 )
 
@@ -238,6 +364,9 @@ class LeadManagementEngine:
                     message="Checking whether more sourcing is needed.",
                 )
                 self._continue_stage.execute(state)
+                if state.run.iterations:
+                    state.run.iterations[-1].continue_trace = state.current_continue_trace
+                self._run_store.save_run(state.run)
 
             final_run = state.run if state is not None else run
             self._update_progress(
@@ -306,8 +435,12 @@ class LeadManagementEngine:
         accepted_record = AcceptedLeadRecord(
             person_name=option.person_name,
             role_title=option.role_title,
+            lead_source_type=option.lead_source_type,
+            person_confidence=option.person_confidence,
+            primary_person_source_url=option.primary_person_source_url,
             company_name=option.company_name,
             website=option.website,
+            website_resolution=option.website_resolution,
             country_code=option.country_code,
             evidence=option.evidence,
             qualification=option.qualification,
@@ -354,6 +487,118 @@ class LeadManagementEngine:
         next_index = len(run.accepted_leads) + 1
         return f"Planning the next step for lead {next_index} of {target_count}."
 
+    def _merge_discovery_results(
+        self,
+        current: SourcePassResult | None,
+        new_result: SourcePassResult,
+        state,
+    ) -> SourcePassResult:
+        if current is None:
+            trace = new_result.source_trace
+            if trace is not None:
+                trace = trace.model_copy(
+                    update={
+                        "discovery_batches_considered": state.discovery_attempts_for_current_pass,
+                    }
+                )
+            return new_result.model_copy(update={"source_trace": trace})
+
+        merged_documents = merge_documents([*current.documents, *new_result.documents])
+        merged_queries = [*current.executed_queries, *new_result.executed_queries]
+        merged_research_trace = [*current.research_trace, *new_result.research_trace]
+        merged_notes = dedupe_preserve_order([*current.notes, *new_result.notes])
+        merged_trace = self._merge_discovery_traces([*state.pending_discovery_traces])
+        return current.model_copy(
+            update={
+                "sourcing_status": new_result.sourcing_status if merged_documents else current.sourcing_status,
+                "executed_queries": merged_queries,
+                "documents": merged_documents,
+                "research_trace": merged_research_trace,
+                "notes": merged_notes,
+                "source_trace": merged_trace,
+            }
+        )
+
+    def _merge_discovery_traces(self, traces: list[SourceStageTrace]) -> SourceStageTrace | None:
+        if not traces:
+            return None
+        base = traces[-1]
+        batch_traces = [
+            {
+                "discovery_directory_selected": trace.discovery_directory_selected,
+                "discovery_directories_consumed_in_run": trace.discovery_directories_consumed_in_run,
+                "discovery_ladder_position": trace.discovery_ladder_position,
+                "selected_queries": trace.selected_queries,
+                "llm_plan_input": trace.llm_plan_input,
+                "llm_raw_plan": trace.llm_raw_plan,
+                "sanitized_query_plan": trace.sanitized_query_plan,
+                "merged_query_plan": trace.merged_query_plan,
+                "query_traces": [item.model_dump(mode="json") for item in trace.query_traces],
+                "documents_passed_to_assembler": [item.model_dump(mode="json") for item in trace.documents_passed_to_assembler],
+                "excluded_terminal_company_documents": trace.excluded_terminal_company_documents,
+                "notes": trace.notes,
+            }
+            for trace in traces
+        ]
+        anchor_support: dict[str, dict] = {}
+        for trace in traces:
+            for candidate in trace.anchor_candidates:
+                entry = anchor_support.setdefault(
+                    candidate.company_name,
+                    {"support_count": 0, "evidence_urls": [], "notes": []},
+                )
+                entry["support_count"] = max(entry["support_count"], candidate.support_count)
+                entry["evidence_urls"] = dedupe_preserve_order([*entry["evidence_urls"], *candidate.evidence_urls])
+                entry["notes"] = dedupe_preserve_order([*entry["notes"], *candidate.notes])
+        ranked_names = sorted(
+            anchor_support.items(),
+            key=lambda item: (item[1]["support_count"], len(item[1]["evidence_urls"])),
+            reverse=True,
+        )
+        merged_anchor_candidates = [
+            SourceAnchorCandidate(
+                company_name=name,
+                support_count=data["support_count"],
+                evidence_urls=data["evidence_urls"][:4],
+                notes=data["notes"][:4],
+            )
+            for name, data in ranked_names[:5]
+        ]
+
+        return base.model_copy(
+            update={
+                "batch_traces": batch_traces,
+                "discovery_batches_considered": len(traces),
+                "discovery_directory_selected": base.discovery_directory_selected,
+                "discovery_directories_consumed_in_run": dedupe_preserve_order(
+                    [item for trace in traces for item in trace.discovery_directories_consumed_in_run]
+                ),
+                "discovery_ladder_position": base.discovery_ladder_position,
+                "selected_query_count": sum(trace.selected_query_count for trace in traces),
+                "selected_queries": [query for trace in traces for query in trace.selected_queries],
+                "query_traces": [item for trace in traces for item in trace.query_traces],
+                "cross_company_rejections": dedupe_preserve_order(
+                    [item for trace in traces for item in trace.cross_company_rejections]
+                ),
+                "anchor_candidates": merged_anchor_candidates,
+                "excluded_companies": dedupe_preserve_order(
+                    [item for trace in traces for item in trace.excluded_companies]
+                ),
+                "request_scoped_company_exclusions": dedupe_preserve_order(
+                    [item for trace in traces for item in trace.request_scoped_company_exclusions]
+                ),
+                "documents_passed_to_assembler": [
+                    item
+                    for trace in traces
+                    for item in trace.documents_passed_to_assembler
+                ],
+                "excluded_terminal_company_documents": dedupe_preserve_order(
+                    [item for trace in traces for item in trace.excluded_terminal_company_documents]
+                ),
+                "notes": dedupe_preserve_order([item for trace in traces for item in trace.notes]),
+            }
+        )
+
     def _sourcing_message(self, run: SearchRunSnapshot) -> str:
         next_attempt = min(run.budget.source_attempts_used + 1, run.budget.source_attempt_budget)
         return f"Searching the web for candidate {next_attempt} of {run.budget.source_attempt_budget}."
@@ -375,6 +620,20 @@ class LeadManagementEngine:
         run.progress_message = message
         run.last_heartbeat_at = now
         run.updated_at = now
+        run.stage_events.append(
+            RunStageEvent(
+                timestamp=now,
+                stage=stage,
+                message=message,
+                run_status=run.status,
+                source_attempts_used=run.budget.source_attempts_used,
+                source_attempt_budget=run.budget.source_attempt_budget,
+                enrich_attempts_used=run.budget.enrich_attempts_used,
+                enrich_attempt_budget=run.budget.enrich_attempt_budget,
+                search_calls_used=run.budget.search_calls_used,
+                search_call_budget=run.budget.search_call_budget,
+            )
+        )
         self._run_store.save_run(run)
 
     def _archive_final_run(self, run: SearchRunSnapshot) -> None:

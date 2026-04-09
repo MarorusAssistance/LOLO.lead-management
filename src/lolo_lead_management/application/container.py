@@ -57,7 +57,11 @@ def build_container(settings: Settings) -> ServiceContainer:
 
     llm_port = None
     if settings.llm_enabled:
-        llm_port = LmStudioLlmPort(base_url=settings.lm_studio_base_url, model=settings.lm_studio_model)
+        llm_port = LmStudioLlmPort(
+            base_url=settings.lm_studio_base_url,
+            model=settings.lm_studio_model,
+            timeout_seconds=settings.llm_timeout_seconds,
+        )
 
     if settings.search_enabled and settings.tavily_api_key:
         search_port = TavilySearchPort(api_key=settings.tavily_api_key, base_url=settings.tavily_base_url)
@@ -67,7 +71,7 @@ def build_container(settings: Settings) -> ServiceContainer:
     agent_executor = StageAgentExecutor(llm_port)
     engine = LeadManagementEngine(
         normalize_stage=NormalizeStage(agent_executor),
-        load_state_stage=LoadStateStage(memory_store),
+        load_state_stage=LoadStateStage(memory_store, environment=settings.environment),
         plan_stage=PlanStage(agent_executor),
         source_stage=SourceStage(search_port=search_port, agent_executor=agent_executor, max_results=settings.search_max_results),
         assemble_stage=AssembleStage(agent_executor),
@@ -85,6 +89,7 @@ def build_container(settings: Settings) -> ServiceContainer:
         continue_stage=ContinueOrFinishStage(run_store=run_store, memory_store=memory_store),
         run_store=run_store,
         shortlist_store=shortlist_store,
+        search_call_budget=settings.search_call_budget,
         source_attempt_budget=settings.source_attempt_budget,
         enrich_attempt_budget=settings.enrich_attempt_budget,
         archive_writer=archive_writer,

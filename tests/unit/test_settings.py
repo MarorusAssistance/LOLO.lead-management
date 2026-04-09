@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 from lolo_lead_management.config.env import load_env_file, parse_env_file
-from lolo_lead_management.config.settings import get_settings
+from lolo_lead_management.config.settings import Settings, get_settings
 
 from tests.helpers import workspace_tmp_dir
 
@@ -87,3 +87,23 @@ def test_get_settings_auto_loads_dotenv_from_cwd(monkeypatch) -> None:
     finally:
         get_settings.cache_clear()
         restore_env(snapshot)
+
+
+def test_settings_selects_development_database_by_default() -> None:
+    parsed = Settings.from_environ({"LOLO_ENVIRONMENT": "development"})
+    assert parsed.database_path == "data/lead_management.development.sqlite3"
+
+
+def test_settings_selects_production_database_by_default() -> None:
+    parsed = Settings.from_environ({"LOLO_ENVIRONMENT": "production"})
+    assert parsed.database_path == "data/lead_management.production.sqlite3"
+
+
+def test_settings_database_override_wins_over_environment_default() -> None:
+    parsed = Settings.from_environ(
+        {
+            "LOLO_ENVIRONMENT": "development",
+            "LOLO_DATABASE_PATH": "data/custom.sqlite3",
+        }
+    )
+    assert parsed.database_path == "data/custom.sqlite3"

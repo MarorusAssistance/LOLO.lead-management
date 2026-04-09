@@ -14,15 +14,20 @@ class TavilySearchPort(SearchPort):
         self._api_key = api_key
         self._base_url = base_url
         self._timeout_seconds = timeout_seconds
+        # Ignore inherited process proxies for Tavily/web fetches. In local dev
+        # this environment may inject a loopback blackhole proxy that makes all
+        # outbound requests fail even when direct connectivity works.
+        self._opener = request.build_opener(request.ProxyHandler({}))
 
     def web_search(self, query: ResearchQuery, *, max_results: int) -> list[EvidenceDocument]:
+        include_raw_content = self._include_raw_content_for_query(query)
         payload = {
             "query": query.query,
             "topic": "general",
             "search_depth": query.search_depth,
             "max_results": max_results,
             "include_answer": False,
-            "include_raw_content": "text",
+            "include_raw_content": include_raw_content,
             "include_images": False,
             "include_usage": False,
             "auto_parameters": False,
@@ -48,7 +53,7 @@ class TavilySearchPort(SearchPort):
                 "Accept": "application/json",
             },
         )
-        with request.urlopen(req, timeout=self._timeout_seconds) as response:
+        with self._opener.open(req, timeout=self._timeout_seconds) as response:
             raw = json.loads(response.read().decode("utf-8"))
 
         results = raw.get("results", [])
@@ -79,9 +84,12 @@ class TavilySearchPort(SearchPort):
             )
         return documents
 
+    def _include_raw_content_for_query(self, query: ResearchQuery):
+        return "text"
+
     def fetch_page(self, url: str) -> str:
         req = request.Request(url, headers={"User-Agent": "LOLOLeadManagement/0.1"})
-        with request.urlopen(req, timeout=self._timeout_seconds) as response:
+        with self._opener.open(req, timeout=self._timeout_seconds) as response:
             payload = response.read().decode("utf-8", errors="ignore")
         payload = re.sub(r"<script.*?</script>", " ", payload, flags=re.IGNORECASE | re.DOTALL)
         payload = re.sub(r"<style.*?</style>", " ", payload, flags=re.IGNORECASE | re.DOTALL)
@@ -107,7 +115,7 @@ class TavilySearchPort(SearchPort):
                 "Accept": "application/json",
             },
         )
-        with request.urlopen(req, timeout=self._timeout_seconds) as response:
+        with self._opener.open(req, timeout=self._timeout_seconds) as response:
             raw = json.loads(response.read().decode("utf-8"))
 
         documents: list[EvidenceDocument] = []

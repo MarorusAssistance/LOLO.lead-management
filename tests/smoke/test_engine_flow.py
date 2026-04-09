@@ -15,7 +15,7 @@ def test_end_to_end_accept_flow() -> None:
     search_index, pages = accepted_candidate_fixture()
     container = build_test_container(tmp_path, search_index=search_index, pages=pages)
     response = container.engine.start(
-        LeadSearchStartRequest(user_text="busca 1 lead CTO en españa entre 5 y 50 empleados con genai")
+        LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
     )
 
     assert response.status.value == "completed"
@@ -37,7 +37,7 @@ def test_shortlist_selection_promotes_close_match(tmp_path=None) -> None:
     search_index, pages = close_match_candidate_fixture()
     container = build_test_container(tmp_path, search_index=search_index, pages=pages)
     response = container.engine.start(
-        LeadSearchStartRequest(user_text="busca 1 lead CTO en españa entre 5 y 50 empleados con genai")
+        LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
     )
 
     assert response.shortlist_id is not None

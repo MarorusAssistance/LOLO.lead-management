@@ -7,7 +7,7 @@ from lolo_lead_management.engine.stages.normalize import NormalizeStage
 
 def test_commercial_stage_generates_bundle_without_llm() -> None:
     request = NormalizeStage(StageAgentExecutor(None)).execute(
-        LeadSearchStartRequest(user_text="busca 1 lead CTO en españa entre 5 y 50 empleados con genai")
+        LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
     )
     dossier = SourcingDossier(
         sourcing_status=SourcingStatus.FOUND,

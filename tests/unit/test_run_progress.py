@@ -57,3 +57,34 @@ def test_completed_run_keeps_final_progress_message() -> None:
     assert finished.status == RunStatus.COMPLETED
     assert finished.current_stage == StageName.CONTINUE_OR_FINISH
     assert finished.progress_message == "Search completed with 1 accepted leads."
+
+
+def test_completed_run_persists_stage_and_iteration_traces() -> None:
+    tmp_path = workspace_tmp_dir("progress-traces")
+    search_index, pages = accepted_candidate_fixture()
+    container = build_test_container(tmp_path, search_index=search_index, pages=pages)
+    run = container.engine.initialize_run(
+        LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
+    )
+
+    finished = container.engine.run_to_completion(run.run_id)
+
+    assert finished.stage_events
+    assert finished.stage_events[0].stage == StageName.NORMALIZE
+    assert finished.iterations
+    iteration = finished.iterations[0]
+    assert iteration.source_trace is not None
+    assert iteration.source_trace.query_traces
+    assert iteration.qualification_trace is not None
+    assert iteration.continue_trace is not None
+
+
+def test_run_budget_exposes_search_call_budget() -> None:
+    tmp_path = workspace_tmp_dir("progress-search-budget")
+    container = build_test_container(tmp_path)
+
+    run = container.engine.initialize_run(
+        LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
+    )
+
+    assert run.budget.search_call_budget == 10
