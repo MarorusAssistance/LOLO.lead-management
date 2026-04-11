@@ -254,6 +254,10 @@ class CompanyFocusResolution(StrictModel):
     legal_name: str | None = None
     query_name: str | None = None
     brand_aliases: list[str] = Field(default_factory=list)
+    candidate_website: str | None = None
+    country_code: str | None = None
+    employee_count_hint_value: int | None = Field(default=None, ge=0)
+    employee_count_hint_type: Literal["exact", "range", "estimate", "unknown"] = "unknown"
     selection_mode: Literal["confident", "plausible", "fallback", "none"] = "none"
     confidence: float = Field(default=0, ge=0, le=1)
     evidence_urls: list[str] = Field(default_factory=list)

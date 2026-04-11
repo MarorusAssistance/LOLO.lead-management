@@ -38,24 +38,17 @@ from lolo_lead_management.engine.rules import (
     company_name_matches_anchor,
     company_name_matches_anchor_strict,
     dedupe_preserve_order,
-    derive_anchor_legal_name,
-    derive_anchor_query_name,
-    derive_brand_aliases,
     document_can_seed_website_candidate,
     document_matches_anchor_strong,
     domain_from_url,
     domain_is_directory,
     domain_is_publisher_like,
     extracted_official_website_from_document,
-    extract_employee_size_hint,
     is_plausible_company_name,
     merge_documents,
     normalize_text,
-    parse_candidate_from_text,
     request_scoped_company_exclusions,
-    resolve_person_signal,
     resolve_website_resolution,
-    text_has_spanish_non_operational_signal,
 )
 from lolo_lead_management.engine.state import EngineRuntimeState
 
@@ -188,12 +181,16 @@ class AssembleStage:
                 "status": "no_documents",
                 "input_documents": [],
                 "excluded_companies": [],
-                "llm_input_payload": None,
-                "llm_raw_output": None,
-                "sanitized_discovery_candidates": [],
+                "focus_extraction_inputs": [],
+                "focus_extraction_raw_outputs": [],
+                "focus_extraction_sanitized_outputs": [],
+                "focus_document_steps": [],
+                "focus_consolidation_input": None,
+                "focus_consolidation_raw_output": None,
                 "focus_selection_mode": "none",
                 "discovery_batches_considered": attempts,
-                "focus_selection_basis": [],
+                "selection_reasons": [],
+                "hard_rejections": [],
                 "resolved_focus_company": None,
                 "focus_resolution": resolution.model_dump(mode="json"),
             }
@@ -201,52 +198,39 @@ class AssembleStage:
 
         excluded_companies = self._excluded_company_names(state)
         documents = self._prioritize_documents(source_result.documents, None)[:8]
-        candidate_extraction_inputs: list[dict] = []
-        candidate_extraction_raw_outputs: list[dict] = []
-        candidate_extraction_sanitized_outputs: list[dict] = []
-        candidate_document_steps: list[dict] = []
-        aggregated_candidate_ledger: list[DiscoveryCompanyCandidate] = []
+        focus_extraction_inputs: list[dict] = []
+        focus_extraction_raw_outputs: list[dict] = []
+        focus_extraction_sanitized_outputs: list[dict] = []
+        focus_document_steps: list[dict] = []
         for document in documents:
-            step = self._extract_discovery_candidates_from_document(
+            step = self._extract_discovery_focus_from_document(
                 state,
                 document,
-                candidate_extraction_inputs=candidate_extraction_inputs,
-                candidate_extraction_raw_outputs=candidate_extraction_raw_outputs,
-                candidate_extraction_sanitized_outputs=candidate_extraction_sanitized_outputs,
+                focus_extraction_inputs=focus_extraction_inputs,
+                focus_extraction_raw_outputs=focus_extraction_raw_outputs,
+                focus_extraction_sanitized_outputs=focus_extraction_sanitized_outputs,
             )
-            candidate_document_steps.append(step)
-            aggregated_candidate_ledger.extend(step["candidates"])
+            focus_document_steps.append(step)
 
-        scored_candidates = self._score_discovery_candidates(
-            aggregated_candidate_ledger,
-            preferred_country=state.run.request.constraints.preferred_country,
-            min_size=state.run.request.constraints.min_company_size,
-            max_size=state.run.request.constraints.max_company_size,
-            request_text=state.run.request.user_text,
-        )
-        resolution = self._sanitize_focus_resolution(
+        resolution, consolidation_payload, consolidation_raw_output = self._consolidate_discovery_focus(
+            state,
             documents=documents,
-            attempts=attempts,
+            focus_document_steps=focus_document_steps,
             excluded_companies=excluded_companies,
-            ledger_candidates=scored_candidates,
         )
         self.last_company_selection_trace = {
             "mode": "company_selection_mode",
-            "status": "ok" if aggregated_candidate_ledger else "no_candidates",
+            "status": "ok" if resolution.selected_company else "no_focus",
             "error": None,
             "input_documents": [self._document_snapshot(item) for item in documents],
             "excluded_companies": excluded_companies,
-            "llm_input_payload": None,
-            "llm_raw_output": None,
-            "sanitized_discovery_candidates": [item.model_dump(mode="json") for item in aggregated_candidate_ledger],
-            "candidate_extraction_inputs": candidate_extraction_inputs,
-            "candidate_extraction_raw_outputs": candidate_extraction_raw_outputs,
-            "candidate_extraction_sanitized_outputs": candidate_extraction_sanitized_outputs,
-            "candidate_document_steps": [self._serialize_candidate_document_step(item) for item in candidate_document_steps],
-            "aggregated_candidate_ledger": [item.model_dump(mode="json") for item in aggregated_candidate_ledger],
-            "candidate_scores": [item.model_dump(mode="json") for item in scored_candidates],
+            "focus_extraction_inputs": focus_extraction_inputs,
+            "focus_extraction_raw_outputs": focus_extraction_raw_outputs,
+            "focus_extraction_sanitized_outputs": focus_extraction_sanitized_outputs,
+            "focus_document_steps": [self._serialize_focus_document_step(item) for item in focus_document_steps],
+            "focus_consolidation_input": consolidation_payload,
+            "focus_consolidation_raw_output": consolidation_raw_output,
             "discovery_batches_considered": attempts,
-            "focus_selection_basis": [item.model_dump(mode="json") for item in resolution.discovery_candidates],
             "focus_selection_mode": resolution.selection_mode,
             "selection_reasons": resolution.selection_reasons,
             "hard_rejections": resolution.hard_rejections,
@@ -282,13 +266,13 @@ class AssembleStage:
         fallback_candidates: list[DiscoveryCompanyCandidate],
         excluded_companies: list[str],
     ) -> dict:
+        _ = fallback_candidates
         return {
             "mode": "company_selection_mode",
             "request_summary": self._request_summary(state),
             "discovery_attempts_for_current_pass": state.discovery_attempts_for_current_pass,
-            "excluded_companies": [],
+            "excluded_companies": excluded_companies[:8],
             "documents": [self._compact_document_payload(item, raw_limit=1200) for item in source_result.documents[:3]],
-            "fallback_candidates": [self._compact_fallback_candidate_payload(item) for item in fallback_candidates[:2]],
         }
 
     def _request_summary(self, state: EngineRuntimeState) -> dict:
@@ -333,67 +317,373 @@ class AssembleStage:
             "source_type": document.source_type,
         }
 
-    def _compact_fallback_candidate_payload(self, candidate: DiscoveryCompanyCandidate) -> dict:
+    def _serialize_focus_document_step(self, step: dict) -> dict:
         return {
-            "company_name": candidate.company_name,
-            "legal_name": candidate.legal_name,
-            "query_name": candidate.query_name,
-            "country_code": candidate.country_code,
-            "location_hint": candidate.location_hint,
-            "theme_tags": candidate.theme_tags[:3],
-            "candidate_website": candidate.candidate_website,
-            "employee_count_hint_value": candidate.employee_count_hint_value,
-            "employee_count_hint_type": candidate.employee_count_hint_type,
-            "evidence_urls": candidate.evidence_urls[:2],
-            "selection_score": candidate.selection_score,
-            "selection_reasons": candidate.selection_reasons[:2],
-            "hard_rejections": candidate.hard_rejections[:2],
+            "url": step.get("url"),
+            "mode": step.get("mode"),
+            "estimated_input_tokens": step.get("estimated_input_tokens"),
+            "llm_latency_ms": step.get("llm_latency_ms", 0),
+            "parse_success": step.get("parse_success", False),
+            "selected_company": step.get("selected_company"),
+            "segment_count": step.get("segment_count", 0),
         }
 
-    def _llm_first_focus_resolution(
+    def _extract_discovery_focus_from_document(
+        self,
+        state: EngineRuntimeState,
+        document: EvidenceDocument,
+        *,
+        focus_extraction_inputs: list[dict],
+        focus_extraction_raw_outputs: list[dict],
+        focus_extraction_sanitized_outputs: list[dict],
+    ) -> dict:
+        normalized_text = self._normalized_document_text(document)
+        estimated_input_tokens = self._estimate_input_tokens(normalized_text)
+        if normalized_text and estimated_input_tokens <= WHOLE_DOCUMENT_TOKEN_THRESHOLD:
+            return self._extract_discovery_focus_whole_document(
+                state,
+                document,
+                normalized_text=normalized_text,
+                estimated_input_tokens=estimated_input_tokens,
+                focus_extraction_inputs=focus_extraction_inputs,
+                focus_extraction_raw_outputs=focus_extraction_raw_outputs,
+                focus_extraction_sanitized_outputs=focus_extraction_sanitized_outputs,
+            )
+        return self._extract_discovery_focus_chunked(
+            state,
+            document,
+            estimated_input_tokens=max(estimated_input_tokens, self._estimate_input_tokens(self._document_text(document))),
+            focus_extraction_inputs=focus_extraction_inputs,
+            focus_extraction_raw_outputs=focus_extraction_raw_outputs,
+            focus_extraction_sanitized_outputs=focus_extraction_sanitized_outputs,
+        )
+
+    def _extract_discovery_focus_whole_document(
+        self,
+        state: EngineRuntimeState,
+        document: EvidenceDocument,
+        *,
+        normalized_text: str,
+        estimated_input_tokens: int,
+        focus_extraction_inputs: list[dict],
+        focus_extraction_raw_outputs: list[dict],
+        focus_extraction_sanitized_outputs: list[dict],
+    ) -> dict:
+        payload = {
+            "mode": "discovery_focus_document_mode",
+            "request_summary": self._request_summary(state),
+            "document": self._compact_document_payload(document, raw_limit=600),
+            "document_text": normalized_text,
+            "section_map": self._document_section_map(document),
+            "excluded_companies": self._excluded_company_names(state),
+        }
+        focus_extraction_inputs.append({"url": document.url, "mode": payload["mode"], "payload": payload})
+        started = time.perf_counter()
+        attempt = self._agent_executor.generate_structured_attempt(
+            spec=STAGE_AGENT_SPECS[StageName.ASSEMBLE],
+            payload=payload,
+            output_model=CompanyFocusResolution,
+        )
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        resolution = self._sanitize_llm_focus_resolution(
+            attempt.parsed if isinstance(attempt.parsed, CompanyFocusResolution) else None,
+            documents=[document],
+            allowed_urls={document.url},
+            excluded_companies=self._excluded_company_names(state),
+            error=attempt.error,
+        )
+        if isinstance(attempt.raw, dict):
+            focus_extraction_raw_outputs.append(
+                {"url": document.url, "mode": payload["mode"], "raw_output": attempt.raw}
+            )
+        focus_extraction_sanitized_outputs.append(
+            {
+                "url": document.url,
+                "mode": payload["mode"],
+                "resolution": resolution.model_dump(mode="json"),
+                "llm_error": attempt.error,
+            }
+        )
+        return {
+            "url": document.url,
+            "mode": payload["mode"],
+            "estimated_input_tokens": estimated_input_tokens,
+            "llm_latency_ms": latency_ms,
+            "parse_success": isinstance(attempt.parsed, CompanyFocusResolution),
+            "selected_company": resolution.selected_company,
+            "segment_count": 1,
+            "resolution": resolution,
+        }
+
+    def _extract_discovery_focus_chunked(
+        self,
+        state: EngineRuntimeState,
+        document: EvidenceDocument,
+        *,
+        estimated_input_tokens: int,
+        focus_extraction_inputs: list[dict],
+        focus_extraction_raw_outputs: list[dict],
+        focus_extraction_sanitized_outputs: list[dict],
+    ) -> dict:
+        segments = self._segment_document(document)
+        chunk_outputs: list[dict] = []
+        parse_success = True
+        total_latency_ms = 0
+        excluded_companies = self._excluded_company_names(state)
+        for chunk in segments:
+            payload = {
+                "mode": "discovery_focus_chunk_mode",
+                "request_summary": self._request_summary(state),
+                "document": self._compact_document_payload(document, raw_limit=600),
+                "chunk": {
+                    "index": chunk["index"],
+                    "total": chunk["total"],
+                    "text": chunk["text"],
+                    "truncated": chunk["truncated"],
+                    "segment_type": chunk.get("segment_type"),
+                    "heading_path": chunk.get("heading_path", []),
+                    "noise": bool(chunk.get("noise", False)),
+                },
+                "excluded_companies": excluded_companies,
+            }
+            focus_extraction_inputs.append({"url": document.url, "mode": payload["mode"], "payload": payload})
+            started = time.perf_counter()
+            attempt = self._agent_executor.generate_structured_attempt(
+                spec=STAGE_AGENT_SPECS[StageName.ASSEMBLE],
+                payload=payload,
+                output_model=CompanyFocusResolution,
+            )
+            total_latency_ms += int((time.perf_counter() - started) * 1000)
+            resolution = self._sanitize_llm_focus_resolution(
+                attempt.parsed if isinstance(attempt.parsed, CompanyFocusResolution) else None,
+                documents=[document],
+                allowed_urls={document.url},
+                excluded_companies=excluded_companies,
+                error=attempt.error,
+            )
+            if not isinstance(attempt.parsed, CompanyFocusResolution):
+                parse_success = False
+            if isinstance(attempt.raw, dict):
+                focus_extraction_raw_outputs.append(
+                    {"url": document.url, "mode": payload["mode"], "segment_index": chunk["index"], "raw_output": attempt.raw}
+                )
+            focus_extraction_sanitized_outputs.append(
+                {
+                    "url": document.url,
+                    "mode": payload["mode"],
+                    "segment_index": chunk["index"],
+                    "resolution": resolution.model_dump(mode="json"),
+                    "llm_error": attempt.error,
+                }
+            )
+            chunk_outputs.append(
+                {
+                    "segment_index": chunk["index"],
+                    "segment_type": chunk.get("segment_type"),
+                    "heading_path": chunk.get("heading_path", []),
+                    "resolution": resolution.model_dump(mode="json"),
+                }
+            )
+        resolution, consolidation_latency_ms, consolidation_parse_success = self._consolidate_discovery_focus_scope(
+            state,
+            scope="document",
+            documents=[document],
+            extracted_focuses=chunk_outputs,
+            excluded_companies=excluded_companies,
+            focus_extraction_inputs=focus_extraction_inputs,
+            focus_extraction_raw_outputs=focus_extraction_raw_outputs,
+            focus_extraction_sanitized_outputs=focus_extraction_sanitized_outputs,
+        )
+        return {
+            "url": document.url,
+            "mode": "discovery_focus_chunk_mode",
+            "estimated_input_tokens": estimated_input_tokens,
+            "llm_latency_ms": total_latency_ms + consolidation_latency_ms,
+            "parse_success": parse_success and consolidation_parse_success,
+            "selected_company": resolution.selected_company,
+            "segment_count": len(segments),
+            "resolution": resolution,
+        }
+
+    def _consolidate_discovery_focus(
+        self,
+        state: EngineRuntimeState,
+        *,
+        documents: list[EvidenceDocument],
+        focus_document_steps: list[dict],
+        excluded_companies: list[str],
+    ) -> tuple[CompanyFocusResolution, dict | None, dict | None]:
+        extracted_focuses = [
+            {
+                "document_url": step["url"],
+                "mode": step["mode"],
+                "selected_company": step["selected_company"],
+                "resolution": step["resolution"].model_dump(mode="json"),
+            }
+            for step in focus_document_steps
+        ]
+        if not extracted_focuses or not any(step["selected_company"] for step in focus_document_steps):
+            return CompanyFocusResolution(selection_mode="none", notes=["no_focus_candidates_from_documents"]), None, None
+        payload = {
+            "mode": "discovery_focus_consolidation_mode",
+            "scope": "batch",
+            "request_summary": self._request_summary(state),
+            "documents": [self._compact_document_payload(item, raw_limit=220) for item in documents],
+            "extracted_focuses": extracted_focuses,
+            "excluded_companies": excluded_companies,
+        }
+        started = time.perf_counter()
+        attempt = self._agent_executor.generate_structured_attempt(
+            spec=STAGE_AGENT_SPECS[StageName.ASSEMBLE],
+            payload=payload,
+            output_model=CompanyFocusResolution,
+        )
+        _ = int((time.perf_counter() - started) * 1000)
+        resolution = self._sanitize_llm_focus_resolution(
+            attempt.parsed if isinstance(attempt.parsed, CompanyFocusResolution) else None,
+            documents=documents,
+            allowed_urls={item.url for item in documents},
+            excluded_companies=excluded_companies,
+            error=attempt.error,
+        )
+        raw_output = attempt.raw if isinstance(attempt.raw, dict) else None
+        return resolution, payload, raw_output
+
+    def _consolidate_discovery_focus_scope(
+        self,
+        state: EngineRuntimeState,
+        *,
+        scope: str,
+        documents: list[EvidenceDocument],
+        extracted_focuses: list[dict],
+        excluded_companies: list[str],
+        focus_extraction_inputs: list[dict],
+        focus_extraction_raw_outputs: list[dict],
+        focus_extraction_sanitized_outputs: list[dict],
+    ) -> tuple[CompanyFocusResolution, int, bool]:
+        if not extracted_focuses or not any((item.get("resolution") or {}).get("selected_company") for item in extracted_focuses):
+            return CompanyFocusResolution(selection_mode="none", notes=[f"no_focus_candidates_from_{scope}"]), 0, True
+        payload = {
+            "mode": "discovery_focus_consolidation_mode",
+            "scope": scope,
+            "request_summary": self._request_summary(state),
+            "documents": [self._compact_document_payload(item, raw_limit=220) for item in documents],
+            "extracted_focuses": extracted_focuses,
+            "excluded_companies": excluded_companies,
+        }
+        focus_extraction_inputs.append({"url": documents[0].url if len(documents) == 1 else "multi", "mode": payload["mode"], "payload": payload})
+        started = time.perf_counter()
+        attempt = self._agent_executor.generate_structured_attempt(
+            spec=STAGE_AGENT_SPECS[StageName.ASSEMBLE],
+            payload=payload,
+            output_model=CompanyFocusResolution,
+        )
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        resolution = self._sanitize_llm_focus_resolution(
+            attempt.parsed if isinstance(attempt.parsed, CompanyFocusResolution) else None,
+            documents=documents,
+            allowed_urls={item.url for item in documents},
+            excluded_companies=excluded_companies,
+            error=attempt.error,
+        )
+        raw_output = attempt.raw if isinstance(attempt.raw, dict) else None
+        if raw_output is not None:
+            focus_extraction_raw_outputs.append(
+                {
+                    "url": documents[0].url if len(documents) == 1 else "multi",
+                    "mode": payload["mode"],
+                    "scope": scope,
+                    "raw_output": raw_output,
+                }
+            )
+        focus_extraction_sanitized_outputs.append(
+            {
+                "url": documents[0].url if len(documents) == 1 else "multi",
+                "mode": payload["mode"],
+                "scope": scope,
+                "resolution": resolution.model_dump(mode="json"),
+                "llm_error": attempt.error,
+            }
+        )
+        return resolution, latency_ms, isinstance(attempt.parsed, CompanyFocusResolution)
+
+    def _sanitize_llm_focus_resolution(
         self,
         generated: CompanyFocusResolution | None,
         *,
         documents: list[EvidenceDocument],
-        fallback_candidates: list[DiscoveryCompanyCandidate],
         allowed_urls: set[str],
+        excluded_companies: list[str],
+        error: str | None = None,
     ) -> CompanyFocusResolution:
-        if generated is not None and generated.selected_company:
-            selected_company = clean_company_name(generated.selected_company) or generated.selected_company
-            legal_name = clean_company_name(generated.legal_name) or selected_company
-            query_name = clean_company_name(generated.query_name) or selected_company
-            evidence_urls = [url for url in generated.evidence_urls if url in allowed_urls]
-            if not evidence_urls and documents:
-                evidence_urls = [documents[0].url]
-            return generated.model_copy(
-                update={
-                    "selected_company": selected_company,
-                    "legal_name": legal_name,
-                    "query_name": query_name,
-                    "brand_aliases": dedupe_preserve_order(
-                        [clean_company_name(alias) for alias in generated.brand_aliases if clean_company_name(alias)]
-                    ),
-                    "evidence_urls": evidence_urls,
-                    "selection_mode": generated.selection_mode if generated.selection_mode != "none" else "plausible",
-                    "notes": dedupe_preserve_order([*generated.notes, "focus_selected_by_llm_first"]),
-                }
-            )
-        if fallback_candidates:
-            top = fallback_candidates[0]
+        notes: list[str] = []
+        if error:
+            notes.append(f"llm_error={error}")
+        if generated is None:
+            return CompanyFocusResolution(selection_mode="none", notes=dedupe_preserve_order([*notes, "focus_resolution_missing"]))
+
+        selected_company = clean_company_name(generated.selected_company)
+        legal_name = clean_company_name(generated.legal_name) or selected_company
+        query_name = clean_company_name(generated.query_name) or selected_company
+        brand_aliases = dedupe_preserve_order(
+            [clean_company_name(alias) for alias in generated.brand_aliases if clean_company_name(alias)]
+        )
+        candidate_website = canonicalize_website(generated.candidate_website)
+        country_code = canonicalize_country_code(generated.country_code) if generated.country_code else None
+        evidence_urls = [url for url in generated.evidence_urls if url in allowed_urls]
+        selection_reasons = dedupe_preserve_order(generated.selection_reasons)
+        hard_rejections = dedupe_preserve_order(generated.hard_rejections)
+        notes = dedupe_preserve_order([*notes, *generated.notes])
+
+        if not selected_company:
             return CompanyFocusResolution(
-                selected_company=top.legal_name or top.company_name,
-                legal_name=top.legal_name or top.company_name,
-                query_name=top.query_name or top.company_name,
-                brand_aliases=top.brand_aliases,
-                selection_mode="fallback",
-                confidence=max(0.2, min(top.selection_score, 0.8)),
-                evidence_urls=top.evidence_urls[:4],
-                selection_reasons=top.selection_reasons,
-                hard_rejections=top.hard_rejections,
-                discovery_candidates=fallback_candidates,
-                notes=["focus_selected_by_minimal_fallback"],
+                selection_mode="none",
+                notes=dedupe_preserve_order([*notes, "selected_company_missing"]),
+                selection_reasons=selection_reasons,
+                hard_rejections=hard_rejections,
             )
-        return CompanyFocusResolution(selection_mode="none", discovery_candidates=[], notes=["no_company_selected"])
+        normalized_tokens = [token for token in normalize_text(selected_company).split() if token]
+        if normalized_tokens and len(normalized_tokens[0]) == 1:
+            return CompanyFocusResolution(
+                selection_mode="none",
+                notes=dedupe_preserve_order([*notes, "selected_company_corrupted"]),
+                selection_reasons=selection_reasons,
+                hard_rejections=hard_rejections,
+            )
+        if any(company_name_matches_anchor(selected_company, excluded) for excluded in excluded_companies):
+            return CompanyFocusResolution(
+                selection_mode="none",
+                notes=dedupe_preserve_order([*notes, "selected_company_excluded"]),
+                selection_reasons=selection_reasons,
+                hard_rejections=hard_rejections,
+            )
+        if not evidence_urls:
+            return CompanyFocusResolution(
+                selection_mode="none",
+                notes=dedupe_preserve_order([*notes, "selected_company_missing_valid_evidence_url"]),
+                selection_reasons=selection_reasons,
+                hard_rejections=hard_rejections,
+            )
+
+        selection_mode = generated.selection_mode if generated.selection_mode in {"confident", "plausible", "fallback", "none"} else "plausible"
+        if selection_mode == "none":
+            selection_mode = "plausible"
+        return CompanyFocusResolution(
+            selected_company=selected_company,
+            legal_name=legal_name or selected_company,
+            query_name=query_name or selected_company,
+            brand_aliases=brand_aliases,
+            candidate_website=candidate_website,
+            country_code=country_code,
+            employee_count_hint_value=generated.employee_count_hint_value,
+            employee_count_hint_type=generated.employee_count_hint_type,
+            selection_mode=selection_mode,
+            confidence=max(0.0, min(generated.confidence, 1.0)),
+            evidence_urls=evidence_urls,
+            selection_reasons=selection_reasons,
+            hard_rejections=hard_rejections,
+            notes=notes,
+        )
 
     def _build_grounded_resolution(
         self,

@@ -18,6 +18,63 @@ def _legacy_resolution_to_chunk_response(response: dict, *, input_payload: dict)
                 "notes": response.get("notes", []),
             }
         return {"segment_company_name": None, "discovery_candidates": [], "notes": response.get("notes", [])}
+    if input_payload.get("mode") in {
+        "discovery_focus_document_mode",
+        "discovery_focus_chunk_mode",
+        "discovery_focus_consolidation_mode",
+    }:
+        if "selected_company" in response or "selection_mode" in response:
+            return {
+                "selected_company": response.get("selected_company"),
+                "legal_name": response.get("legal_name"),
+                "query_name": response.get("query_name"),
+                "brand_aliases": response.get("brand_aliases", []),
+                "candidate_website": response.get("candidate_website"),
+                "country_code": response.get("country_code"),
+                "employee_count_hint_value": response.get("employee_count_hint_value"),
+                "employee_count_hint_type": response.get("employee_count_hint_type", "unknown"),
+                "selection_mode": response.get("selection_mode", "none"),
+                "confidence": response.get("confidence", 0),
+                "evidence_urls": response.get("evidence_urls", []),
+                "selection_reasons": response.get("selection_reasons", []),
+                "hard_rejections": response.get("hard_rejections", []),
+                "notes": response.get("notes", []),
+            }
+        discovery_candidates = response.get("discovery_candidates", [])
+        for item in discovery_candidates:
+            if item.get("is_real_company_candidate") and not item.get("rejection_reason"):
+                return {
+                    "selected_company": item.get("legal_name") or item.get("company_name"),
+                    "legal_name": item.get("legal_name") or item.get("company_name"),
+                    "query_name": item.get("query_name") or item.get("company_name"),
+                    "brand_aliases": item.get("brand_aliases", []),
+                    "candidate_website": item.get("candidate_website"),
+                    "country_code": item.get("country_code"),
+                    "employee_count_hint_value": item.get("employee_count_hint_value"),
+                    "employee_count_hint_type": item.get("employee_count_hint_type", "unknown"),
+                    "selection_mode": "confident",
+                    "confidence": 0.8,
+                    "evidence_urls": item.get("evidence_urls", []),
+                    "selection_reasons": ["fixture_focus_candidate"],
+                    "hard_rejections": [],
+                    "notes": response.get("notes", []),
+                }
+        return {
+            "selected_company": None,
+            "legal_name": None,
+            "query_name": None,
+            "brand_aliases": [],
+            "candidate_website": None,
+            "country_code": None,
+            "employee_count_hint_value": None,
+            "employee_count_hint_type": "unknown",
+            "selection_mode": "none",
+            "confidence": 0,
+            "evidence_urls": [],
+            "selection_reasons": [],
+            "hard_rejections": [],
+            "notes": response.get("notes", []),
+        }
     if input_payload.get("mode") not in {"focus_locked_chunk_mode", "focus_locked_document_mode"}:
         return response
     if "contact_assertions" in response:
@@ -155,55 +212,56 @@ class ChunkAwareAssemblerLlmPort:
     def generate_json(self, *, agent_name: str, system_prompt: str, input_payload: dict, schema: dict) -> dict:
         _ = (agent_name, system_prompt, schema)
         self.calls.append(input_payload["mode"])
-        if input_payload["mode"] == "discovery_candidate_document_mode":
+        if input_payload["mode"] == "discovery_focus_document_mode":
             return {
-                "segment_company_name": "Acme AI",
-                "discovery_candidates": [
-                    {
-                        "company_name": "Acme AI",
-                        "legal_name": "Acme AI SL",
-                        "query_name": "Acme AI",
-                        "brand_aliases": ["Acme AI"],
-                        "country_code": "es",
-                        "location_hint": "Madrid",
-                        "theme_tags": ["software", "ia"],
-                        "candidate_website": "https://acme.ai",
-                        "employee_count_hint_value": 25,
-                        "employee_count_hint_type": "exact",
-                        "operational_status": "active",
-                        "support_type": "explicit",
-                        "evidence_excerpt": "Company: Acme AI",
-                        "evidence_urls": [input_payload["document"]["url"]],
-                        "is_real_company_candidate": True,
-                        "rejection_reason": None,
-                    }
-                ],
-                "notes": ["document_candidates_ok"],
+                "selected_company": "Acme AI SL",
+                "legal_name": "Acme AI SL",
+                "query_name": "Acme AI",
+                "brand_aliases": ["Acme AI"],
+                "candidate_website": "https://acme.ai",
+                "country_code": "es",
+                "employee_count_hint_value": 25,
+                "employee_count_hint_type": "exact",
+                "selection_mode": "confident",
+                "confidence": 0.92,
+                "evidence_urls": [input_payload["document"]["url"]],
+                "selection_reasons": ["explicit_company_profile"],
+                "hard_rejections": [],
+                "notes": ["document_focus_ok"],
             }
-        if input_payload["mode"] == "discovery_candidate_chunk_mode":
+        if input_payload["mode"] == "discovery_focus_chunk_mode":
             return {
-                "segment_company_name": "Acme AI",
-                "discovery_candidates": [
-                    {
-                        "company_name": "Acme AI",
-                        "legal_name": "Acme AI SL",
-                        "query_name": "Acme AI",
-                        "brand_aliases": ["Acme AI"],
-                        "country_code": "es",
-                        "location_hint": "Madrid",
-                        "theme_tags": ["software", "ia"],
-                        "candidate_website": "https://acme.ai",
-                        "employee_count_hint_value": 25,
-                        "employee_count_hint_type": "exact",
-                        "operational_status": "active",
-                        "support_type": "explicit",
-                        "evidence_excerpt": "Company: Acme AI",
-                        "evidence_urls": [input_payload["document"]["url"]],
-                        "is_real_company_candidate": True,
-                        "rejection_reason": None,
-                    }
-                ],
-                "notes": ["chunk_candidates_ok"],
+                "selected_company": "Acme AI SL",
+                "legal_name": "Acme AI SL",
+                "query_name": "Acme AI",
+                "brand_aliases": ["Acme AI"],
+                "candidate_website": "https://acme.ai",
+                "country_code": "es",
+                "employee_count_hint_value": 25,
+                "employee_count_hint_type": "exact",
+                "selection_mode": "plausible",
+                "confidence": 0.74,
+                "evidence_urls": [input_payload["document"]["url"]],
+                "selection_reasons": ["chunk_support"],
+                "hard_rejections": [],
+                "notes": ["chunk_focus_ok"],
+            }
+        if input_payload["mode"] == "discovery_focus_consolidation_mode":
+            return {
+                "selected_company": "Acme AI SL",
+                "legal_name": "Acme AI SL",
+                "query_name": "Acme AI",
+                "brand_aliases": ["Acme AI"],
+                "candidate_website": "https://acme.ai",
+                "country_code": "es",
+                "employee_count_hint_value": 25,
+                "employee_count_hint_type": "exact",
+                "selection_mode": "confident",
+                "confidence": 0.93,
+                "evidence_urls": [((input_payload.get("documents") or [{}])[0]).get("url")],
+                "selection_reasons": ["consolidated_best_focus"],
+                "hard_rejections": [],
+                "notes": ["focus_consolidated"],
             }
         if input_payload["mode"] == "focus_locked_chunk_mode":
             return {
@@ -1087,9 +1145,9 @@ def test_company_selection_trace_persists_input_and_resolution() -> None:
     assert resolution.selected_company == "ORIGEN INTELIGENCIA ARTIFICIAL SL"
     assert stage.last_company_selection_trace is not None
     assert stage.last_company_selection_trace["input_documents"]
-    assert stage.last_company_selection_trace["candidate_extraction_inputs"]
-    assert stage.last_company_selection_trace["candidate_document_steps"]
-    assert stage.last_company_selection_trace["aggregated_candidate_ledger"]
+    assert stage.last_company_selection_trace["focus_extraction_inputs"]
+    assert stage.last_company_selection_trace["focus_document_steps"]
+    assert stage.last_company_selection_trace["focus_resolution"]["selected_company"] == "ORIGEN INTELIGENCIA ARTIFICIAL SL"
     assert stage.last_company_selection_trace["resolved_focus_company"] == "ORIGEN INTELIGENCIA ARTIFICIAL SL"
 
 
@@ -1175,7 +1233,8 @@ def test_company_selection_uses_whole_document_mode_when_discovery_document_fits
     resolution = AssembleStage(StageAgentExecutor(llm)).select_focus_company(state)
 
     assert resolution.selected_company == "Acme AI SL"
-    assert "discovery_candidate_document_mode" in llm.calls
+    assert "discovery_focus_document_mode" in llm.calls
+    assert "discovery_focus_consolidation_mode" in llm.calls
 
 
 def test_company_selection_uses_chunk_mode_when_discovery_document_exceeds_threshold() -> None:
@@ -1207,7 +1266,8 @@ def test_company_selection_uses_chunk_mode_when_discovery_document_exceeds_thres
     resolution = AssembleStage(StageAgentExecutor(llm)).select_focus_company(state)
 
     assert resolution.selected_company == "Acme AI SL"
-    assert "discovery_candidate_chunk_mode" in llm.calls
+    assert "discovery_focus_chunk_mode" in llm.calls
+    assert "discovery_focus_consolidation_mode" in llm.calls
 
 
 def test_focus_source_result_filters_non_matching_documents() -> None:
@@ -1280,48 +1340,49 @@ def test_company_selection_chooses_highest_scored_llm_candidate() -> None:
     llm = SequentialAssemblerLlmPort(
         [
             {
-                "discovery_candidates": [
-                    {
-                        "company_name": "Software Avanzado De Archivos Y Servicios Spain Sl",
-                        "legal_name": "Software Avanzado De Archivos Y Servicios Spain Sl",
-                        "query_name": "Software Avanzado De Archivos Y Servicios",
-                        "brand_aliases": ["Software Avanzado De Archivos Y Servicios"],
-                        "country_code": "es",
-                        "location_hint": "Madrid",
-                        "theme_tags": ["software"],
-                        "candidate_website": None,
-                        "employee_count_hint_value": 22,
-                        "employee_count_hint_type": "exact",
-                        "operational_status": "active",
-                        "support_type": "explicit",
-                        "evidence_excerpt": "Software Avanzado De Archivos Y Servicios Spain Sl",
-                        "evidence_urls": ["https://empresite.eleconomista.es/SOFTWARE-AVANZADO-ARCHIVOS-SERVICIOS-SPAIN.html"],
-                        "is_real_company_candidate": True,
-                        "rejection_reason": None,
-                    }
-                ]
+                "selected_company": "Software Avanzado De Archivos Y Servicios Spain Sl",
+                "legal_name": "Software Avanzado De Archivos Y Servicios Spain Sl",
+                "query_name": "Software Avanzado De Archivos Y Servicios",
+                "brand_aliases": ["Software Avanzado De Archivos Y Servicios"],
+                "country_code": "es",
+                "candidate_website": None,
+                "employee_count_hint_value": 22,
+                "employee_count_hint_type": "exact",
+                "selection_mode": "confident",
+                "confidence": 0.82,
+                "evidence_urls": ["https://empresite.eleconomista.es/SOFTWARE-AVANZADO-ARCHIVOS-SERVICIOS-SPAIN.html"],
+                "selection_reasons": ["directory_profile"],
+                "hard_rejections": [],
             },
             {
-                "discovery_candidates": [
-                    {
-                        "company_name": "SAAS LEVEL UP 2019 SOCIEDAD LIMITADA",
-                        "legal_name": "SAAS LEVEL UP 2019 SOCIEDAD LIMITADA",
-                        "query_name": "SAAS LEVEL UP 2019",
-                        "brand_aliases": ["SAAS LEVEL UP 2019"],
-                        "country_code": "es",
-                        "location_hint": "Madrid",
-                        "theme_tags": ["software"],
-                        "candidate_website": None,
-                        "employee_count_hint_value": None,
-                        "employee_count_hint_type": "unknown",
-                        "operational_status": "active",
-                        "support_type": "explicit",
-                        "evidence_excerpt": "SAAS LEVEL UP 2019 SOCIEDAD LIMITADA",
-                        "evidence_urls": ["https://empresite.eleconomista.es/SAAS-LEVEL-UP-2019.html"],
-                        "is_real_company_candidate": True,
-                        "rejection_reason": None,
-                    }
-                ]
+                "selected_company": "SAAS LEVEL UP 2019 SOCIEDAD LIMITADA",
+                "legal_name": "SAAS LEVEL UP 2019 SOCIEDAD LIMITADA",
+                "query_name": "SAAS LEVEL UP 2019",
+                "brand_aliases": ["SAAS LEVEL UP 2019"],
+                "country_code": "es",
+                "candidate_website": None,
+                "employee_count_hint_value": None,
+                "employee_count_hint_type": "unknown",
+                "selection_mode": "plausible",
+                "confidence": 0.55,
+                "evidence_urls": ["https://empresite.eleconomista.es/SAAS-LEVEL-UP-2019.html"],
+                "selection_reasons": ["company_profile"],
+                "hard_rejections": [],
+            },
+            {
+                "selected_company": "Software Avanzado De Archivos Y Servicios Spain Sl",
+                "legal_name": "Software Avanzado De Archivos Y Servicios Spain Sl",
+                "query_name": "Software Avanzado De Archivos Y Servicios",
+                "brand_aliases": ["Software Avanzado De Archivos Y Servicios"],
+                "country_code": "es",
+                "candidate_website": None,
+                "employee_count_hint_value": 22,
+                "employee_count_hint_type": "exact",
+                "selection_mode": "confident",
+                "confidence": 0.9,
+                "evidence_urls": ["https://empresite.eleconomista.es/SOFTWARE-AVANZADO-ARCHIVOS-SERVICIOS-SPAIN.html"],
+                "selection_reasons": ["best_supported_focus"],
+                "hard_rejections": [],
             },
         ]
     )
@@ -1329,10 +1390,10 @@ def test_company_selection_chooses_highest_scored_llm_candidate() -> None:
     resolution = AssembleStage(StageAgentExecutor(llm)).select_focus_company(state)
 
     assert resolution.selected_company == "Software Avanzado De Archivos Y Servicios Spain Sl"
-    assert "selected_by=confident" in resolution.notes
+    assert resolution.selection_mode == "confident"
 
 
-def test_company_selection_rejects_country_mismatched_candidate_from_llm_ledger() -> None:
+def test_company_selection_prefers_none_when_llm_returns_no_valid_focus() -> None:
     request = NormalizeStage(StageAgentExecutor(None)).execute(
         LeadSearchStartRequest(user_text="busca 1 founder o CTO de una empresa espanola de software con menos de 50 empleados")
     )
@@ -1358,26 +1419,9 @@ def test_company_selection_rejects_country_mismatched_candidate_from_llm_ledger(
     )
     llm = FakeAssemblerLlmPort(
         {
-            "discovery_candidates": [
-                {
-                    "company_name": "ACME US INC",
-                    "legal_name": "ACME US INC",
-                    "query_name": "ACME US",
-                    "brand_aliases": ["Acme"],
-                    "country_code": "us",
-                    "location_hint": "New York",
-                    "theme_tags": ["software"],
-                    "candidate_website": None,
-                    "employee_count_hint_value": 12,
-                    "employee_count_hint_type": "exact",
-                    "operational_status": "active",
-                    "support_type": "explicit",
-                    "evidence_excerpt": "Company: ACME US INC",
-                    "evidence_urls": ["https://example.com/acme-us"],
-                    "is_real_company_candidate": True,
-                    "rejection_reason": None,
-                }
-            ]
+            "selected_company": None,
+            "selection_mode": "none",
+            "notes": ["country_mismatch_to_request"],
         }
     )
 

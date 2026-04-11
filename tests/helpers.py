@@ -44,36 +44,49 @@ class FixtureLeadLlmPort:
     def generate_json(self, *, agent_name: str, system_prompt: str, input_payload: dict, schema: dict) -> dict:
         _ = (agent_name, system_prompt, schema)
         mode = input_payload.get("mode")
-        if mode in {"discovery_candidate_document_mode", "discovery_candidate_chunk_mode"}:
+        if mode in {"discovery_focus_document_mode", "discovery_focus_chunk_mode"}:
             text = input_payload.get("document_text") or ((input_payload.get("chunk") or {}).get("text") or "")
             company_name = self._extract_company_name(text, (input_payload.get("document") or {}).get("title") or "")
             if not company_name:
-                return {"segment_company_name": None, "discovery_candidates": [], "notes": ["fixture_no_candidate"]}
+                return {"selected_company": None, "selection_mode": "none", "notes": ["fixture_no_candidate"]}
             query_name = self._derive_query_name(company_name)
             return {
-                "segment_company_name": company_name,
-                "discovery_candidates": [
-                    {
-                        "company_name": company_name,
-                        "legal_name": company_name,
-                        "query_name": query_name,
-                        "brand_aliases": [company_name],
-                        "country_code": self._extract_country(text),
-                        "location_hint": None,
-                        "theme_tags": self._extract_theme_tags(text),
-                        "candidate_website": self._extract_website(text),
-                        "employee_count_hint_value": self._extract_employee_count(text),
-                        "employee_count_hint_type": "exact" if self._extract_employee_count(text) is not None else "unknown",
-                        "operational_status": "active",
-                        "support_type": "explicit",
-                        "evidence_excerpt": text[:220],
-                        "evidence_urls": [(input_payload.get("document") or {}).get("url")],
-                        "is_real_company_candidate": True,
-                        "rejection_reason": None,
-                    }
-                ],
+                "selected_company": company_name,
+                "legal_name": company_name,
+                "query_name": query_name,
+                "brand_aliases": [company_name],
+                "candidate_website": self._extract_website(text),
+                "country_code": self._extract_country(text),
+                "employee_count_hint_value": self._extract_employee_count(text),
+                "employee_count_hint_type": "exact" if self._extract_employee_count(text) is not None else "unknown",
+                "selection_mode": "confident",
+                "confidence": 0.85,
+                "evidence_urls": [(input_payload.get("document") or {}).get("url")],
+                "selection_reasons": ["fixture_candidate"],
+                "hard_rejections": [],
                 "notes": ["fixture_candidate"],
             }
+        if mode == "discovery_focus_consolidation_mode":
+            for item in input_payload.get("extracted_focuses", []):
+                resolution = item.get("resolution") or {}
+                if resolution.get("selected_company"):
+                    return {
+                        "selected_company": resolution.get("selected_company"),
+                        "legal_name": resolution.get("legal_name"),
+                        "query_name": resolution.get("query_name"),
+                        "brand_aliases": resolution.get("brand_aliases", []),
+                        "candidate_website": resolution.get("candidate_website"),
+                        "country_code": resolution.get("country_code"),
+                        "employee_count_hint_value": resolution.get("employee_count_hint_value"),
+                        "employee_count_hint_type": resolution.get("employee_count_hint_type", "unknown"),
+                        "selection_mode": "confident",
+                        "confidence": 0.9,
+                        "evidence_urls": resolution.get("evidence_urls", []),
+                        "selection_reasons": ["fixture_consolidated_focus"],
+                        "hard_rejections": [],
+                        "notes": ["fixture_focus_consolidation"],
+                    }
+            return {"selected_company": None, "selection_mode": "none", "notes": ["fixture_no_focus_candidates"]}
         if mode in {"focus_locked_document_mode", "focus_locked_chunk_mode"}:
             text = input_payload.get("document_text") or ((input_payload.get("chunk") or {}).get("text") or "")
             company_name = input_payload.get("focus_company") or self._extract_company_name(text, (input_payload.get("document") or {}).get("title") or "")
