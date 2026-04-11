@@ -177,8 +177,8 @@ def test_qualifier_downgrades_inferred_role_without_explicit_evidence() -> None:
             AssembledFieldEvidence(field_name="website", value="https://acme.ai", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence[1:], contradicting_evidence=[], source_quality=SourceQuality.HIGH, reasoning_note="ok"),
             AssembledFieldEvidence(field_name="country", value="es", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, reasoning_note="ok"),
             AssembledFieldEvidence(field_name="employee_estimate", value=25, status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.MEDIUM, reasoning_note="ok"),
-            AssembledFieldEvidence(field_name="person_name", value="Luis Claramonte", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence[:1], contradicting_evidence=[], source_quality=SourceQuality.MEDIUM, reasoning_note="ok"),
-            AssembledFieldEvidence(field_name="role_title", value="Founder", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence[:1], contradicting_evidence=[], source_quality=SourceQuality.MEDIUM, reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="person_name", value="Luis Claramonte", status=FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=evidence[:1], contradicting_evidence=[], source_quality=SourceQuality.MEDIUM, source_tier="tier_c", support_type="weak_inference", reasoning_note="weak person signal"),
+            AssembledFieldEvidence(field_name="role_title", value="Founder", status=FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=evidence[:1], contradicting_evidence=[], source_quality=SourceQuality.MEDIUM, source_tier="tier_c", support_type="weak_inference", reasoning_note="weak role signal"),
             AssembledFieldEvidence(field_name="fit_signals", value="genai, automation", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.MEDIUM, reasoning_note="ok"),
         ],
         notes=[],
@@ -189,7 +189,7 @@ def test_qualifier_downgrades_inferred_role_without_explicit_evidence() -> None:
         dossier_payload=dossier.model_dump(mode="json"),
     )
 
-    assert decision.outcome == QualificationOutcome.REJECT_CLOSE_MATCH
+    assert decision.outcome == QualificationOutcome.ENRICH
 
 
 def test_qualifier_can_accept_with_directory_website_when_other_fields_are_proven() -> None:

@@ -93,8 +93,43 @@ class EvidenceItem(StrictModel):
     why_selected: str | None = None
 
 
+class DocumentBlock(StrictModel):
+    index: int = Field(ge=1)
+    block_type: Literal["heading", "paragraph", "list_item", "table_row", "link_group", "unknown"] = "unknown"
+    text: str
+    heading_level: int | None = Field(default=None, ge=1, le=6)
+    heading_path: list[str] = Field(default_factory=list)
+
+
+class LogicalSegment(StrictModel):
+    segment_id: str
+    segment_type: Literal["identity", "contact", "website", "employees", "governance", "fit", "legal", "faq", "noise", "unknown"] = "unknown"
+    start_block: int = Field(ge=1)
+    end_block: int = Field(ge=1)
+    heading_path: list[str] = Field(default_factory=list)
+    noise: bool = False
+    discard_reason: str | None = None
+    text: str
+
+
 class EvidenceDocument(EvidenceItem):
-    pass
+    raw_html: str | None = None
+    content_format: Literal["html", "text", "markdown", "mixed", "unknown"] = "unknown"
+    normalized_blocks: list[DocumentBlock] = Field(default_factory=list)
+    logical_segments: list[LogicalSegment] = Field(default_factory=list)
+    chunker_version: str | None = None
+    content_fingerprint: str | None = None
+    chunker_adapter: str | None = None
+    debug_markdown_artifact_path: str | None = None
+    debug_markdown_preview: str | None = None
+
+
+class PageCapture(StrictModel):
+    url: str
+    raw_html: str | None = None
+    extracted_text: str = ""
+    content_format: Literal["html", "text", "unknown"] = "unknown"
+    content_type: str | None = None
 
 
 class ResearchQuery(StrictModel):
@@ -182,9 +217,19 @@ class DiscoveryCompanyCandidate(StrictModel):
     employee_count_hint_type: Literal["exact", "range", "estimate", "unknown"] = "unknown"
     operational_status: Literal["active", "non_operational", "unknown"] = "unknown"
     evidence_urls: list[str] = Field(default_factory=list)
+    support_type: Literal["explicit", "corroborated", "weak_inference"] = "explicit"
+    evidence_excerpt: str = ""
+    is_real_company_candidate: bool = True
+    rejection_reason: str | None = None
     selection_score: float = Field(default=0, ge=0)
     selection_reasons: list[str] = Field(default_factory=list)
     hard_rejections: list[str] = Field(default_factory=list)
+
+
+class DiscoveryCandidateExtractionResolution(StrictModel):
+    segment_company_name: str | None = None
+    discovery_candidates: list[DiscoveryCompanyCandidate] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
 
 
 class CompanyObservation(StrictModel):
@@ -219,15 +264,35 @@ class CompanyFocusResolution(StrictModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class ChunkFieldAssertion(StrictModel):
+    field_name: Literal["company_name", "website", "country", "employee_estimate"]
+    company_name: str | None = None
+    value: str | int | None = None
+    status: FieldEvidenceStatus
+    support_type: Literal["explicit", "corroborated", "weak_inference"] = "explicit"
+    reasoning_note: str = ""
+    segment_index: int = Field(default=0, ge=0)
+    source_url: str = ""
+    evidence_excerpt: str = ""
+    employee_count_type: Literal["exact", "range", "estimate", "unknown"] = "unknown"
+
+
+class ChunkContactAssertion(StrictModel):
+    person_name: str | None = None
+    role_title: str | None = None
+    company_name: str | None = None
+    status: FieldEvidenceStatus
+    support_type: Literal["explicit", "corroborated", "weak_inference"] = "explicit"
+    reasoning_note: str = ""
+    segment_index: int = Field(default=0, ge=0)
+    source_url: str = ""
+    evidence_excerpt: str = ""
+
+
 class ChunkExtractionResolution(StrictModel):
-    candidate_website: str | None = None
-    website_signals: list[str] = Field(default_factory=list)
-    country_code: str | None = None
-    location_hint: str | None = None
-    employee_count_hint_value: int | None = Field(default=None, ge=0)
-    employee_count_hint_type: Literal["exact", "range", "estimate", "unknown"] = "unknown"
-    person_clues: list[str] = Field(default_factory=list)
-    role_clues: list[str] = Field(default_factory=list)
+    segment_company_name: str | None = None
+    field_assertions: list[ChunkFieldAssertion] = Field(default_factory=list)
+    contact_assertions: list[ChunkContactAssertion] = Field(default_factory=list)
     fit_signals: list[str] = Field(default_factory=list)
     contradictions: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
@@ -313,7 +378,7 @@ class SourcePassResult(StrictModel):
     sourcing_status: SourcingStatus
     query_plan: ResearchQueryPlan | None = None
     executed_queries: list[ResearchQuery] = Field(default_factory=list)
-    documents: list[EvidenceItem] = Field(default_factory=list)
+    documents: list[EvidenceDocument | EvidenceItem] = Field(default_factory=list)
     website_candidates: list[WebsiteCandidateHint] = Field(default_factory=list)
     anchored_company_name: str | None = None
     research_trace: list[ResearchTraceEntry] = Field(default_factory=list)
@@ -355,12 +420,20 @@ class SourceTraceDocumentSnapshot(StrictModel):
     title: str | None = None
     snippet: str | None = None
     raw_content: str | None = None
+    has_raw_html: bool = False
+    content_format: Literal["html", "text", "markdown", "mixed", "unknown"] = "unknown"
     source_type: str | None = None
     domain: str | None = None
     source_tier: Literal["tier_a", "tier_b", "tier_c", "unknown"] = "unknown"
     source_quality: SourceQuality = SourceQuality.UNKNOWN
     company_anchor: str | None = None
     is_company_controlled_source: bool = False
+    chunker_adapter: str | None = None
+    chunker_version: str | None = None
+    normalized_block_count: int = Field(default=0, ge=0)
+    logical_segment_count: int = Field(default=0, ge=0)
+    debug_markdown_artifact_path: str | None = None
+    debug_markdown_preview: str | None = None
     raw_content_len_before: int | None = Field(default=None, ge=0)
     raw_content_len_after: int | None = Field(default=None, ge=0)
     enrichment_strategy_used: Literal["search_raw", "extract_pages", "fetch_page", "extract_then_fetch", "none"] | None = None
@@ -411,6 +484,23 @@ class SourceDocumentSelectionTrace(StrictModel):
     research_phase: str | None = None
     source_role: Literal["entity_validation", "website_resolution", "employee_count_resolution", "governance_resolution", "signal_detection"] | None = None
     expected_field: Literal["company_name", "website", "country", "employee_estimate", "person_name", "role_title", "fit_signals", "multi"] | None = None
+
+
+class ChunkerDocumentTrace(StrictModel):
+    url: str
+    domain: str | None = None
+    adapter: str | None = None
+    had_raw_html: bool = False
+    normalized_block_count: int = Field(default=0, ge=0)
+    logical_segment_count: int = Field(default=0, ge=0)
+    debug_markdown_artifact_path: str | None = None
+    debug_markdown_preview: str | None = None
+    notes: list[str] = Field(default_factory=list)
+
+
+class ChunkerStageTrace(StrictModel):
+    processed_documents: list[ChunkerDocumentTrace] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
 
 
 class SourceStageTrace(StrictModel):

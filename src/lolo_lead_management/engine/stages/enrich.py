@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from lolo_lead_management.domain.enums import StageName, SourcingStatus
 from lolo_lead_management.domain.models import (
+    PageCapture,
     ResearchQueryPlan,
     ResearchTraceEntry,
     SearchResultTrace,
@@ -215,20 +216,24 @@ class EnrichStage:
 
     def _enrich_missing_content(self, documents, query_text: str):
         pending = [item for item in documents if not item.raw_content]
-        fetched: dict[str, str] = {}
+        fetched: dict[str, PageCapture] = {}
         fetched_urls: list[str] = []
         empty_fetch_urls: list[str] = []
         if pending:
             with ThreadPoolExecutor(max_workers=min(4, len(pending))) as executor:
                 pairs = list(executor.map(lambda entry: (entry.url, self._safe_fetch_page(entry.url)), pending))
             fetched = {url: text for url, text in pairs}
-            fetched_urls = [url for url, text in pairs if text]
-            empty_fetch_urls = [url for url, text in pairs if not text]
+            fetched_urls = [url for url, capture in pairs if capture.extracted_text]
+            empty_fetch_urls = [url for url, capture in pairs if not capture.extracted_text]
         return [
             enrich_document_metadata(
                 item.model_copy(
                     update={
-                        "raw_content": item.raw_content or fetched.get(item.url, ""),
+                        "raw_content": item.raw_content or (fetched.get(item.url).extracted_text if fetched.get(item.url) else ""),
+                        "raw_html": getattr(item, "raw_html", None) or (fetched.get(item.url).raw_html if fetched.get(item.url) else None),
+                        "content_format": getattr(item, "content_format", "unknown")
+                        if getattr(item, "content_format", "unknown") != "unknown"
+                        else (fetched.get(item.url).content_format if fetched.get(item.url) else "unknown"),
                         "query_executed": query_text,
                         "query_planned": item.query_planned or query_text,
                     }
@@ -271,11 +276,15 @@ class EnrichStage:
             for item in extracted
         ], candidate_urls, None
 
-    def _safe_fetch_page(self, url: str) -> str:
+    def _safe_fetch_page(self, url: str) -> PageCapture:
         try:
-            return self._search_port.fetch_page(url)
+            if type(self._search_port).fetch_page is not SearchPort.fetch_page:
+                text = self._search_port.fetch_page(url)
+                return PageCapture(url=url, extracted_text=text, content_format="text" if text else "unknown")
+            if hasattr(self._search_port, "fetch_page_capture"):
+                return self._search_port.fetch_page_capture(url)
         except Exception:
-            return ""
+            return PageCapture(url=url, extracted_text="", content_format="unknown")
 
     def _compact_dossier_payload(self, payload: dict) -> dict:
         compact = dict(payload)

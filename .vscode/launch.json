@@ -10,9 +10,12 @@
             "request": "launch",
             "module": "uvicorn",
             "args": [
-                "main:app",
+                "--app-dir",
+                "src",
+                "lolo_lead_management.api.app:app",
                 "--reload"
             ],
+            "cwd": "${workspaceFolder}",
             "jinja": true
         }
     ]

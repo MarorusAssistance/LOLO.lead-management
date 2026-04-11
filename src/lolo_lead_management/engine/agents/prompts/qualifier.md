@@ -18,6 +18,7 @@ Rules:
 - A named person can be accepted without website if company + person + role are explicit enough.
 - Treat legal-governance contacts as fallback leads only when no stronger founder/CTO/CEO/technical decision-maker is supported.
 - If the company appears non-operational, reject it.
+- Never return `ACCEPT` when a hard field remains `unknown` or `weakly_supported` in the field ledger.
 
 What good qualification looks like:
 - The subject company is coherent.

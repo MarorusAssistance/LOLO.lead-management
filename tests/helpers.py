@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+import re
 
 from lolo_lead_management.adapters.crm.sqlite import SqliteCrmWriter
 from lolo_lead_management.adapters.search.fake import FakeSearchPort
@@ -20,6 +21,7 @@ from lolo_lead_management.engine.stages.assemble import AssembleStage
 from lolo_lead_management.engine.stages.continue_or_finish import ContinueOrFinishStage
 from lolo_lead_management.engine.stages.crm_write import CrmWriteStage
 from lolo_lead_management.engine.stages.draft import DraftStage
+from lolo_lead_management.engine.stages.chunkerize import ChunkerizeStage
 from lolo_lead_management.engine.stages.enrich import EnrichStage
 from lolo_lead_management.engine.stages.load_state import LoadStateStage
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
@@ -38,11 +40,176 @@ def workspace_tmp_dir(name: str) -> Path:
     return base
 
 
+class FixtureLeadLlmPort:
+    def generate_json(self, *, agent_name: str, system_prompt: str, input_payload: dict, schema: dict) -> dict:
+        _ = (agent_name, system_prompt, schema)
+        mode = input_payload.get("mode")
+        if mode in {"discovery_candidate_document_mode", "discovery_candidate_chunk_mode"}:
+            text = input_payload.get("document_text") or ((input_payload.get("chunk") or {}).get("text") or "")
+            company_name = self._extract_company_name(text, (input_payload.get("document") or {}).get("title") or "")
+            if not company_name:
+                return {"segment_company_name": None, "discovery_candidates": [], "notes": ["fixture_no_candidate"]}
+            query_name = self._derive_query_name(company_name)
+            return {
+                "segment_company_name": company_name,
+                "discovery_candidates": [
+                    {
+                        "company_name": company_name,
+                        "legal_name": company_name,
+                        "query_name": query_name,
+                        "brand_aliases": [company_name],
+                        "country_code": self._extract_country(text),
+                        "location_hint": None,
+                        "theme_tags": self._extract_theme_tags(text),
+                        "candidate_website": self._extract_website(text),
+                        "employee_count_hint_value": self._extract_employee_count(text),
+                        "employee_count_hint_type": "exact" if self._extract_employee_count(text) is not None else "unknown",
+                        "operational_status": "active",
+                        "support_type": "explicit",
+                        "evidence_excerpt": text[:220],
+                        "evidence_urls": [(input_payload.get("document") or {}).get("url")],
+                        "is_real_company_candidate": True,
+                        "rejection_reason": None,
+                    }
+                ],
+                "notes": ["fixture_candidate"],
+            }
+        if mode in {"focus_locked_document_mode", "focus_locked_chunk_mode"}:
+            text = input_payload.get("document_text") or ((input_payload.get("chunk") or {}).get("text") or "")
+            company_name = input_payload.get("focus_company") or self._extract_company_name(text, (input_payload.get("document") or {}).get("title") or "")
+            country = self._extract_country(text)
+            employee_count = self._extract_employee_count(text)
+            website = self._extract_website(text)
+            person_name = self._extract_labeled(text, "Person")
+            role_title = self._extract_labeled(text, "Role")
+            field_assertions: list[dict] = []
+            if company_name:
+                field_assertions.append(
+                    {
+                        "field_name": "company_name",
+                        "company_name": company_name,
+                        "value": company_name,
+                        "status": "satisfied",
+                        "support_type": "explicit",
+                        "reasoning_note": "fixture company",
+                    }
+                )
+            if website:
+                field_assertions.append(
+                    {
+                        "field_name": "website",
+                        "company_name": company_name,
+                        "value": website,
+                        "status": "satisfied",
+                        "support_type": "explicit",
+                        "reasoning_note": "fixture website",
+                    }
+                )
+            if country:
+                field_assertions.append(
+                    {
+                        "field_name": "country",
+                        "company_name": company_name,
+                        "value": country,
+                        "status": "satisfied",
+                        "support_type": "explicit",
+                        "reasoning_note": "fixture country",
+                    }
+                )
+            if employee_count is not None:
+                field_assertions.append(
+                    {
+                        "field_name": "employee_estimate",
+                        "company_name": company_name,
+                        "value": employee_count,
+                        "status": "satisfied",
+                        "support_type": "explicit",
+                        "reasoning_note": "fixture employee count",
+                        "employee_count_type": "exact",
+                    }
+                )
+            contact_assertions: list[dict] = []
+            if company_name and person_name and role_title:
+                contact_assertions.append(
+                    {
+                        "person_name": person_name,
+                        "role_title": role_title,
+                        "company_name": company_name,
+                        "status": "satisfied",
+                        "support_type": "explicit",
+                        "reasoning_note": "fixture contact",
+                    }
+                )
+            return {
+                "segment_company_name": company_name,
+                "field_assertions": field_assertions,
+                "contact_assertions": contact_assertions,
+                "fit_signals": self._extract_theme_tags(text),
+                "contradictions": [],
+                "notes": ["fixture_assembly"],
+            }
+        return {}
+
+    def _extract_company_name(self, text: str, title: str) -> str | None:
+        labeled = self._extract_labeled(text, "Company")
+        if labeled:
+            return labeled
+        title_primary = re.split(r"\s+-\s+", title or "", maxsplit=1)[0].strip(" |")
+        return title_primary or None
+
+    def _derive_query_name(self, company_name: str) -> str:
+        tokens = [
+            token
+            for token in re.split(r"\s+", company_name)
+            if token.upper() not in {"SL", "S.L.", "SA", "S.A.", "SOCIEDAD", "LIMITADA", "INC", "LLC", "SPAIN"}
+        ]
+        query_name = " ".join(tokens[:3]) or company_name
+        if len(tokens) == 1 and query_name.isupper() and len(query_name) > 3:
+            return query_name.title()
+        return query_name
+
+    def _extract_country(self, text: str) -> str | None:
+        lowered = text.lower()
+        if "country: spain" in lowered or "spain" in lowered or "espana" in lowered or "españa" in lowered:
+            return "es"
+        return None
+
+    def _extract_employee_count(self, text: str) -> int | None:
+        match = re.search(r"Employees:\s*(\d+)", text, re.IGNORECASE)
+        return int(match.group(1)) if match else None
+
+    def _extract_website(self, text: str) -> str | None:
+        match = re.search(r"https?://[^\s|)]+", text)
+        return match.group(0) if match else None
+
+    def _extract_labeled(self, text: str, label: str) -> str | None:
+        match = re.search(
+            rf"{label}:\s*(.+?)(?=\b(?:Company|Country|Employees|Person|Role|Website):|$)",
+            text,
+            re.IGNORECASE,
+        )
+        return match.group(1).strip(" |") if match else None
+
+    def _extract_theme_tags(self, text: str) -> list[str]:
+        lowered = text.lower()
+        tags: list[str] = []
+        if "software" in lowered or "saas" in lowered:
+            tags.append("software")
+        if any(token in lowered for token in {"genai", " ai", "ia", "artificial intelligence", "inteligencia artificial"}):
+            tags.append("ia")
+        if "automation" in lowered or "automat" in lowered:
+            tags.append("automation")
+        if "data" in lowered or "datos" in lowered:
+            tags.append("data")
+        return tags
+
+
 def build_test_container(
     tmp_path: Path,
     *,
     search_index: dict[str, list[EvidenceDocument]] | None = None,
     pages: dict[str, str] | None = None,
+    llm_port=None,
 ) -> ServiceContainer:
     settings = Settings(database_path=str(tmp_path / "lead_management.sqlite3"))
     database = SqliteDatabase(settings.database_path)
@@ -53,12 +220,13 @@ def build_test_container(
     crm_writer = SqliteCrmWriter(database)
     archive_writer = ExecutionArchiveWriter(str(tmp_path / "execution-results"))
     search_port = FakeSearchPort(search_index=search_index, pages=pages)
-    agent_executor = StageAgentExecutor(None)
+    agent_executor = StageAgentExecutor(llm_port)
     engine = LeadManagementEngine(
         normalize_stage=NormalizeStage(agent_executor),
         load_state_stage=LoadStateStage(memory_store),
         plan_stage=PlanStage(agent_executor),
         source_stage=SourceStage(search_port=search_port, agent_executor=agent_executor, max_results=5),
+        chunkerize_stage=ChunkerizeStage(archive_writer=archive_writer),
         assemble_stage=AssembleStage(agent_executor),
         qualify_stage=QualifyStage(agent_executor),
         enrich_stage=EnrichStage(search_port=search_port, agent_executor=agent_executor, max_results=5),
@@ -83,7 +251,7 @@ def build_test_container(
         settings=settings,
         database=database,
         engine=engine,
-        llm_port=None,
+        llm_port=llm_port,
         search_port=search_port,
         lead_store=lead_store,
         run_store=run_store,

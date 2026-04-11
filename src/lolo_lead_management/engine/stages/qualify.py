@@ -4,7 +4,7 @@ from lolo_lead_management.domain.enums import StageName
 from lolo_lead_management.domain.models import AssembledLeadDossier, NormalizedLeadSearchRequest, QualificationDecision, QualificationTrace
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.agents.specs import STAGE_AGENT_SPECS
-from lolo_lead_management.engine.rules import evaluate_dossier
+from lolo_lead_management.engine.rules import evaluate_dossier, merge_qualification_decisions
 
 
 class QualifyStage:
@@ -25,12 +25,12 @@ class QualifyStage:
             output_model=QualificationDecision,
         )
         generated = attempt.parsed if isinstance(attempt.parsed, QualificationDecision) else None
-        merged = generated if generated is not None else deterministic
+        merged = merge_qualification_decisions(deterministic, generated)
         notes: list[str] = []
         if attempt.error:
             notes.append("llm_decision_unavailable_fallback_to_deterministic")
         else:
-            notes.append("llm_first_decision_used" if generated is not None else "llm_review_empty")
+            notes.append("llm_review_merged_with_deterministic" if generated is not None else "llm_review_empty")
         self.last_trace = QualificationTrace(
             deterministic_decision=deterministic,
             llm_review=generated,

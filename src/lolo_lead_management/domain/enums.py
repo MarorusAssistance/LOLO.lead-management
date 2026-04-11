@@ -46,6 +46,7 @@ class StageName(str, Enum):
     LOAD_STATE = "load_state"
     PLAN = "plan"
     SOURCE = "source"
+    CHUNKERIZE = "chunkerize"
     ASSEMBLE = "assemble"
     QUALIFY = "qualify"
     ENRICH = "enrich"

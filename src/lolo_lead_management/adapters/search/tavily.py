@@ -5,7 +5,7 @@ import re
 from urllib import request
 from urllib.parse import urlparse
 
-from lolo_lead_management.domain.models import EvidenceDocument, ResearchQuery
+from lolo_lead_management.domain.models import EvidenceDocument, PageCapture, ResearchQuery
 from lolo_lead_management.ports.search import SearchPort
 
 
@@ -72,6 +72,7 @@ class TavilySearchPort(SearchPort):
                     snippet=item.get("content", "") or raw_content[:400],
                     source_type="tavily_search",
                     raw_content=raw_content,
+                    content_format="text",
                     domain=domain,
                     search_score=score,
                     query_planned=query.query,
@@ -87,14 +88,20 @@ class TavilySearchPort(SearchPort):
     def _include_raw_content_for_query(self, query: ResearchQuery):
         return "text"
 
-    def fetch_page(self, url: str) -> str:
+    def fetch_page_capture(self, url: str) -> PageCapture:
         req = request.Request(url, headers={"User-Agent": "LOLOLeadManagement/0.1"})
         with self._opener.open(req, timeout=self._timeout_seconds) as response:
             payload = response.read().decode("utf-8", errors="ignore")
-        payload = re.sub(r"<script.*?</script>", " ", payload, flags=re.IGNORECASE | re.DOTALL)
-        payload = re.sub(r"<style.*?</style>", " ", payload, flags=re.IGNORECASE | re.DOTALL)
-        payload = re.sub(r"<[^>]+>", " ", payload)
-        return re.sub(r"\s+", " ", payload).strip()
+            content_type = response.headers.get("Content-Type")
+        is_html = "html" in (content_type or "").lower() or bool(re.search(r"<html|<body|<main|<section|<article", payload, re.IGNORECASE))
+        extracted = self._html_to_text(payload) if is_html else re.sub(r"\s+", " ", payload).strip()
+        return PageCapture(
+            url=url,
+            raw_html=payload if is_html else None,
+            extracted_text=extracted,
+            content_format="html" if is_html else "text",
+            content_type=content_type,
+        )
 
     def extract_pages(self, urls: list[str], *, extract_depth: str = "advanced") -> list[EvidenceDocument]:
         cleaned_urls = [url for url in urls if url]
@@ -129,10 +136,17 @@ class TavilySearchPort(SearchPort):
                     snippet=raw_content[:400],
                     source_type="tavily_extract",
                     raw_content=raw_content,
+                    content_format="text",
                     domain=self._domain_from_url(url),
                 )
             )
         return documents
+
+    def _html_to_text(self, html: str) -> str:
+        payload = re.sub(r"<script.*?</script>", " ", html, flags=re.IGNORECASE | re.DOTALL)
+        payload = re.sub(r"<style.*?</style>", " ", payload, flags=re.IGNORECASE | re.DOTALL)
+        payload = re.sub(r"<[^>]+>", " ", payload)
+        return re.sub(r"\s+", " ", payload).strip()
 
     def _country_name(self, code: str) -> str:
         mapping = {

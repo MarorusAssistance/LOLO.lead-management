@@ -25,6 +25,7 @@ from lolo_lead_management.domain.models import (
     CommercialBundle,
     CompanyCandidate,
     CompanyObservation,
+    EvidenceItem,
     EvidenceDocument,
     LeadSearchConstraints,
     NormalizedLeadSearchRequest,
@@ -1032,58 +1033,59 @@ def deterministic_anchor_queries(
                     ),
                 ]
             )
-        queries.extend(
-            [
-                ResearchQuery(
-                    query=f'empresite "{anchor_company}" sitio web pagina web',
-                    objective="Resolve a candidate website from trusted Spanish commercial directories before validating it on the company domain.",
-                    research_phase="company_anchoring",
-                    source_role="website_resolution",
-                    candidate_company_name=anchor_company,
-                    source_tier_target="tier_b",
-                    expected_field="website",
-                    stop_if_resolved=True,
-                    exact_match=False,
-                    search_depth="basic",
-                    min_score=0.45,
-                    preferred_domains=["empresite.eleconomista.es"],
-                    excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
-                    expected_source_types=["directory"],
-                ),
-                ResearchQuery(
-                    query=f'datoscif "{anchor_company}" sitio web pagina web',
-                    objective="Use DatosCif as the next fallback to recover a candidate website from a concrete Spanish company ficha.",
-                    research_phase="company_anchoring",
-                    source_role="website_resolution",
-                    candidate_company_name=anchor_company,
-                    source_tier_target="tier_b",
-                    expected_field="website",
-                    stop_if_resolved=True,
-                    exact_match=False,
-                    search_depth="basic",
-                    min_score=0.45,
-                    preferred_domains=["datoscif.es"],
-                    excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
-                    expected_source_types=["directory"],
-                ),
-                ResearchQuery(
-                    query=f'iberinform "{anchor_company}" sitio web pagina web',
-                    objective="Use Iberinform only as a final Spanish fallback to recover a candidate website from a company ficha.",
-                    research_phase="company_anchoring",
-                    source_role="website_resolution",
-                    candidate_company_name=anchor_company,
-                    source_tier_target="tier_b",
-                    expected_field="website",
-                    stop_if_resolved=True,
-                    exact_match=False,
-                    search_depth="basic",
-                    min_score=0.45,
-                    preferred_domains=["iberinform.es"],
-                    excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
-                    expected_source_types=["directory"],
-                ),
-            ]
-        )
+        if "website" in missing or not missing:
+            queries.extend(
+                [
+                    ResearchQuery(
+                        query=f'empresite "{anchor_company}" sitio web pagina web',
+                        objective="Resolve a candidate website from trusted Spanish commercial directories before validating it on the company domain.",
+                        research_phase="company_anchoring",
+                        source_role="website_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_b",
+                        expected_field="website",
+                        stop_if_resolved=True,
+                        exact_match=False,
+                        search_depth="basic",
+                        min_score=0.45,
+                        preferred_domains=["empresite.eleconomista.es"],
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["directory"],
+                    ),
+                    ResearchQuery(
+                        query=f'datoscif "{anchor_company}" sitio web pagina web',
+                        objective="Use DatosCif as the next fallback to recover a candidate website from a concrete Spanish company ficha.",
+                        research_phase="company_anchoring",
+                        source_role="website_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_b",
+                        expected_field="website",
+                        stop_if_resolved=True,
+                        exact_match=False,
+                        search_depth="basic",
+                        min_score=0.45,
+                        preferred_domains=["datoscif.es"],
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["directory"],
+                    ),
+                    ResearchQuery(
+                        query=f'iberinform "{anchor_company}" sitio web pagina web',
+                        objective="Use Iberinform only as a final Spanish fallback to recover a candidate website from a company ficha.",
+                        research_phase="company_anchoring",
+                        source_role="website_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_b",
+                        expected_field="website",
+                        stop_if_resolved=True,
+                        exact_match=False,
+                        search_depth="basic",
+                        min_score=0.45,
+                        preferred_domains=["iberinform.es"],
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["directory"],
+                    ),
+                ]
+            )
         if "fit_signals" in missing or not missing:
             for theme in themes:
                 queries.append(
@@ -1104,13 +1106,21 @@ def deterministic_anchor_queries(
                 )
         return queries
 
-    queries: list[ResearchQuery] = [
-        ResearchQuery(query=f'"{anchor_company}" official site', objective="Verify the official website and the main company entity.", research_phase="company_anchoring", source_role="website_resolution", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="website", stop_if_resolved=True, exact_match=True, search_depth="advanced", min_score=0.62, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
-        ResearchQuery(query=f'"{anchor_company}" about team contact', objective="Find company-controlled pages that confirm the website, geography, and core company identity.", research_phase="company_anchoring", source_role="entity_validation", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="website", stop_if_resolved=True, exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
-        ResearchQuery(query=f'"{anchor_company}" leadership team founders', objective="Find named leaders and explicit roles on company-controlled pages.", research_phase="field_acquisition", source_role="governance_resolution", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="person_name", exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
-        ResearchQuery(query=f'"{anchor_company}" careers team hiring', objective="Find company-controlled or close-to-company pages with hiring and team-size clues.", research_phase="evidence_closing", source_role="employee_count_resolution", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="employee_estimate", exact_match=True, search_depth="advanced", min_score=0.58, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "job_board"]),
-        ResearchQuery(query=f'"{anchor_company}" product docs blog github', objective="Find company product, docs, blog, or GitHub evidence for AI, automation, or software fit.", research_phase="field_acquisition", source_role="signal_detection", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="fit_signals", exact_match=True, search_depth="advanced", min_score=0.55, excluded_domains=["linkedin.com", "twitter.com", "x.com", "facebook.com", "instagram.com"], expected_source_types=["company_site", "docs", "github", "blog"]),
-    ]
+    queries: list[ResearchQuery] = []
+    if "website" in missing or not missing:
+        queries.extend(
+            [
+                ResearchQuery(query=f'"{anchor_company}" official site', objective="Verify the official website and the main company entity.", research_phase="company_anchoring", source_role="website_resolution", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="website", stop_if_resolved=True, exact_match=True, search_depth="advanced", min_score=0.62, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
+                ResearchQuery(query=f'"{anchor_company}" about team contact', objective="Find company-controlled pages that confirm the website, geography, and core company identity.", research_phase="company_anchoring", source_role="entity_validation", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="website", stop_if_resolved=True, exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
+            ]
+        )
+    queries.extend(
+        [
+            ResearchQuery(query=f'"{anchor_company}" leadership team founders', objective="Find named leaders and explicit roles on company-controlled pages.", research_phase="field_acquisition", source_role="governance_resolution", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="person_name", exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site"]),
+            ResearchQuery(query=f'"{anchor_company}" careers team hiring', objective="Find company-controlled or close-to-company pages with hiring and team-size clues.", research_phase="evidence_closing", source_role="employee_count_resolution", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="employee_estimate", exact_match=True, search_depth="advanced", min_score=0.58, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "job_board"]),
+            ResearchQuery(query=f'"{anchor_company}" product docs blog github', objective="Find company product, docs, blog, or GitHub evidence for AI, automation, or software fit.", research_phase="field_acquisition", source_role="signal_detection", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="fit_signals", exact_match=True, search_depth="advanced", min_score=0.55, excluded_domains=["linkedin.com", "twitter.com", "x.com", "facebook.com", "instagram.com"], expected_source_types=["company_site", "docs", "github", "blog"]),
+        ]
+    )
     if "person_name" in missing or "role_title" in missing or not missing:
         for buyer in buyers[:2]:
             queries.append(ResearchQuery(query=f'"{anchor_company}" {buyer}', objective="Find a named buyer persona and explicit role title tied to the company.", research_phase="field_acquisition", source_role="governance_resolution", candidate_company_name=anchor_company, source_tier_target="tier_a", expected_field="role_title", exact_match=True, search_depth="advanced", min_score=0.6, excluded_domains=ANCHOR_EXCLUDED_DOMAINS, expected_source_types=["company_site", "news", "event"]))
@@ -2251,12 +2261,66 @@ def document_can_seed_website_candidate(document: EvidenceDocument, candidate_we
     return False
 
 
-def merge_documents(documents: list[EvidenceDocument]) -> list[EvidenceDocument]:
+def _coerce_evidence_document(document: EvidenceDocument | EvidenceItem) -> EvidenceDocument:
+    if isinstance(document, EvidenceDocument):
+        return document
+    return EvidenceDocument(**document.model_dump(mode="python"))
+
+
+def _merge_source_quality(current: SourceQuality, incoming: SourceQuality) -> SourceQuality:
+    order = {
+        SourceQuality.UNKNOWN: 0,
+        SourceQuality.LOW: 1,
+        SourceQuality.MEDIUM: 2,
+        SourceQuality.HIGH: 3,
+    }
+    return incoming if order.get(incoming, 0) > order.get(current, 0) else current
+
+
+def _merge_source_tier(current: str, incoming: str) -> str:
+    order = {"unknown": 0, "tier_c": 1, "tier_b": 2, "tier_a": 3}
+    return incoming if order.get(incoming, 0) > order.get(current, 0) else current
+
+
+def merge_documents(documents: list[EvidenceDocument | EvidenceItem]) -> list[EvidenceDocument]:
     by_url: dict[str, EvidenceDocument] = {}
-    for document in documents:
+    for raw_document in documents:
+        document = _coerce_evidence_document(raw_document)
         existing = by_url.get(document.url)
-        if existing is None or len(document.raw_content) > len(existing.raw_content):
+        if existing is None:
             by_url[document.url] = document
+            continue
+        preferred = document if len(document.raw_content or "") > len(existing.raw_content or "") else existing
+        secondary = existing if preferred is document else document
+        by_url[document.url] = preferred.model_copy(
+            update={
+                "title": preferred.title or secondary.title,
+                "snippet": preferred.snippet or secondary.snippet,
+                "raw_content": preferred.raw_content or secondary.raw_content,
+                "raw_html": preferred.raw_html or secondary.raw_html,
+                "content_format": preferred.content_format if preferred.content_format != "unknown" else secondary.content_format,
+                "domain": preferred.domain or secondary.domain,
+                "search_score": preferred.search_score if preferred.search_score is not None else secondary.search_score,
+                "query_planned": preferred.query_planned or secondary.query_planned,
+                "query_executed": preferred.query_executed or secondary.query_executed,
+                "research_phase": preferred.research_phase or secondary.research_phase,
+                "objective": preferred.objective or secondary.objective,
+                "source_quality": _merge_source_quality(preferred.source_quality, secondary.source_quality),
+                "source_tier": _merge_source_tier(preferred.source_tier, secondary.source_tier),
+                "company_anchor": preferred.company_anchor or secondary.company_anchor,
+                "is_company_controlled_source": preferred.is_company_controlled_source or secondary.is_company_controlled_source,
+                "is_publisher_like": preferred.is_publisher_like or secondary.is_publisher_like,
+                "selected_for_field": preferred.selected_for_field or secondary.selected_for_field,
+                "why_selected": preferred.why_selected or secondary.why_selected,
+                "normalized_blocks": preferred.normalized_blocks or secondary.normalized_blocks,
+                "logical_segments": preferred.logical_segments or secondary.logical_segments,
+                "chunker_version": preferred.chunker_version or secondary.chunker_version,
+                "content_fingerprint": preferred.content_fingerprint or secondary.content_fingerprint,
+                "chunker_adapter": preferred.chunker_adapter or secondary.chunker_adapter,
+                "debug_markdown_artifact_path": preferred.debug_markdown_artifact_path or secondary.debug_markdown_artifact_path,
+                "debug_markdown_preview": preferred.debug_markdown_preview or secondary.debug_markdown_preview,
+            }
+        )
     return list(by_url.values())
 
 
@@ -3235,6 +3299,12 @@ def overlay_explicit_dossier_fields(
     primary_person_source_url = assembled.primary_person_source_url or original.primary_person_source_url
 
     if company and original.company:
+        current_company = field_map.get("company_name")
+        if original.company.name and (current_company is None or current_company.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
+            field_map["company_name"] = AssembledFieldEvidence(field_name="company_name", value=original.company.name, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), source_tier=_source_tier_from_docs(support), support_type="corroborated" if len(support) >= 2 else "explicit", reasoning_note="Company name provided explicitly in the dossier and accepted as legacy support.")
+        current_website = field_map.get("website")
+        if original.company.website and (current_website is None or current_website.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
+            field_map["website"] = AssembledFieldEvidence(field_name="website", value=original.company.website, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), source_tier=_source_tier_from_docs(support), support_type="corroborated" if len(support) >= 2 else "explicit", reasoning_note="Website provided explicitly in the dossier and accepted as legacy support.")
         current_country = field_map.get("country")
         if original.company.country_code and (current_country is None or current_country.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
             company.country_code = original.company.country_code
@@ -3631,16 +3701,14 @@ def downgrade_enrich_to_close_match(
 
 def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> QualificationDecision:
     if dossier.field_evidence == [] and dossier.evidence:
-        dossier = overlay_explicit_dossier_fields(build_fallback_assembled_dossier(
-            request=request,
-            source_result=SourcePassResult(
-                sourcing_status=dossier.sourcing_status,
-                documents=dossier.evidence,
-                anchored_company_name=dossier.company.name if dossier.company else None,
-                notes=dossier.notes,
+        dossier = overlay_explicit_dossier_fields(
+            dossier.model_copy(
+                update={
+                    "field_evidence": [],
+                }
             ),
-            prior_dossier=dossier,
-        ), dossier)
+            dossier,
+        )
     if dossier.sourcing_status != SourcingStatus.FOUND or dossier.company is None:
         return QualificationDecision(outcome=QualificationOutcome.REJECT, score=0, summary="No candidate dossier was assembled.", reasons=["sourcing and assembly did not produce a valid candidate"], qualification_rubric=QualificationRubric())
 
@@ -3709,7 +3777,6 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
     if size_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and (
         size_field.support_type == "weak_inference"
         or size_field.source_tier == "tier_c"
-        or not _documents_explicitly_support_employee_size(size_field.supporting_evidence)
     ):
         _update_rubric_field(
             rubric,
@@ -3733,20 +3800,6 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
         )
         person_field = field_map["person_name"]
 
-    if role_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and not _documents_explicitly_support_role(
-        role_title=dossier.person.role_title if dossier.person else None,
-        person_name=dossier.person.full_name if dossier.person else None,
-        company_name=dossier.company.name if dossier.company else None,
-        documents=role_field.supporting_evidence or dossier.evidence,
-    ):
-        _update_rubric_field(
-            rubric,
-            field_map,
-            field_name="role_title",
-            status=FieldEvidenceStatus.UNKNOWN,
-            reasoning_note="Role title was inferred from leadership context but is not explicitly stated in the supporting evidence.",
-        )
-        role_field = field_map["role_title"]
     if role_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and (
         (role_field.support_type == "weak_inference" or role_field.source_tier == "tier_c")
         and dossier.person_confidence not in {"strong", "corroborated"}
@@ -3832,6 +3885,11 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
         hard_unknown = True
     if (request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and size_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
         hard_unknown = True
+    if request.constraints.prefer_named_person and (
+        person_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}
+        or role_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}
+    ):
+        hard_unknown = True
     named_person_present = bool(dossier.person and dossier.person.full_name)
     role_title_present = bool(dossier.person and dossier.person.role_title)
 
@@ -3880,6 +3938,8 @@ def merge_qualification_decisions(deterministic: QualificationDecision, llm_revi
 def collect_missing_fields_for_enrichment(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> list[str]:
     field_map = field_evidence_map(dossier)
     missing: list[str] = []
+    if field_map.get("website", AssembledFieldEvidence(field_name="website", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="website missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        missing.append("website")
     if request.constraints.preferred_country and field_map.get("country", AssembledFieldEvidence(field_name="country", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="country missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
         missing.append("country")
     if (request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and field_map.get("employee_estimate", AssembledFieldEvidence(field_name="employee_estimate", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="size missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:

@@ -26,6 +26,7 @@ class EngineRuntimeState(StrictModel):
     current_source_result: SourcePassResult | None = None
     current_source_trace: SourceStageTrace | None = None
     current_enrich_trace: SourceStageTrace | None = None
+    current_chunker_trace: dict | None = None
     current_assembler_trace: dict | None = None
     current_dossier: AssembledLeadDossier | None = None
     current_qualification: QualificationDecision | None = None

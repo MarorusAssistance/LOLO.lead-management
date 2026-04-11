@@ -28,7 +28,7 @@ from lolo_lead_management.engine.stages.source import SourceStage
 from lolo_lead_management.engine.state import EngineRuntimeState
 from lolo_lead_management.infrastructure.sqlite import SqliteDatabase
 
-from tests.helpers import accepted_candidate_fixture, workspace_tmp_dir
+from tests.helpers import FixtureLeadLlmPort, accepted_candidate_fixture, workspace_tmp_dir
 
 
 class FlakySearchPort:
@@ -103,7 +103,7 @@ def test_sourcer_collects_documents_and_assembler_resolves_company() -> None:
     state = LoadStateStage(memory_store).execute(run)
 
     source_stage = SourceStage(search_port=search_port, agent_executor=StageAgentExecutor(None), max_results=5)
-    assemble_stage = AssembleStage(StageAgentExecutor(None))
+    assemble_stage = AssembleStage(StageAgentExecutor(FixtureLeadLlmPort()))
 
     discovery_result, focus_resolution = _lock_focus_company(state, source_stage, assemble_stage)
     source_result = source_stage.execute(state)
@@ -182,7 +182,7 @@ def test_sourcer_skips_previously_explored_company_when_anchoring() -> None:
     source_stage = SourceStage(search_port=search_port, agent_executor=StageAgentExecutor(None), max_results=5)
     discovery_result = source_stage.execute(state)
     state.current_source_result = discovery_result
-    focus_resolution = AssembleStage(StageAgentExecutor(None)).select_focus_company(state)
+    focus_resolution = AssembleStage(StageAgentExecutor(FixtureLeadLlmPort())).select_focus_company(state)
 
     assert discovery_result.sourcing_status.value == "FOUND"
     assert focus_resolution.selected_company == "Bravo Dev"
@@ -265,7 +265,7 @@ def test_development_ignores_searched_company_names_for_recall() -> None:
 
     result = SourceStage(search_port=search_port, agent_executor=StageAgentExecutor(None), max_results=5).execute(state)
     state.current_source_result = result
-    resolution = AssembleStage(StageAgentExecutor(None)).select_focus_company(state)
+    resolution = AssembleStage(StageAgentExecutor(FixtureLeadLlmPort())).select_focus_company(state)
 
     assert result.source_trace is not None
     assert "Acme AI" not in result.source_trace.excluded_companies
@@ -1123,7 +1123,7 @@ def test_sourcer_passes_raw_focus_batch_to_assembler() -> None:
     state = LoadStateStage(memory_store).execute(run)
 
     source_stage = SourceStage(search_port=search_port, agent_executor=StageAgentExecutor(None), max_results=5)
-    assemble_stage = AssembleStage(StageAgentExecutor(None))
+    assemble_stage = AssembleStage(StageAgentExecutor(FixtureLeadLlmPort()))
     discovery_result, focus_resolution = _lock_focus_company(state, source_stage, assemble_stage)
     assert discovery_result.sourcing_status.value == "FOUND"
     assert focus_resolution.selected_company == "BDEO SPAIN SL"
@@ -1466,7 +1466,7 @@ def test_source_stops_branch_after_failed_domain_validation() -> None:
     state = LoadStateStage(memory_store).execute(run)
 
     source_stage = SourceStage(search_port=search_port, agent_executor=StageAgentExecutor(None), max_results=5)
-    assemble_stage = AssembleStage(StageAgentExecutor(None))
+    assemble_stage = AssembleStage(StageAgentExecutor(FixtureLeadLlmPort()))
     discovery_result, focus_resolution = _lock_focus_company(state, source_stage, assemble_stage)
 
     assert discovery_result.sourcing_status.value == "FOUND"
@@ -1604,7 +1604,7 @@ def test_company_observations_exclude_incompatible_large_company_for_small_reque
     source_stage = SourceStage(search_port=search_port, agent_executor=StageAgentExecutor(None), max_results=5)
     discovery_result = source_stage.execute(state)
     state.current_source_result = discovery_result
-    resolution = AssembleStage(StageAgentExecutor(None)).select_focus_company(state)
+    resolution = AssembleStage(StageAgentExecutor(FixtureLeadLlmPort())).select_focus_company(state)
 
     assert discovery_result.source_trace is not None
     assert "Megasoft Spain SL" in discovery_result.source_trace.request_scoped_company_exclusions
@@ -1675,7 +1675,7 @@ def test_company_observations_do_not_exclude_large_company_for_large_request() -
     source_stage = SourceStage(search_port=search_port, agent_executor=StageAgentExecutor(None), max_results=5)
     discovery_result = source_stage.execute(state)
     state.current_source_result = discovery_result
-    resolution = AssembleStage(StageAgentExecutor(None)).select_focus_company(state)
+    resolution = AssembleStage(StageAgentExecutor(FixtureLeadLlmPort())).select_focus_company(state)
 
     assert discovery_result.source_trace is not None
     assert "Megasoft Spain SL" not in discovery_result.source_trace.request_scoped_company_exclusions

@@ -24,3 +24,10 @@ class ExecutionArchiveWriter:
         path = self._base_dir / filename
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         return path
+
+    def write_text(self, *, kind: str, run_id: str, slug: str, text: str, extension: str = "md") -> Path:
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        filename = f"{timestamp}_{_slugify(kind)}_{_slugify(run_id)}_{_slugify(slug)}.{extension.lstrip('.')}"
+        path = self._base_dir / filename
+        path.write_text(text, encoding="utf-8")
+        return path

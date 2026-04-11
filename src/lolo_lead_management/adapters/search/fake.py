@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from lolo_lead_management.domain.models import EvidenceDocument, ResearchQuery
+import re
+
+from lolo_lead_management.domain.models import EvidenceDocument, PageCapture, ResearchQuery
 from lolo_lead_management.ports.search import SearchPort
 
 
@@ -37,7 +39,28 @@ class FakeSearchPort(SearchPort):
                     title="",
                     snippet=raw_content[:400],
                     source_type="tavily_extract",
-                    raw_content=raw_content,
+                    raw_content=self._html_to_text(raw_content) if self._looks_like_html(raw_content) else raw_content,
+                    raw_html=raw_content if self._looks_like_html(raw_content) else None,
+                    content_format="html" if self._looks_like_html(raw_content) else "text",
                 )
             )
         return documents
+
+    def fetch_page_capture(self, url: str) -> PageCapture:
+        payload = self._pages.get(url, "")
+        is_html = self._looks_like_html(payload)
+        return PageCapture(
+            url=url,
+            raw_html=payload if is_html else None,
+            extracted_text=self._html_to_text(payload) if is_html else payload,
+            content_format="html" if is_html else "text" if payload else "unknown",
+        )
+
+    def _looks_like_html(self, payload: str) -> bool:
+        return bool(re.search(r"<html|<body|<main|<section|<article|<div|<h[1-6]\b", payload or "", re.IGNORECASE))
+
+    def _html_to_text(self, html: str) -> str:
+        payload = re.sub(r"<script.*?</script>", " ", html, flags=re.IGNORECASE | re.DOTALL)
+        payload = re.sub(r"<style.*?</style>", " ", payload, flags=re.IGNORECASE | re.DOTALL)
+        payload = re.sub(r"<[^>]+>", " ", payload)
+        return re.sub(r"\s+", " ", payload).strip()

@@ -1,3 +1,5 @@
 fastapi>=0.116,<1.0
 pydantic>=2.11,<3.0
 uvicorn>=0.35,<1.0
+beautifulsoup4>=4.12,<5.0
+lxml>=5.3,<6.0

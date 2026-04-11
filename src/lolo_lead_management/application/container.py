@@ -19,6 +19,7 @@ from lolo_lead_management.engine.stages.assemble import AssembleStage
 from lolo_lead_management.engine.stages.continue_or_finish import ContinueOrFinishStage
 from lolo_lead_management.engine.stages.crm_write import CrmWriteStage
 from lolo_lead_management.engine.stages.draft import DraftStage
+from lolo_lead_management.engine.stages.chunkerize import ChunkerizeStage
 from lolo_lead_management.engine.stages.enrich import EnrichStage
 from lolo_lead_management.engine.stages.load_state import LoadStateStage
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
@@ -74,6 +75,7 @@ def build_container(settings: Settings) -> ServiceContainer:
         load_state_stage=LoadStateStage(memory_store, environment=settings.environment),
         plan_stage=PlanStage(agent_executor),
         source_stage=SourceStage(search_port=search_port, agent_executor=agent_executor, max_results=settings.search_max_results),
+        chunkerize_stage=ChunkerizeStage(archive_writer=archive_writer),
         assemble_stage=AssembleStage(agent_executor),
         qualify_stage=QualifyStage(agent_executor),
         enrich_stage=EnrichStage(search_port=search_port, agent_executor=agent_executor, max_results=settings.search_max_results),

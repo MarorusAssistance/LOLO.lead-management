@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from lolo_lead_management.domain.enums import PlannerAction, QualificationOutcome, RunStatus, StageName
+from lolo_lead_management.domain.enums import PlannerAction, QualificationOutcome, RunStatus, SourcingStatus, StageName
 from lolo_lead_management.domain.models import (
     AcceptedLeadRecord,
     LeadSearchStartRequest,
@@ -14,11 +14,13 @@ from lolo_lead_management.domain.models import (
     SourceAnchorCandidate,
     SourcePassResult,
     SourceStageTrace,
+    WebsiteCandidateHint,
 )
 from lolo_lead_management.engine.stages.continue_or_finish import ContinueOrFinishStage
 from lolo_lead_management.engine.stages.crm_write import CrmWriteStage
 from lolo_lead_management.engine.stages.draft import DraftStage
 from lolo_lead_management.engine.stages.assemble import AssembleStage
+from lolo_lead_management.engine.stages.chunkerize import ChunkerizeStage
 from lolo_lead_management.engine.stages.enrich import EnrichStage
 from lolo_lead_management.engine.stages.load_state import LoadStateStage
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
@@ -38,6 +40,7 @@ class LeadManagementEngine:
         load_state_stage: LoadStateStage,
         plan_stage: PlanStage,
         source_stage: SourceStage,
+        chunkerize_stage: ChunkerizeStage,
         assemble_stage: AssembleStage,
         qualify_stage: QualifyStage,
         enrich_stage: EnrichStage,
@@ -55,6 +58,7 @@ class LeadManagementEngine:
         self._load_state_stage = load_state_stage
         self._plan_stage = plan_stage
         self._source_stage = source_stage
+        self._chunkerize_stage = chunkerize_stage
         self._assemble_stage = assemble_stage
         self._qualify_stage = qualify_stage
         self._enrich_stage = enrich_stage
@@ -130,6 +134,7 @@ class LeadManagementEngine:
                 state.current_discovery_source_trace = None
                 state.current_anchored_source_trace = None
                 state.current_enrich_trace = None
+                state.current_chunker_trace = None
                 state.current_assembler_trace = None
                 state.current_qualification_trace = None
                 state.current_continue_trace = None
@@ -175,6 +180,21 @@ class LeadManagementEngine:
                     state.current_source_trace = aggregated_discovery.source_trace
                     state.current_discovery_source_trace = aggregated_discovery.source_trace
 
+                    active_stage = StageName.CHUNKERIZE
+                    self._update_progress(
+                        state.run,
+                        stage=StageName.CHUNKERIZE,
+                        message="Structuring discovery documents into logical sections before selecting a company focus.",
+                    )
+                    state.current_source_result = self._chunkerize_stage.execute(state)
+                    state.current_source_trace = state.current_source_result.source_trace
+                    state.current_discovery_source_trace = state.current_source_result.source_trace
+                    state.current_chunker_trace = (
+                        self._chunkerize_stage.last_trace.model_dump(mode="json")
+                        if self._chunkerize_stage.last_trace is not None
+                        else None
+                    )
+
                     active_stage = StageName.ASSEMBLE
                     self._update_progress(
                         state.run,
@@ -188,6 +208,7 @@ class LeadManagementEngine:
                     focus_resolution = self._assemble_stage.select_focus_company(state)
                     state.current_focus_company_resolution = focus_resolution
                     state.current_assembler_trace = {
+                        "chunkerize": state.current_chunker_trace or {},
                         "company_selection": self._assemble_stage.last_company_selection_trace or {},
                     }
                     if focus_resolution.selected_company or not discovery_result.executed_queries:
@@ -232,6 +253,21 @@ class LeadManagementEngine:
                 state.current_source_trace = source_result.source_trace
                 state.current_anchored_source_trace = source_result.source_trace
 
+                active_stage = StageName.CHUNKERIZE
+                self._update_progress(
+                    state.run,
+                    stage=StageName.CHUNKERIZE,
+                    message="Structuring focus-locked evidence into logical sections before assembly.",
+                )
+                state.current_source_result = self._chunkerize_stage.execute(state)
+                state.current_source_trace = state.current_source_result.source_trace
+                state.current_anchored_source_trace = state.current_source_result.source_trace
+                state.current_chunker_trace = (
+                    self._chunkerize_stage.last_trace.model_dump(mode="json")
+                    if self._chunkerize_stage.last_trace is not None
+                    else None
+                )
+
                 active_stage = StageName.ASSEMBLE
                 self._update_progress(
                     state.run,
@@ -240,6 +276,7 @@ class LeadManagementEngine:
                 )
                 state.current_dossier = self._assemble_stage.execute(state)
                 state.current_assembler_trace = {
+                    "chunkerize": state.current_chunker_trace or {},
                     "company_selection": self._assemble_stage.last_company_selection_trace or {},
                     "focus_locked_assembly": state.current_assembler_trace or {},
                 }
@@ -264,8 +301,24 @@ class LeadManagementEngine:
                         message="Collecting extra evidence for a promising candidate.",
                     )
                     state.run.budget.enrich_attempts_used += 1
-                    state.current_source_result = self._enrich_stage.execute(state)
-                    state.current_enrich_trace = state.current_source_result.source_trace
+                    enrich_result = self._enrich_stage.execute(state)
+                    state.current_enrich_trace = enrich_result.source_trace
+                    state.current_source_result = self._merge_focus_locked_results(source_result, enrich_result)
+                    state.current_source_trace = state.current_source_result.source_trace
+
+                    active_stage = StageName.CHUNKERIZE
+                    self._update_progress(
+                        state.run,
+                        stage=StageName.CHUNKERIZE,
+                        message="Re-structuring merged evidence after enrich before re-assembly.",
+                    )
+                    state.current_source_result = self._chunkerize_stage.execute(state)
+                    state.current_source_trace = state.current_source_result.source_trace
+                    state.current_chunker_trace = (
+                        self._chunkerize_stage.last_trace.model_dump(mode="json")
+                        if self._chunkerize_stage.last_trace is not None
+                        else None
+                    )
 
                     active_stage = StageName.ASSEMBLE
                     self._update_progress(
@@ -275,6 +328,7 @@ class LeadManagementEngine:
                     )
                     state.current_dossier = self._assemble_stage.execute(state)
                     state.current_assembler_trace = {
+                        "chunkerize": state.current_chunker_trace or {},
                         "company_selection": self._assemble_stage.last_company_selection_trace or {},
                         "focus_locked_assembly": state.current_assembler_trace or {},
                     }
@@ -518,6 +572,57 @@ class LeadManagementEngine:
                 "source_trace": merged_trace,
             }
         )
+
+    def _merge_focus_locked_results(
+        self,
+        current: SourcePassResult | None,
+        enrich_result: SourcePassResult | None,
+    ) -> SourcePassResult | None:
+        if current is None:
+            return enrich_result
+        if enrich_result is None:
+            return current
+
+        merged_documents = merge_documents([*current.documents, *enrich_result.documents])
+        merged_website_candidates = self._merge_website_candidates(
+            [*current.website_candidates, *enrich_result.website_candidates]
+        )
+        merged_queries = [*current.executed_queries, *enrich_result.executed_queries]
+        merged_research_trace = [*current.research_trace, *enrich_result.research_trace]
+        merged_notes = dedupe_preserve_order([*current.notes, *enrich_result.notes])
+        merged_status = SourcingStatus.FOUND if merged_documents else enrich_result.sourcing_status
+
+        return current.model_copy(
+            update={
+                "sourcing_status": merged_status,
+                "query_plan": enrich_result.query_plan or current.query_plan,
+                "executed_queries": merged_queries,
+                "documents": merged_documents,
+                "website_candidates": merged_website_candidates,
+                "anchored_company_name": enrich_result.anchored_company_name or current.anchored_company_name,
+                "research_trace": merged_research_trace,
+                "notes": merged_notes,
+                "source_trace": enrich_result.source_trace or current.source_trace,
+            }
+        )
+
+    def _merge_website_candidates(self, candidates: list[WebsiteCandidateHint]) -> list[WebsiteCandidateHint]:
+        merged: dict[str, WebsiteCandidateHint] = {}
+        for candidate in candidates:
+            existing = merged.get(candidate.candidate_website)
+            if existing is None:
+                merged[candidate.candidate_website] = candidate
+                continue
+            merged[candidate.candidate_website] = existing.model_copy(
+                update={
+                    "evidence_urls": dedupe_preserve_order(
+                        [*existing.evidence_urls, *candidate.evidence_urls]
+                    ),
+                    "signals": dedupe_preserve_order([*existing.signals, *candidate.signals]),
+                    "score": max(existing.score, candidate.score),
+                }
+            )
+        return list(merged.values())
 
     def _merge_discovery_traces(self, traces: list[SourceStageTrace]) -> SourceStageTrace | None:
         if not traces:

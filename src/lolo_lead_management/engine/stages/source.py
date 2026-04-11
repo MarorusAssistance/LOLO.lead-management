@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 from lolo_lead_management.domain.enums import SourceQuality, StageName, SourcingStatus
 from lolo_lead_management.domain.models import (
+    PageCapture,
     ResearchQuery,
     ResearchQueryPlan,
     ResearchTraceEntry,
@@ -651,6 +652,9 @@ class SourceStage:
             for query in available
             if self._discovery_directory_for_query(query) not in SPAIN_DISCOVERY_DIRECTORY_LADDER
         ]
+        if len(state.discovery_directories_consumed_in_run) >= len(SPAIN_DISCOVERY_DIRECTORY_LADDER):
+            state.discovery_ladder_exhausted_in_run = True
+            return [], None, len(state.discovery_directories_consumed_in_run)
         if non_ladder_queries:
             state.discovery_ladder_exhausted_in_run = False
             return [non_ladder_queries[0]], self._discovery_directory_for_query(non_ladder_queries[0]), None
@@ -812,8 +816,8 @@ class SourceStage:
             pending = pending[:5]
         pending_urls = {item.url for item in pending}
         query_text = query.query
-        extracted: dict[str, str] = {}
-        fetched: dict[str, str] = {}
+        extracted: dict[str, EvidenceDocument] = {}
+        fetched: dict[str, PageCapture] = {}
         fetched_urls: list[str] = []
         empty_fetch_urls: list[str] = []
         enrichment_details: dict[str, dict] = {}
@@ -823,35 +827,43 @@ class SourceStage:
                 extracted_docs = self._search_port.extract_pages(pending_urls, extract_depth="advanced")
             except Exception:
                 extracted_docs = []
-            extracted = {item.url: item.raw_content or "" for item in extracted_docs}
+            extracted = {item.url: item for item in extracted_docs}
             fetch_pending = [
                 item
                 for item in pending
-                if self._content_is_poor(extracted.get(item.url, ""))
+                if self._content_is_poor((extracted.get(item.url).raw_content if extracted.get(item.url) else ""))
             ]
             if fetch_pending:
                 with ThreadPoolExecutor(max_workers=min(4, len(fetch_pending))) as executor:
                     pairs = list(executor.map(lambda entry: (entry.url, self._safe_fetch_page(entry.url)), fetch_pending))
                 fetched = {url: text for url, text in pairs}
-                fetched_urls = [url for url, text in pairs if text]
-                empty_fetch_urls = [url for url, text in pairs if not text]
+                fetched_urls = [url for url, capture in pairs if capture.extracted_text]
+                empty_fetch_urls = [url for url, capture in pairs if not capture.extracted_text]
         enriched = []
         for item in documents:
             raw_before = getattr(item, "raw_content", "") or ""
             raw_after = raw_before
+            raw_html = getattr(item, "raw_html", None)
+            content_format = getattr(item, "content_format", "unknown")
             extract_attempted = item.url in pending_urls
             fetch_attempted = item.url in fetched or item.url in empty_fetch_urls
             strategy = "none"
             if not self._content_is_poor(raw_before):
                 strategy = "search_raw"
-            elif item.url in extracted and not self._content_is_poor(extracted.get(item.url, "")):
-                raw_after = extracted.get(item.url, "")
+            elif item.url in extracted and not self._content_is_poor(extracted[item.url].raw_content):
+                raw_after = extracted[item.url].raw_content or ""
+                raw_html = extracted[item.url].raw_html or raw_html
+                content_format = extracted[item.url].content_format if extracted[item.url].content_format != "unknown" else content_format
                 strategy = "extract_pages"
-            elif item.url in fetched and fetched.get(item.url):
-                raw_after = fetched.get(item.url, "")
+            elif item.url in fetched and fetched[item.url].extracted_text:
+                raw_after = fetched[item.url].extracted_text
+                raw_html = fetched[item.url].raw_html or raw_html
+                content_format = fetched[item.url].content_format if fetched[item.url].content_format != "unknown" else content_format
                 strategy = "extract_then_fetch" if item.url in extracted or extract_attempted else "fetch_page"
-            elif item.url in extracted and extracted.get(item.url):
-                raw_after = extracted.get(item.url, "")
+            elif item.url in extracted and extracted[item.url].raw_content:
+                raw_after = extracted[item.url].raw_content or ""
+                raw_html = extracted[item.url].raw_html or raw_html
+                content_format = extracted[item.url].content_format if extracted[item.url].content_format != "unknown" else content_format
                 strategy = "extract_then_fetch" if fetch_attempted else "extract_pages"
             enrichment_details[item.url] = {
                 "raw_content_len_before": self._raw_content_length(raw_before),
@@ -865,6 +877,8 @@ class SourceStage:
                     item.model_copy(
                         update={
                             "raw_content": raw_after,
+                            "raw_html": raw_html,
+                            "content_format": content_format,
                             "query_executed": query_text,
                             "query_planned": item.query_planned or query_text,
                         }
@@ -1028,12 +1042,20 @@ class SourceStage:
                     title=item.title,
                     snippet=item.snippet,
                     raw_content=getattr(item, "raw_content", None),
+                    has_raw_html=bool(getattr(item, "raw_html", None)),
+                    content_format=getattr(item, "content_format", "unknown") or "unknown",
                     source_type=getattr(item, "source_type", None),
                     domain=domain_from_url(item.url),
                     source_tier=source_tier,
                     source_quality=source_quality,
                     company_anchor=getattr(item, "company_anchor", None),
                     is_company_controlled_source=bool(getattr(item, "is_company_controlled_source", False)),
+                    chunker_adapter=getattr(item, "chunker_adapter", None),
+                    chunker_version=getattr(item, "chunker_version", None),
+                    normalized_block_count=len(getattr(item, "normalized_blocks", []) or []),
+                    logical_segment_count=len(getattr(item, "logical_segments", []) or []),
+                    debug_markdown_artifact_path=getattr(item, "debug_markdown_artifact_path", None),
+                    debug_markdown_preview=getattr(item, "debug_markdown_preview", None),
                     raw_content_len_before=detail.get("raw_content_len_before"),
                     raw_content_len_after=detail.get("raw_content_len_after"),
                     enrichment_strategy_used=detail.get("enrichment_strategy_used"),
@@ -1626,11 +1648,15 @@ class SourceStage:
                 return True
         return False
 
-    def _safe_fetch_page(self, url: str) -> str:
+    def _safe_fetch_page(self, url: str) -> PageCapture:
         try:
-            return self._search_port.fetch_page(url)
+            if type(self._search_port).fetch_page is not SearchPort.fetch_page:
+                text = self._search_port.fetch_page(url)
+                return PageCapture(url=url, extracted_text=text, content_format="text" if text else "unknown")
+            if hasattr(self._search_port, "fetch_page_capture"):
+                return self._search_port.fetch_page_capture(url)
         except Exception:
-            return ""
+            return PageCapture(url=url, extracted_text="", content_format="unknown")
 
     def _is_usable_search_result(self, url: str) -> bool:
         try:

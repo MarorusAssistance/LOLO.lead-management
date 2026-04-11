@@ -3,6 +3,7 @@ from lolo_lead_management.application.use_cases import select_shortlist_option
 from lolo_lead_management.domain.models import LeadSearchStartRequest
 
 from tests.helpers import (
+    FixtureLeadLlmPort,
     accepted_candidate_fixture,
     build_test_container,
     close_match_candidate_fixture,
@@ -13,7 +14,7 @@ from tests.helpers import (
 def test_end_to_end_accept_flow() -> None:
     tmp_path = workspace_tmp_dir("smoke-flow")
     search_index, pages = accepted_candidate_fixture()
-    container = build_test_container(tmp_path, search_index=search_index, pages=pages)
+    container = build_test_container(tmp_path, search_index=search_index, pages=pages, llm_port=FixtureLeadLlmPort())
     response = container.engine.start(
         LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
     )
@@ -35,7 +36,7 @@ def test_app_builds_with_container() -> None:
 def test_shortlist_selection_promotes_close_match(tmp_path=None) -> None:
     tmp_path = workspace_tmp_dir("smoke-shortlist")
     search_index, pages = close_match_candidate_fixture()
-    container = build_test_container(tmp_path, search_index=search_index, pages=pages)
+    container = build_test_container(tmp_path, search_index=search_index, pages=pages, llm_port=FixtureLeadLlmPort())
     response = container.engine.start(
         LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
     )
