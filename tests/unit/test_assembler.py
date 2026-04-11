@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from lolo_lead_management.domain.enums import FieldEvidenceStatus, SourcingStatus
 from lolo_lead_management.domain.models import ChunkExtractionResolution, CompanyFocusResolution, EvidenceDocument, ExplorationMemoryState, LeadSearchStartRequest, ResearchQuery, ResearchTraceEntry, SearchRunSnapshot, SourcePassResult
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
-from lolo_lead_management.engine.rules import enrich_document_metadata
+from lolo_lead_management.engine.rules import clean_person_name, clean_role_title, enrich_document_metadata
 from lolo_lead_management.engine.stages.assemble import AssembleStage
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
 from lolo_lead_management.engine.state import EngineRuntimeState
@@ -881,6 +881,131 @@ def test_assembler_rejects_product_copy_as_role_title() -> None:
     assert dossier.person is None or dossier.person.role_title is None
 
 
+def test_clean_person_name_preserves_long_iberian_name_and_admin_role() -> None:
+    assert clean_person_name("Nunes de Almeida Branco Bernardo Jose Amaral") == "Nunes de Almeida Branco Bernardo Jose Amaral"
+    assert clean_role_title("Administrador único") == "Administrador único"
+
+
+def test_assembler_preserves_explicit_long_contact_assertion() -> None:
+    request = NormalizeStage(StageAgentExecutor(None)).execute(
+        LeadSearchStartRequest(user_text="busca 1 lead para contactar en espana entre 5 y 50 empleados con genai")
+    )
+    source_result = SourcePassResult(
+        sourcing_status=SourcingStatus.FOUND,
+        anchored_company_name="Interactiveai España Sl.",
+        documents=[
+            EvidenceDocument(
+                url="https://www.infoempresa.com/en-in/es/director/nunes-de-almeida-branco-bernardo-jose-amaral",
+                title="NUNES DE ALMEIDA BRANCO BERNARDO JOSE AMARAL.",
+                snippet="INTERACTIVEAI ESPAÑA SL Administrador único",
+                source_type="fixture",
+                raw_content=(
+                    "NUNES DE ALMEIDA BRANCO BERNARDO JOSE AMARAL.\n"
+                    "INTERACTIVEAI ESPAÑA SL\n"
+                    "Administrador único"
+                ),
+            ),
+        ],
+    )
+    state = EngineRuntimeState(run=SearchRunSnapshot(request=request), memory=ExplorationMemoryState(), current_source_result=source_result)
+    llm = FakeAssemblerLlmPort(
+        {
+            "segment_company_name": "Interactiveai España Sl.",
+            "field_assertions": [
+                {
+                    "field_name": "company_name",
+                    "company_name": "Interactiveai España Sl.",
+                    "value": "Interactiveai España Sl.",
+                    "status": "satisfied",
+                    "support_type": "explicit",
+                    "reasoning_note": "director page company",
+                }
+            ],
+            "contact_assertions": [
+                {
+                    "person_name": "Nunes de Almeida Branco Bernardo Jose Amaral",
+                    "role_title": "Administrador único",
+                    "company_name": "Interactiveai España Sl.",
+                    "status": "satisfied",
+                    "support_type": "explicit",
+                    "reasoning_note": "director page contact",
+                }
+            ],
+            "fit_signals": ["genai"],
+            "contradictions": [],
+            "notes": ["director_page_ok"],
+        }
+    )
+
+    dossier = AssembleStage(StageAgentExecutor(llm)).execute(state)
+
+    assert dossier.person is not None
+    assert dossier.person.full_name == "Nunes de Almeida Branco Bernardo Jose Amaral"
+    assert dossier.person.role_title == "Administrador único"
+    assert state.current_assembler_trace is not None
+    sanitized_outputs = state.current_assembler_trace["extraction_sanitized_outputs"]
+    assert sanitized_outputs
+    assert sanitized_outputs[0]["resolution"]["contact_assertions"]
+    assert sanitized_outputs[0]["sanitizer_rejections"] == []
+
+
+def test_assembler_traces_contact_sanitizer_rejection() -> None:
+    request = NormalizeStage(StageAgentExecutor(None)).execute(
+        LeadSearchStartRequest(user_text="busca 1 lead para contactar en espana entre 5 y 50 empleados con genai")
+    )
+    source_result = SourcePassResult(
+        sourcing_status=SourcingStatus.FOUND,
+        anchored_company_name="Narrativa",
+        documents=[
+            EvidenceDocument(
+                url="https://www.narrativa.com/",
+                title="Narrativa home",
+                snippet="Company: Narrativa",
+                source_type="fixture",
+                raw_content="Company: Narrativa",
+            ),
+        ],
+    )
+    state = EngineRuntimeState(run=SearchRunSnapshot(request=request), memory=ExplorationMemoryState(), current_source_result=source_result)
+    llm = FakeAssemblerLlmPort(
+        {
+            "segment_company_name": "Narrativa",
+            "field_assertions": [
+                {
+                    "field_name": "company_name",
+                    "company_name": "Narrativa",
+                    "value": "Narrativa",
+                    "status": "satisfied",
+                    "support_type": "explicit",
+                    "reasoning_note": "company",
+                }
+            ],
+            "contact_assertions": [
+                {
+                    "person_name": "Report abuse",
+                    "role_title": "CTO",
+                    "company_name": "Narrativa",
+                    "status": "satisfied",
+                    "support_type": "explicit",
+                    "reasoning_note": "garbage contact",
+                }
+            ],
+            "fit_signals": ["genai"],
+            "contradictions": [],
+            "notes": ["garbage_contact"],
+        }
+    )
+
+    dossier = AssembleStage(StageAgentExecutor(llm)).execute(state)
+
+    assert dossier.person is None or dossier.person.full_name is None
+    assert state.current_assembler_trace is not None
+    sanitized_outputs = state.current_assembler_trace["extraction_sanitized_outputs"]
+    assert sanitized_outputs
+    rejections = sanitized_outputs[0]["sanitizer_rejections"]
+    assert any(item["reason"] == "person_name_invalid" for item in rejections)
+
+
 def test_assembler_rejects_person_not_tied_to_company_evidence() -> None:
     request = NormalizeStage(StageAgentExecutor(None)).execute(
         LeadSearchStartRequest(user_text="busca 1 lead founder en espana entre 5 y 50 empleados con genai")
@@ -1235,6 +1360,61 @@ def test_company_selection_uses_whole_document_mode_when_discovery_document_fits
     assert resolution.selected_company == "Acme AI SL"
     assert "discovery_focus_document_mode" in llm.calls
     assert "discovery_focus_consolidation_mode" in llm.calls
+
+
+def test_company_selection_rejects_aggregate_employee_hint() -> None:
+    request = NormalizeStage(StageAgentExecutor(None)).execute(
+        LeadSearchStartRequest(user_text="busca 1 empresa espanola de software con menos de 50 empleados")
+    )
+    source_result = SourcePassResult(
+        sourcing_status=SourcingStatus.FOUND,
+        documents=[
+            EvidenceDocument(
+                url="https://empresite.eleconomista.es/INTERACTIVEAI-ESPANA.html",
+                title="INTERACTIVEAI ESPAÑA SL - Empresite",
+                snippet="Empresa de programacion informatica en Madrid",
+                source_type="fixture",
+                raw_content=(
+                    "INTERACTIVEAI ESPAÑA SL. "
+                    "Actividades de programación informática. "
+                    "La media de empleados es de 5."
+                ),
+                source_tier="tier_b",
+            ),
+        ],
+    )
+    state = EngineRuntimeState(
+        run=SearchRunSnapshot(request=request),
+        memory=ExplorationMemoryState(),
+        current_source_result=source_result,
+        discovery_attempts_for_current_pass=1,
+    )
+
+    llm = FakeAssemblerLlmPort(
+        {
+            "selected_company": "Interactiveai España Sl.",
+            "legal_name": "Interactiveai España Sl.",
+            "query_name": "Interactiveai España",
+            "brand_aliases": [],
+            "country_code": "es",
+            "candidate_website": None,
+            "employee_count_hint_value": 5,
+            "employee_count_hint_type": "estimate",
+            "selection_mode": "confident",
+            "confidence": 0.82,
+            "evidence_urls": ["https://empresite.eleconomista.es/INTERACTIVEAI-ESPANA.html"],
+            "selection_reasons": ["Explicit employee count: 'La media de empleados es de 5'"],
+            "hard_rejections": [],
+            "notes": [],
+        }
+    )
+
+    resolution = AssembleStage(StageAgentExecutor(llm)).select_focus_company(state)
+
+    assert resolution.selected_company == "Interactiveai España Sl"
+    assert resolution.employee_count_hint_value is None
+    assert resolution.employee_count_hint_type == "unknown"
+    assert "employee_hint_rejected_as_aggregate" in resolution.notes
 
 
 def test_company_selection_uses_chunk_mode_when_discovery_document_exceeds_threshold() -> None:

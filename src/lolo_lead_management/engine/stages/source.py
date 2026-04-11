@@ -3,8 +3,9 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
 
-from lolo_lead_management.domain.enums import SourceQuality, StageName, SourcingStatus
+from lolo_lead_management.domain.enums import FieldEvidenceStatus, SourceQuality, StageName, SourcingStatus
 from lolo_lead_management.domain.models import (
+    CompanyFocusResolution,
     PageCapture,
     ResearchQuery,
     ResearchQueryPlan,
@@ -156,6 +157,7 @@ class SourceStage:
             query_history=query_history[-20:],
             excluded_companies=excluded_companies,
             request_scoped_company_exclusions=request_scoped_exclusions,
+            query_selection_policy="structured_state_only",
             selected_queries=[item.query for item in selected_queries],
             notes=[],
         )
@@ -187,7 +189,7 @@ class SourceStage:
 
         documents = merge_documents(documents)
         stage_trace.excluded_terminal_company_documents = []
-        stage_trace.anchor_candidates = self._anchor_candidates(documents, excluded_companies)
+        stage_trace.anchor_candidates = []
         stage_trace.cross_company_rejections = self._cross_company_rejections(stage_trace.query_traces)
         stage_trace.documents_passed_to_assembler = self._document_snapshots(documents)
         stage_trace.batch_traces = [
@@ -230,15 +232,31 @@ class SourceStage:
         seed_documents = merge_documents(seed_result.documents if seed_result else [])
         seed_queries = seed_result.executed_queries[:] if seed_result else []
         seed_trace = seed_result.research_trace[:] if seed_result else []
+        resolved_fields, missing_fields = self._structured_focus_state(state, focus=focus)
+        website_candidates = self._focus_website_candidates(focus)
+        official_domain = domain_from_url(website_candidates[0].candidate_website) if website_candidates else None
+        phase_state = self._focus_phase_state(
+            state,
+            focus=focus,
+            resolved_fields=resolved_fields,
+            missing_fields=missing_fields,
+            official_domain=official_domain,
+        )
         fallback_plan = build_research_query_plan(
             request,
             state.run.applied_relaxation_stage,
             anchor_company=focus.query_name or focus.selected_company,
+            missing_fields=missing_fields,
             mode="source_focus_locked",
         )
         plan_input = {
             "request": self._request_payload(request),
             "focus_company": self._focus_company_payload(focus),
+            "structured_state": {
+                "resolved_fields": resolved_fields,
+                "missing_fields": missing_fields,
+                "current_dossier": self._compact_dossier_payload(state.current_dossier) if state.current_dossier else None,
+            },
             "memory": self._memory_payload(state),
             "relaxation_stage": state.run.applied_relaxation_stage,
             "fallback_plan": self._plan_summary_payload(fallback_plan),
@@ -272,6 +290,9 @@ class SourceStage:
             selected_query_count=0,
             query_history=query_history[-20:],
             excluded_companies=self._excluded_company_names(state),
+            query_selection_policy="structured_state_only",
+            resolved_fields=resolved_fields,
+            missing_fields=missing_fields,
             anchored_company=focus.selected_company,
             anchor_raw_name=focus.legal_name or focus.selected_company,
             anchor_query_name=focus.query_name or focus.selected_company,
@@ -286,15 +307,44 @@ class SourceStage:
         research_trace: list[ResearchTraceEntry] = seed_trace[:]
         query_notes: list[str] = []
 
+        supplemental_queries = self._supplemental_focus_locked_queries(
+            state,
+            focus=focus,
+            missing_fields=missing_fields,
+            official_domain=official_domain,
+            phase_state=phase_state,
+            query_history=query_history + [item.query for item in executed_queries],
+        )
         initial_queries = self._choose_focus_locked_queries(
+            state,
             plan,
             query_history + [item.query for item in executed_queries],
-            current_documents=documents,
-            anchored_company=focus.selected_company,
+            missing_fields=missing_fields,
+            phase_state=phase_state,
+            official_domain=official_domain,
+            supplemental_queries=supplemental_queries,
         )
-        stage_trace.selected_query_count = len(initial_queries)
-        stage_trace.selected_queries = [item.query for item in initial_queries]
-        for query in initial_queries:
+        gap_queries = self._choose_gap_queries(
+            state,
+            plan,
+            query_history + [item.query for item in executed_queries] + [item.query for item in initial_queries],
+            missing_fields=missing_fields,
+            already_selected=initial_queries,
+            phase_state=phase_state,
+            official_domain=official_domain,
+            supplemental_queries=supplemental_queries,
+        )
+        selected_queries: list[ResearchQuery] = []
+        seen_query_texts: set[str] = set()
+        for item in [*initial_queries, *gap_queries]:
+            normalized_query = normalize_text(item.query)
+            if normalized_query in seen_query_texts:
+                continue
+            seen_query_texts.add(normalized_query)
+            selected_queries.append(item)
+        stage_trace.selected_query_count = len(selected_queries)
+        stage_trace.selected_queries = [item.query for item in selected_queries]
+        for query in selected_queries:
             if not state.run.budget.can_search():
                 stage_trace.notes.append("search_call_budget_exhausted_before_focus_locked_query")
                 break
@@ -307,109 +357,15 @@ class SourceStage:
                 query_notes.append(error_note)
 
         documents = merge_documents(documents)
-        official_domain = self._official_domain_for_company(documents, focus.selected_company)
-        website_candidates = self._website_candidates_for_company(documents, focus.selected_company)
-        stage_trace.domain_validation_strategy = "domain_based" if official_domain else "name_based"
-        size_hint_value, size_hint_type = self._size_hint_for_documents(documents)
-        stage_trace.size_hint_value = size_hint_value
-        stage_trace.size_hint_type = size_hint_type
-        stage_trace.operational_status_hint = self._operational_status_hint(documents)
-
-        if self._size_mismatch_lt50(request, size_hint_value):
-            stage_trace.candidate_branch_stop_reason = "size_mismatch_lt50"
-
-        if stage_trace.candidate_branch_stop_reason is None:
-            gap_queries = self._choose_gap_queries(
-                plan,
-                query_history + [item.query for item in executed_queries],
-                current_documents=documents,
-                request=request,
-                size_hint_value=size_hint_value,
-            )
-            for query in gap_queries:
-                if not state.run.budget.can_search():
-                    stage_trace.notes.append("search_call_budget_exhausted_before_gap_followup")
-                    break
-                selected, trace_entry, query_trace, error_note = self._execute_query(state, query)
-                research_trace.append(trace_entry)
-                stage_trace.query_traces.append(query_trace)
-                documents.extend(selected)
-                executed_queries.append(query)
-                if error_note:
-                    query_notes.append(error_note)
-            documents = merge_documents(documents)
-            website_candidates = self._website_candidates_for_company(documents, focus.selected_company)
-            official_domain = self._official_domain_for_company(documents, focus.selected_company)
-            size_hint_value, size_hint_type = self._size_hint_for_documents(documents)
-            stage_trace.size_hint_value = size_hint_value
-            stage_trace.size_hint_type = size_hint_type
-
-        person_supported, role_supported = self._has_person_role_support(documents, focus.selected_company)
-        should_attempt_website = not (size_hint_value is not None and person_supported and role_supported)
-
-        if should_attempt_website and not official_domain and not website_candidates:
-            extra_website_queries = self._additional_website_candidate_queries(
-                plan,
-                query_history + [item.query for item in executed_queries],
-                current_documents=documents,
-                already_selected=initial_queries,
-            )
-            for query in extra_website_queries:
-                if not state.run.budget.can_search():
-                    stage_trace.notes.append("search_call_budget_exhausted_before_second_website_attempt")
-                    break
-                selected, trace_entry, query_trace, error_note = self._execute_query(state, query)
-                research_trace.append(trace_entry)
-                stage_trace.query_traces.append(query_trace)
-                documents.extend(selected)
-                executed_queries.append(query)
-                if error_note:
-                    query_notes.append(error_note)
-            if extra_website_queries:
-                stage_trace.selected_queries = [*stage_trace.selected_queries, *[item.query for item in extra_website_queries]]
-                stage_trace.selected_query_count = len(stage_trace.selected_queries)
-                documents = merge_documents(documents)
-                official_domain = self._official_domain_for_company(documents, focus.selected_company)
-                website_candidates = self._website_candidates_for_company(documents, focus.selected_company)
-
-        if should_attempt_website and official_domain and not self._has_domain_validation_support(documents, official_domain):
-            domain_queries = self._official_domain_queries(
-                focus.query_name or focus.selected_company,
-                official_domain,
-                query_history + [item.query for item in executed_queries],
-            )
-            for query in domain_queries:
-                if not state.run.budget.can_search():
-                    stage_trace.notes.append("search_call_budget_exhausted_before_domain_validation")
-                    break
-                selected, trace_entry, query_trace, error_note = self._execute_query(state, query)
-                research_trace.append(trace_entry)
-                stage_trace.query_traces.append(query_trace)
-                documents.extend(selected)
-                executed_queries.append(query)
-                if error_note:
-                    query_notes.append(error_note)
-            documents = merge_documents(documents)
-
-        official_domain = self._official_domain_for_company(documents, focus.selected_company)
-        website_candidates = self._website_candidates_for_company(documents, focus.selected_company)
-        if stage_trace.candidate_branch_stop_reason is None and should_attempt_website:
-            if not official_domain and website_candidates:
-                stage_trace.candidate_branch_stop_reason = "website_only_directory_support"
-            elif not official_domain and not website_candidates:
-                stage_trace.candidate_branch_stop_reason = "no_candidate_website"
-            elif official_domain and not self._has_domain_validation_support(documents, official_domain):
-                stage_trace.candidate_branch_stop_reason = "zero_results_on_domain_validation"
-
+        stage_trace.domain_validation_strategy = None
+        stage_trace.size_hint_value = focus.employee_count_hint_value
+        stage_trace.size_hint_type = focus.employee_count_hint_type
+        stage_trace.operational_status_hint = None
         stage_trace.focused_document_urls = [item.url for item in documents]
         stage_trace.official_domain = official_domain
         stage_trace.website_candidates = website_candidates
         stage_trace.cross_company_rejections = self._cross_company_rejections(stage_trace.query_traces)
-        stage_trace.anchor_confidence = self._anchor_confidence(
-            documents,
-            anchored_company=focus.selected_company,
-            official_domain=official_domain,
-        )
+        stage_trace.anchor_confidence = self._focus_confidence(focus)
 
         if not documents:
             stage_trace.notes.extend([*query_notes, "no_documents_selected"])
@@ -428,11 +384,17 @@ class SourceStage:
         selection_notes = ["assembler_receives_raw_focus_batch"]
         stage_trace.selected_documents = self._selected_document_trace(selected_documents, research_trace)
         stage_trace.documents_passed_to_assembler = self._document_snapshots(selected_documents)
-        notes = [f"queries_executed={len(executed_queries)}", f"anchor_confidence={stage_trace.anchor_confidence}", *query_notes, *selection_notes]
-        if website_candidates:
-            notes.append(f"website_candidate={website_candidates[0].candidate_website}")
-        if stage_trace.candidate_branch_stop_reason:
-            notes.append(stage_trace.candidate_branch_stop_reason)
+        notes = [
+            f"queries_executed={len(executed_queries)}",
+            f"anchor_confidence={stage_trace.anchor_confidence}",
+            f"resolved_fields={','.join(resolved_fields)}" if resolved_fields else "resolved_fields=",
+            f"missing_fields={','.join(missing_fields)}" if missing_fields else "missing_fields=",
+            f"company_validation_complete={phase_state['company_validation_complete']}",
+            f"website_resolution_needed={phase_state['website_resolution_needed']}",
+            f"persona_search_unlocked={phase_state['persona_search_unlocked']}",
+            *query_notes,
+            *selection_notes,
+        ]
         stage_trace.notes.extend(dedupe_preserve_order(notes))
         self._mark_run_scoped_visited(state, selected_documents)
         self.last_trace = stage_trace
@@ -688,10 +650,289 @@ class SourceStage:
         request_scoped_exclusions = self._request_scoped_company_exclusions(state)
         return dedupe_preserve_order([*state.memory.searched_company_names, *run_company_names, *request_scoped_exclusions])
 
-    def _choose_focus_locked_queries(self, plan: ResearchQueryPlan, query_history: list[str], *, current_documents, anchored_company: str | None):
+    def _structured_focus_state(
+        self,
+        state: EngineRuntimeState,
+        *,
+        focus: CompanyFocusResolution,
+    ) -> tuple[list[str], list[str]]:
+        dossier = state.current_dossier
+        field_map = {item.field_name: item for item in dossier.field_evidence} if dossier is not None else {}
+
+        def is_satisfied(field_name: str) -> bool:
+            item = field_map.get(field_name)
+            return bool(item and item.status == FieldEvidenceStatus.SATISFIED)
+
+        resolved: list[str] = []
+        missing: list[str] = []
+
+        if focus.selected_company or is_satisfied("company_name"):
+            resolved.append("company_name")
+        else:
+            missing.append("company_name")
+
+        if is_satisfied("country") or focus.country_code:
+            resolved.append("country")
+        elif state.run.request.constraints.preferred_country:
+            missing.append("country")
+
+        employee_field = field_map.get("employee_estimate")
+        if is_satisfied("employee_estimate") or (
+            focus.employee_count_hint_value is not None and focus.employee_count_hint_type in {"exact", "range"}
+        ):
+            resolved.append("employee_estimate")
+        elif state.run.request.constraints.min_company_size is not None or state.run.request.constraints.max_company_size is not None:
+            missing.append("employee_estimate")
+        elif employee_field and employee_field.status in {FieldEvidenceStatus.WEAKLY_SUPPORTED, FieldEvidenceStatus.CONTRADICTED}:
+            missing.append("employee_estimate")
+
+        if is_satisfied("fit_signals"):
+            resolved.append("fit_signals")
+        elif state.run.request.search_themes:
+            missing.append("fit_signals")
+
+        if is_satisfied("person_name"):
+            resolved.append("person_name")
+        elif state.run.request.constraints.prefer_named_person:
+            missing.append("person_name")
+
+        if is_satisfied("role_title"):
+            resolved.append("role_title")
+        elif state.run.request.constraints.prefer_named_person:
+            missing.append("role_title")
+
+        website_field = field_map.get("website")
+        if is_satisfied("website"):
+            resolved.append("website")
+        elif website_field and website_field.status in {FieldEvidenceStatus.WEAKLY_SUPPORTED, FieldEvidenceStatus.CONTRADICTED}:
+            missing.append("website")
+
+        return dedupe_preserve_order(resolved), dedupe_preserve_order(missing)
+
+    def _focus_phase_state(
+        self,
+        state: EngineRuntimeState,
+        *,
+        focus: CompanyFocusResolution,
+        resolved_fields: list[str],
+        missing_fields: list[str],
+        official_domain: str | None,
+    ) -> dict[str, bool | str]:
+        required_validation_fields = {"company_name"}
+        if state.run.request.constraints.preferred_country:
+            required_validation_fields.add("country")
+        if state.run.request.constraints.min_company_size is not None or state.run.request.constraints.max_company_size is not None:
+            required_validation_fields.add("employee_estimate")
+        if state.run.request.search_themes:
+            required_validation_fields.add("fit_signals")
+        missing = set(missing_fields)
+        focus_confidence = self._focus_confidence(focus)
+        company_validation_complete = not bool(required_validation_fields & missing)
+        website_resolved = "website" in resolved_fields
+        has_candidate_website = bool(canonicalize_website(focus.candidate_website))
+        website_resolution_needed = bool(
+            company_validation_complete
+            and not website_resolved
+            and (has_candidate_website or focus_confidence == "low" or bool(official_domain))
+        )
+        persona_search_unlocked = bool(company_validation_complete and not website_resolution_needed)
+        return {
+            "company_validation_complete": company_validation_complete,
+            "website_resolution_needed": website_resolution_needed,
+            "persona_search_unlocked": persona_search_unlocked,
+            "focus_confidence": focus_confidence,
+        }
+
+    def _query_phase(self, query: ResearchQuery) -> str:
+        if query.expected_field in {"person_name", "role_title"} or query.source_role == "governance_resolution":
+            return "persona_search_phase"
+        if query.expected_field == "website" or query.source_role == "website_resolution":
+            return "website_resolution_phase"
+        return "company_validation_phase"
+
+    def _focus_phase_order(self, phase_state: dict[str, bool | str]) -> list[str]:
+        if not bool(phase_state["company_validation_complete"]):
+            return ["company_validation_phase", "website_resolution_phase", "persona_search_phase"]
+        if bool(phase_state["website_resolution_needed"]):
+            return ["website_resolution_phase", "persona_search_phase", "company_validation_phase"]
+        return ["persona_search_phase", "website_resolution_phase", "company_validation_phase"]
+
+    def _persona_size_profile(self, state: EngineRuntimeState, focus: CompanyFocusResolution) -> str:
+        dossier = state.current_dossier
+        employee_value: int | None = None
+        if dossier is not None:
+            for item in dossier.field_evidence:
+                if item.field_name == "employee_estimate" and isinstance(item.value, int):
+                    employee_value = item.value
+                    break
+        if employee_value is None and focus.employee_count_hint_value is not None:
+            employee_value = focus.employee_count_hint_value
+        if employee_value is not None and employee_value <= 15:
+            return "micro"
+        max_size = state.run.request.constraints.max_company_size
+        if max_size is not None and max_size <= 15:
+            return "micro"
+        return "structured"
+
+    def _query_phase_rank(
+        self,
+        query: ResearchQuery,
+        *,
+        state: EngineRuntimeState,
+        phase_state: dict[str, bool | str],
+        official_domain: str | None,
+    ) -> tuple[int, int]:
+        phase = self._query_phase(query)
+        phase_order = self._focus_phase_order(phase_state)
+        phase_index = phase_order.index(phase) if phase in phase_order else len(phase_order)
+        query_text = normalize_text(query.query)
+        raw_query = query.query.lower().strip()
+        within_phase = 50
+        if phase == "company_validation_phase":
+            if query.expected_field == "company_name":
+                within_phase = 0
+            elif query.expected_field == "employee_estimate":
+                within_phase = 1
+            elif query.expected_field == "fit_signals":
+                within_phase = 2
+        elif phase == "website_resolution_phase":
+            if official_domain and raw_query.startswith(f"site:{official_domain.lower()}"):
+                if "contacto" in query_text or "contact" in query_text:
+                    within_phase = 0
+                elif "aviso legal" in query_text or "legal" in query_text or "privacy" in query_text:
+                    within_phase = 1
+                else:
+                    within_phase = 2
+            elif "-site:linkedin.com" in query.query:
+                within_phase = 3
+            elif any(token in query_text for token in ["sitio web", "pagina web", "web"]):
+                within_phase = 4
+            elif "contacto" in query_text or "contact" in query_text:
+                within_phase = 5
+            elif "aviso legal" in query_text or "legal" in query_text:
+                within_phase = 6
+            else:
+                within_phase = 7
+        else:
+            size_profile = self._persona_size_profile(state, focus=state.current_focus_company_resolution or CompanyFocusResolution())
+            if official_domain and raw_query.startswith(f"site:{official_domain.lower()}"):
+                if any(token in query_text for token in ["equipo", "team", "quienes somos", "sobre nosotros"]):
+                    within_phase = 0
+                else:
+                    within_phase = 1
+            elif size_profile == "micro":
+                if " founder" in f" {query_text} ":
+                    within_phase = 2
+                elif " ceo" in f" {query_text} ":
+                    within_phase = 3
+                elif " cofounder" in f" {query_text} " or " co-founder" in f" {query_text} ":
+                    within_phase = 4
+                elif " cto" in f" {query_text} ":
+                    within_phase = 5
+                elif " project manager" in f" {query_text} " or " delivery" in f" {query_text} " or " operations" in f" {query_text} ":
+                    within_phase = 7
+                elif " administrador" in f" {query_text} " or " apoderado" in f" {query_text} ":
+                    within_phase = 8
+                else:
+                    within_phase = 6
+            else:
+                if " cto" in f" {query_text} ":
+                    within_phase = 2
+                elif " founder" in f" {query_text} ":
+                    within_phase = 3
+                elif " ceo" in f" {query_text} ":
+                    within_phase = 4
+                elif " project manager" in f" {query_text} ":
+                    within_phase = 5
+                elif " delivery" in f" {query_text} " or " operations" in f" {query_text} " or " head of" in f" {query_text} ":
+                    within_phase = 6
+                elif " administrador" in f" {query_text} " or " apoderado" in f" {query_text} ":
+                    within_phase = 8
+                else:
+                    within_phase = 7
+        return phase_index, within_phase
+
+    def _query_targets_missing_fields(
+        self,
+        query: ResearchQuery,
+        missing_fields: list[str],
+        *,
+        phase_state: dict[str, bool | str],
+    ) -> bool:
+        missing = set(missing_fields)
+        phase = self._query_phase(query)
+        if phase == "website_resolution_phase":
+            return bool(phase_state["website_resolution_needed"])
+        if phase == "persona_search_phase":
+            return bool(phase_state["persona_search_unlocked"] and ({"person_name", "role_title"} & missing))
+        if not missing:
+            return True
+        if query.expected_field in missing:
+            return True
+        if query.expected_field == "company_name" and ("company_name" in missing or "country" in missing):
+            return True
+        return False
+
+    def _supplemental_focus_locked_queries(
+        self,
+        state: EngineRuntimeState,
+        *,
+        focus: CompanyFocusResolution,
+        missing_fields: list[str],
+        official_domain: str | None,
+        phase_state: dict[str, bool | str],
+        query_history: list[str],
+    ) -> list[ResearchQuery]:
+        queries: list[ResearchQuery] = []
+        anchor_name = focus.query_name or focus.selected_company or ""
+        used = {normalize_text(item) for item in query_history}
+        if bool(phase_state["website_resolution_needed"]):
+            for query in self._official_domain_queries(anchor_name, official_domain, query_history):
+                if normalize_text(query.query) not in used:
+                    queries.append(query)
+        if bool(phase_state["persona_search_unlocked"]) and ({"person_name", "role_title"} & set(missing_fields)):
+            for query in self._official_domain_persona_queries(anchor_name, official_domain, state):
+                if normalize_text(query.query) not in used:
+                    queries.append(query)
+        return queries
+
+    def _choose_focus_locked_queries(
+        self,
+        state: EngineRuntimeState,
+        plan: ResearchQueryPlan,
+        query_history: list[str],
+        *,
+        missing_fields: list[str],
+        phase_state: dict[str, bool | str],
+        official_domain: str | None,
+        supplemental_queries: list[ResearchQuery] | None = None,
+    ):
         selected: list[ResearchQuery] = []
         used = {normalize_text(item) for item in query_history}
-        for query in plan.planned_queries:
+        combined_queries = [*(supplemental_queries or []), *plan.planned_queries]
+        ordered = sorted(
+            enumerate(combined_queries),
+            key=lambda pair: (
+                *self._query_phase_rank(
+                    pair[1],
+                    state=state,
+                    phase_state=phase_state,
+                    official_domain=official_domain,
+                ),
+                pair[0],
+            ),
+        )
+        for _, query in ordered:
+            if normalize_text(query.query) in used:
+                continue
+            if not self._query_targets_missing_fields(query, missing_fields, phase_state=phase_state):
+                continue
+            selected.append(query)
+            if len(selected) >= 2:
+                break
+        if selected:
+            return selected
+        for _, query in ordered:
             if normalize_text(query.query) in used:
                 continue
             selected.append(query)
@@ -756,11 +997,39 @@ class SourceStage:
                     break
         return selected
 
-    def _choose_gap_queries(self, plan: ResearchQueryPlan, query_history: list[str], *, current_documents, request, size_hint_value: int | None):
+    def _choose_gap_queries(
+        self,
+        state: EngineRuntimeState,
+        plan: ResearchQueryPlan,
+        query_history: list[str],
+        *,
+        missing_fields: list[str],
+        already_selected: list[ResearchQuery],
+        phase_state: dict[str, bool | str],
+        official_domain: str | None,
+        supplemental_queries: list[ResearchQuery] | None = None,
+    ):
         candidates = []
         used = {normalize_text(item) for item in query_history}
-        for query in plan.planned_queries:
+        combined_queries = [*(supplemental_queries or []), *plan.planned_queries]
+        ordered = sorted(
+            enumerate(combined_queries),
+            key=lambda pair: (
+                *self._query_phase_rank(
+                    pair[1],
+                    state=state,
+                    phase_state=phase_state,
+                    official_domain=official_domain,
+                ),
+                pair[0],
+            ),
+        )
+        for _, query in ordered:
             if normalize_text(query.query) in used:
+                continue
+            if query.query in {item.query for item in already_selected}:
+                continue
+            if not self._query_targets_missing_fields(query, missing_fields, phase_state=phase_state):
                 continue
             candidates.append(query)
             if len(candidates) >= 2:
@@ -1002,8 +1271,8 @@ class SourceStage:
             return []
         queries = [
             ResearchQuery(
-                query=f"{official_domain} contacto aviso legal cif",
-                objective="Validate that the anchored domain is the official company website using contact, legal, or identity pages on the company domain.",
+                query=f"site:{official_domain} contacto",
+                objective="Validate that the candidate company domain exposes a real contact page tied to the anchored company.",
                 research_phase="company_anchoring",
                 source_role="website_resolution",
                 candidate_company_name=anchored_company,
@@ -1017,6 +1286,38 @@ class SourceStage:
                 excluded_domains=[],
                 expected_source_types=["company_site"],
             ),
+            ResearchQuery(
+                query=f'site:{official_domain} "aviso legal"',
+                objective="Validate that the candidate company domain exposes legal or corporate identity pages tied to the anchored company.",
+                research_phase="company_anchoring",
+                source_role="website_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="website",
+                stop_if_resolved=True,
+                exact_match=False,
+                search_depth="advanced",
+                min_score=0.58,
+                preferred_domains=[official_domain],
+                excluded_domains=[],
+                expected_source_types=["company_site"],
+            ),
+            ResearchQuery(
+                query=f'site:{official_domain} "quienes somos"',
+                objective="Validate that the candidate company domain exposes an about page consistent with the anchored company brand and identity.",
+                research_phase="company_anchoring",
+                source_role="website_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="website",
+                stop_if_resolved=True,
+                exact_match=False,
+                search_depth="advanced",
+                min_score=0.56,
+                preferred_domains=[official_domain],
+                excluded_domains=[],
+                expected_source_types=["company_site"],
+            ),
         ]
         used = {normalize_text(item) for item in query_history}
         selected = []
@@ -1024,7 +1325,87 @@ class SourceStage:
             if normalize_text(query.query) in used:
                 continue
             selected.append(query)
-        return selected[:1]
+        return selected[:3]
+
+    def _official_domain_persona_queries(
+        self,
+        anchored_company: str,
+        official_domain: str | None,
+        state: EngineRuntimeState,
+    ) -> list[ResearchQuery]:
+        if not official_domain or not domain_has_public_suffix(official_domain):
+            return []
+        queries: list[ResearchQuery] = [
+            ResearchQuery(
+                query=f"site:{official_domain} equipo",
+                objective="Find explicit team pages on the company domain that may name people and roles tied to the anchored company.",
+                research_phase="field_acquisition",
+                source_role="governance_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="person_name",
+                exact_match=False,
+                search_depth="advanced",
+                min_score=0.58,
+                preferred_domains=[official_domain],
+                excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                expected_source_types=["company_site"],
+            ),
+            ResearchQuery(
+                query=f"site:{official_domain} team",
+                objective="Find explicit team pages on the company domain that may name people and roles tied to the anchored company.",
+                research_phase="field_acquisition",
+                source_role="governance_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="person_name",
+                exact_match=False,
+                search_depth="advanced",
+                min_score=0.58,
+                preferred_domains=[official_domain],
+                excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                expected_source_types=["company_site"],
+            ),
+            ResearchQuery(
+                query=f'site:{official_domain} "quienes somos"',
+                objective="Find about pages on the company domain that may explicitly tie named people and roles to the anchored company.",
+                research_phase="field_acquisition",
+                source_role="governance_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="person_name",
+                exact_match=False,
+                search_depth="advanced",
+                min_score=0.57,
+                preferred_domains=[official_domain],
+                excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                expected_source_types=["company_site"],
+            ),
+        ]
+        size_profile = self._persona_size_profile(state, focus=state.current_focus_company_resolution or CompanyFocusResolution())
+        if size_profile == "micro":
+            role_terms = ["founder", "ceo", "cofounder", "cto"]
+        else:
+            role_terms = ["cto", "founder", "ceo", '"project manager"', "operations"]
+        for term in role_terms:
+            queries.append(
+                ResearchQuery(
+                    query=f'site:{official_domain} {term}',
+                    objective="Find explicit named decision-makers or operational leads on the company domain.",
+                    research_phase="field_acquisition",
+                    source_role="governance_resolution",
+                    candidate_company_name=anchored_company,
+                    source_tier_target="tier_a",
+                    expected_field="person_name",
+                    exact_match=False,
+                    search_depth="advanced",
+                    min_score=0.56,
+                    preferred_domains=[official_domain],
+                    excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                    expected_source_types=["company_site"],
+                )
+            )
+        return queries[:6]
 
     def _official_website_for_company(self, documents, anchored_company: str | None) -> str | None:
         candidates = self._website_candidates_for_company(documents, anchored_company)
@@ -1559,10 +1940,64 @@ class SourceStage:
             "legal_name": focus.legal_name,
             "query_name": focus.query_name,
             "brand_aliases": focus.brand_aliases[:3],
+            "candidate_website": focus.candidate_website,
+            "country_code": focus.country_code,
+            "employee_count_hint_value": focus.employee_count_hint_value,
+            "employee_count_hint_type": focus.employee_count_hint_type,
             "evidence_urls": focus.evidence_urls[:2],
             "selection_mode": focus.selection_mode,
             "selection_reasons": focus.selection_reasons[:3],
         }
+
+    def _compact_dossier_payload(self, dossier) -> dict:
+        if dossier is None:
+            return {}
+        payload = dossier.model_dump(mode="json") if hasattr(dossier, "model_dump") else dossier
+        company = payload.get("company") or {}
+        person = payload.get("person") or {}
+        field_evidence = payload.get("field_evidence") or []
+        return {
+            "company": {
+                "name": company.get("name"),
+                "website": company.get("website"),
+                "country_code": company.get("country_code"),
+                "employee_estimate": company.get("employee_estimate"),
+            },
+            "person": {
+                "full_name": person.get("full_name"),
+                "role_title": person.get("role_title"),
+            },
+            "fit_signals": (payload.get("fit_signals") or [])[:4],
+            "field_evidence": [
+                {
+                    "field_name": item.get("field_name"),
+                    "status": item.get("status"),
+                    "value": item.get("value"),
+                    "support_type": item.get("support_type"),
+                }
+                for item in field_evidence[:8]
+            ],
+        }
+
+    def _focus_website_candidates(self, focus: CompanyFocusResolution) -> list[WebsiteCandidateHint]:
+        website = canonicalize_website(focus.candidate_website)
+        if not website:
+            return []
+        return [
+            WebsiteCandidateHint(
+                candidate_website=website,
+                evidence_urls=focus.evidence_urls[:3],
+                signals=focus.selection_reasons[:3],
+                score=max(0, min(focus.confidence, 1)),
+            )
+        ]
+
+    def _focus_confidence(self, focus: CompanyFocusResolution) -> str:
+        if focus.selection_mode == "confident" or focus.confidence >= 0.85:
+            return "high"
+        if focus.selection_mode in {"plausible", "fallback"} or focus.confidence >= 0.55:
+            return "medium"
+        return "low"
 
     def _plan_summary_payload(self, plan: ResearchQueryPlan) -> dict:
         return {
@@ -1687,11 +2122,8 @@ class SourceStage:
         if query.country == "es" and query.source_role == "entity_validation":
             if is_spanish_category_page(document.url, document.title):
                 reasons.append("spain_category_page")
-            if text_has_spanish_non_operational_signal(f"{document.title}\n{document.snippet}\n{document.raw_content}"):
+            if text_has_spanish_non_operational_signal(f"{document.title}\n{document.snippet}"):
                 reasons.append("spain_non_operational_entity")
-            size_hint_value, _ = extract_employee_size_hint(f"{document.title}\n{document.snippet}\n{document.raw_content}")
-            if request is not None and self._size_mismatch_lt50(request, size_hint_value):
-                reasons.append("size_mismatch_lt50")
         investor_url_tokens = ["/investor/", "/investors/", "/venture-capital", "/private-equity", "/portfolio/"]
         investor_title_tokens = [
             "investor profile",

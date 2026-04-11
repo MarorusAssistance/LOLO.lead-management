@@ -432,25 +432,22 @@ def test_spain_anchor_queries_prioritize_identity_size_and_persona_before_websit
     assert plan.planned_queries[1].expected_field == "employee_estimate"
     assert company_queries[0].preferred_domains == ["infoempresa.com"]
     assert website_queries
-    assert [query.preferred_domains for query in website_queries[:4]] == [
-        ["empresite.eleconomista.es"],
-        ["datoscif.es"],
-        ["iberinform.es"],
-    ] or [query.preferred_domains for query in website_queries[:4]] == [
-        ["empresite.eleconomista.es"],
-        ["datoscif.es"],
-        ["iberinform.es"],
-    ]
+    assert website_queries[0].query == 'empresite "BitBrain" sitio web pagina web'
+    assert any(query.query == '"BitBrain"' for query in website_queries)
+    assert any("-site:linkedin.com" in query.query for query in website_queries)
+    assert any("contacto" in query.query for query in website_queries)
+    assert any("aviso legal" in query.query for query in website_queries)
     assert [query.preferred_domains for query in employee_queries[:4]] == [
         ["einforma.com"],
         ["infoempresa.com"],
         ["iberinform.es", "axesor.es"],
         ["empresite.eleconomista.es"],
     ]
-    assert governance_queries[0].preferred_domains == ["infoempresa.com", "datoscif.es", "einforma.com"]
+    assert any(query.query == '"BitBrain" founder' for query in governance_queries)
+    assert any(query.query == '"BitBrain" CEO' for query in governance_queries)
+    assert any(query.query == '"BitBrain" CTO' for query in governance_queries)
+    assert any(query.query == '"BitBrain" administradores cargos directivos' for query in governance_queries)
     assert all("boe.es" not in query.preferred_domains for query in website_queries + employee_queries)
-    assert website_queries[0].query == 'empresite "BitBrain" sitio web pagina web'
-    assert governance_queries[0].query == '"BitBrain" administradores cargos directivos'
 
 
 def test_domain_validation_queries_are_domain_centric_and_not_exact_match() -> None:
@@ -458,8 +455,9 @@ def test_domain_validation_queries_are_domain_centric_and_not_exact_match() -> N
 
     queries = stage._official_domain_queries("Software Ag", "softwareag.es", [])
 
-    assert len(queries) == 1
-    assert queries[0].query == "softwareag.es contacto aviso legal cif"
+    assert len(queries) == 3
+    assert queries[0].query == "site:softwareag.es contacto"
+    assert queries[1].query == 'site:softwareag.es "aviso legal"'
     assert queries[0].preferred_domains == ["softwareag.es"]
     assert queries[0].exact_match is False
 
@@ -779,10 +777,13 @@ def test_focus_locked_website_branch_tries_second_candidate_query_before_abort()
 
     source_result = source_stage.execute(state)
 
-    assert source_result.website_candidates
+    assert source_result.website_candidates == []
     assert source_result.source_trace is not None
-    assert source_result.source_trace.candidate_branch_stop_reason != "no_candidate_website"
-    assert 'datoscif "Acme AI" sitio web pagina web' in source_result.source_trace.selected_queries
+    assert source_result.source_trace.query_selection_policy == "structured_state_only"
+    assert source_result.source_trace.missing_fields == ["country", "employee_estimate", "fit_signals", "person_name", "role_title"]
+    assert 'infoempresa "Acme AI" razon social cif' in source_result.source_trace.selected_queries
+    assert '"Acme AI" numero empleados exactos' in source_result.source_trace.selected_queries
+    assert 'datoscif "Acme AI" sitio web pagina web' not in source_result.source_trace.selected_queries
 
 
 def test_related_company_page_cannot_seed_focus_website_candidate() -> None:
@@ -907,10 +908,18 @@ def test_focus_locked_queries_prioritize_identity_and_size_before_website() -> N
     stage = SourceStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
 
     selected = stage._choose_focus_locked_queries(
-        plan,
-        [],
-        current_documents=[],
-        anchored_company="BitBrain",
+        state=EngineRuntimeState(run=SearchRunSnapshot(request=request), memory=ExplorationMemoryState()),
+        plan=plan,
+        query_history=[],
+        missing_fields=["country", "employee_estimate", "person_name", "role_title"],
+        phase_state={
+            "company_validation_complete": False,
+            "website_resolution_needed": False,
+            "persona_search_unlocked": False,
+            "focus_confidence": "medium",
+        },
+        official_domain=None,
+        supplemental_queries=[],
     )
 
     assert [item.expected_field for item in selected] == ["company_name", "employee_estimate"]
@@ -1132,11 +1141,103 @@ def test_sourcer_passes_raw_focus_batch_to_assembler() -> None:
 
     assert source_result.anchored_company_name == "BDEO SPAIN SL"
     assert "assembler_receives_raw_focus_batch" in source_result.notes
-    assert "https://www.infoempresa.com/es-es/es/empresa/bdeo-spain-sl-directivos" in {
-        item.url for item in source_result.documents
+    assert source_result.source_trace is not None
+    assert source_result.source_trace.query_selection_policy == "structured_state_only"
+    assert source_result.source_trace.resolved_fields == ["company_name", "country"]
+    assert source_result.source_trace.missing_fields == ["employee_estimate", "fit_signals", "person_name", "role_title"]
+    assert source_result.source_trace.selected_queries == [
+        '"Bdeo" numero empleados exactos',
+        '"Bdeo" rango empleados plantilla',
+        '"Bdeo" plantilla iberinform axesor',
+        '"Bdeo" empleados media empresite',
+    ]
+    assert {item.url for item in source_result.documents} == {
+        "https://empresite.eleconomista.es/BDEO-SPAIN.html"
     }
-    assert "https://bdeo.io/contact" in {item.url for item in source_result.documents}
-    assert len(source_result.documents) >= 2
+
+
+def test_focus_locked_queries_prioritize_persona_after_company_validation_when_website_is_optional() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(
+        LeadSearchStartRequest(user_text="busca 1 founder o CTO de una empresa espanola de software con menos de 50 empleados")
+    )
+    plan = build_research_query_plan(request, relaxation_stage=0, anchor_company="BitBrain", mode="source_focus_locked")
+    stage = SourceStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
+    state = EngineRuntimeState(
+        run=SearchRunSnapshot(request=request),
+        memory=ExplorationMemoryState(),
+    )
+    state.current_focus_company_resolution = CompanyFocusResolution(selected_company="BitBrain", query_name="BitBrain", confidence=0.82)
+
+    selected = stage._choose_focus_locked_queries(
+        state=state,
+        plan=plan,
+        query_history=[],
+        missing_fields=["person_name", "role_title"],
+        phase_state={
+            "company_validation_complete": True,
+            "website_resolution_needed": False,
+            "persona_search_unlocked": True,
+            "focus_confidence": "high",
+        },
+        official_domain=None,
+        supplemental_queries=[],
+    )
+
+    assert selected
+    assert all(item.expected_field in {"person_name", "role_title"} for item in selected)
+    assert selected[0].query == '"BitBrain" CTO'
+
+
+def test_focus_locked_queries_prioritize_domain_validation_before_persona_when_domain_candidate_exists() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(
+        LeadSearchStartRequest(user_text="busca 1 founder o CTO de una empresa espanola de software con menos de 50 empleados")
+    )
+    plan = build_research_query_plan(request, relaxation_stage=0, anchor_company="BitBrain", mode="source_focus_locked")
+    stage = SourceStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
+    state = EngineRuntimeState(
+        run=SearchRunSnapshot(request=request),
+        memory=ExplorationMemoryState(),
+    )
+    state.current_focus_company_resolution = CompanyFocusResolution(
+        selected_company="BitBrain",
+        query_name="BitBrain",
+        candidate_website="https://bitbrain.com",
+        confidence=0.82,
+    )
+    supplemental = stage._supplemental_focus_locked_queries(
+        state,
+        focus=state.current_focus_company_resolution,
+        missing_fields=["person_name", "role_title"],
+        official_domain="bitbrain.com",
+        phase_state={
+            "company_validation_complete": True,
+            "website_resolution_needed": True,
+            "persona_search_unlocked": False,
+            "focus_confidence": "high",
+        },
+        query_history=[],
+    )
+
+    selected = stage._choose_focus_locked_queries(
+        state=state,
+        plan=plan,
+        query_history=[],
+        missing_fields=["person_name", "role_title"],
+        phase_state={
+            "company_validation_complete": True,
+            "website_resolution_needed": True,
+            "persona_search_unlocked": False,
+            "focus_confidence": "high",
+        },
+        official_domain="bitbrain.com",
+        supplemental_queries=supplemental,
+    )
+
+    assert selected
+    assert all(item.expected_field == "website" for item in selected)
+    assert selected[0].query == "site:bitbrain.com contacto"
 
 
 def test_resolve_person_signal_rejects_generic_editorial_cto_page() -> None:
@@ -1371,7 +1472,7 @@ def test_extract_employee_size_hint_reads_public_range() -> None:
     assert hint_type == "range"
 
 
-def test_lt50_discovery_rejects_large_company_hint() -> None:
+def test_lt50_discovery_does_not_reject_large_company_hint_from_raw_text() -> None:
     stage = SourceStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
     query = build_research_query_plan(
         NormalizeStage(StageAgentExecutor(None)).execute(
@@ -1391,7 +1492,7 @@ def test_lt50_discovery_rejects_large_company_hint() -> None:
         LeadSearchStartRequest(user_text="busca 1 founder o CTO de una empresa espanola de IA o software con menos de 50 empleados")
     )
 
-    assert stage._query_allows_result(large_doc, query, request=request) is False
+    assert stage._query_allows_result(large_doc, query, request=request) is True
 
 
 def test_select_anchor_company_skips_non_operational_spanish_company() -> None:
@@ -1417,7 +1518,7 @@ def test_select_anchor_company_skips_non_operational_spanish_company() -> None:
     assert company_name_matches_anchor(select_anchor_company([extinct_doc, active_doc]), "BITBRAIN TECHNOLOGIES SL")
 
 
-def test_source_stops_branch_after_failed_domain_validation() -> None:
+def test_source_uses_structured_state_and_skips_domain_validation_branching() -> None:
     tmp_path = workspace_tmp_dir("sourcer_domain_validation_stop")
     search_index = {
         "empresite empresa software SaaS espana cif": [
@@ -1478,7 +1579,14 @@ def test_source_stops_branch_after_failed_domain_validation() -> None:
     assert source_result.source_trace is not None
     assert source_result.source_trace.anchor_raw_name == "BDEO SPAIN SL"
     assert source_result.source_trace.anchor_query_name == "Bdeo"
-    assert source_result.source_trace.candidate_branch_stop_reason == "zero_results_on_domain_validation"
+    assert source_result.source_trace.query_selection_policy == "structured_state_only"
+    assert source_result.source_trace.candidate_branch_stop_reason is None
+    assert source_result.source_trace.selected_queries == [
+        '"Bdeo" numero empleados exactos',
+        '"Bdeo" rango empleados plantilla',
+        '"Bdeo" plantilla iberinform axesor',
+        '"Bdeo" empleados media empresite',
+    ]
     assert state.run.budget.search_calls_used <= 6
 
 
@@ -1505,7 +1613,7 @@ def test_sourcer_continues_when_one_search_query_fails() -> None:
                 )
             ],
         },
-        failing_queries={'"Acme AI" administradores cargos directivos'},
+        failing_queries={'"Acme AI" numero empleados exactos'},
     )
     normalizer = NormalizeStage(StageAgentExecutor(None))
     request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai"))
@@ -1536,7 +1644,7 @@ def test_sourcer_continues_when_one_search_query_fails() -> None:
     source_result = source_stage.execute(state)
 
     assert source_result.sourcing_status.value == "FOUND"
-    assert any('search_query_failed="Acme AI" administradores cargos directivos' in note for note in source_result.notes)
+    assert any('search_query_failed="Acme AI" numero empleados exactos' in note for note in source_result.notes)
     assert source_result.anchored_company_name == "Acme AI"
 
 

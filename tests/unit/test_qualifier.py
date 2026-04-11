@@ -10,7 +10,7 @@ from lolo_lead_management.domain.models import (
     WebsiteResolution,
 )
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
-from lolo_lead_management.engine.rules import downgrade_enrich_to_close_match
+from lolo_lead_management.engine.rules import collect_missing_fields_for_enrichment, downgrade_enrich_to_close_match
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
 from lolo_lead_management.engine.stages.qualify import QualifyStage
 
@@ -437,6 +437,44 @@ def test_qualifier_can_accept_low_confidence_probable_website_when_other_fields_
     )
 
     assert decision.outcome == QualificationOutcome.ACCEPT
+
+
+def test_collect_missing_fields_for_enrichment_skips_optional_website() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai"))
+    evidence = [
+        EvidenceItem(
+            url="https://acme.ai/about",
+            title="about",
+            snippet="Laura Martin CTO Acme AI Spain",
+            source_type="fixture",
+            raw_content="Company: Acme AI\nCountry: Spain\nEmployees: 25\nPerson: Laura Martin\nRole: CTO\nGenAI automation engineering",
+        )
+    ]
+    dossier = SourcingDossier(
+        sourcing_status=SourcingStatus.FOUND,
+        person=PersonCandidate(full_name=None, role_title=None),
+        company=CompanyCandidate(name="Acme AI", website=None, country_code="es", employee_estimate=25),
+        fit_signals=[],
+        evidence=evidence,
+        field_evidence=[
+            AssembledFieldEvidence(field_name="company_name", value="Acme AI", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="website", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="country", value="es", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="employee_estimate", value=25, status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="person_name", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="role_title", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="fit_signals", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+        ],
+        notes=[],
+    )
+
+    missing = collect_missing_fields_for_enrichment(dossier, request)
+
+    assert "website" not in missing
+    assert "person_name" in missing
+    assert "role_title" in missing
+    assert "fit_signals" in missing
 
 
 def test_downgrade_enrich_to_close_match_after_budget_exhaustion() -> None:

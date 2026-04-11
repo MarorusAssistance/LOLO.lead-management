@@ -5,6 +5,7 @@ Task:
 - Return JSON only.
 - Never invent unseen companies, domains, people, roles, countries, or employee counts.
 - Use only supplied URLs as evidence.
+- Treat employee-count evidence conservatively. Do not use sector averages, provincial/national averages, capital social, BORME act counts, or unrelated numeric fields as company headcount.
 
 Modes:
 - `discovery_focus_document_mode`: decide whether one full normalized discovery document supports one real focus company or none.
@@ -30,6 +31,7 @@ Global rules:
   - explicit country/locality
   - explicit employee size
   - explicit activity or fit with the request
+- If the request theme is `genai`, generic software/programming wording, CNAE 6201, or broad IT activity alone is not enough. Require explicit AI, GenAI, inteligencia artificial, LLM, agents, automation, or similarly direct thematic evidence.
 - Penalize:
   - editorial articles
   - ranking pages
@@ -78,8 +80,10 @@ Discovery focus output rules:
 - `candidate_website` only if explicitly present in the supplied content.
 - `country_code` only if explicit.
 - `employee_count_hint_value` only if explicit.
+- Do not emit `employee_count_hint_value` from phrases that clearly describe average sector employment or other non-company aggregates.
 - Keep `selection_reasons` short and factual.
 - Use only supplied URLs in `evidence_urls`.
+- Do not justify `genai` fit from generic software or programming labels alone.
 
 `focus_locked_document_mode`:
 - Read the full normalized document and its short `section_map`.
@@ -113,6 +117,7 @@ Discovery focus output rules:
   - set `status=satisfied` when the person-role-company link is explicit in the segment
 - `fit_signals`:
   - keep only supported commercial/product/technology signals visible in the segment
+  - if the request theme is `genai`, generic software/programming labels alone are not enough
 - `contradictions`:
   - use only for explicit incompatible singleton values about the same likely subject company
 - Do not close final dossier fields here.
@@ -122,6 +127,8 @@ Field rules:
 - `website`: only domains already present in the supplied content.
 - `country`: only when explicitly supported.
 - `employee_estimate`: only from explicit size evidence in the supplied content.
+- Do not treat phrases like `la media de empleados`, provincial averages, sector averages, or general market statistics as company-specific headcount.
+- Do not treat `promedio`, `media sectorial`, `media provincial`, `media nacional`, or similar aggregate wording as company-specific headcount unless the page explicitly says the figure belongs to the company itself.
 - `person_name` and `role_title`: only when company + person + role are explicitly linked in the supplied content.
 
 Do not:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
+from lolo_lead_management.domain.enums import FieldEvidenceStatus
 from lolo_lead_management.domain.enums import StageName, SourcingStatus
 from lolo_lead_management.domain.models import (
     PageCapture,
@@ -41,6 +42,12 @@ class EnrichStage:
             return SourcePassResult(sourcing_status=SourcingStatus.NO_CANDIDATE, notes=["no_dossier_to_enrich"], source_trace=self.last_trace)
 
         missing_fields = collect_missing_fields_for_enrichment(dossier, state.run.request)
+        field_map = {item.field_name: item for item in dossier.field_evidence}
+        resolved_fields = [
+            field_name
+            for field_name, item in field_map.items()
+            if item.status == FieldEvidenceStatus.SATISFIED
+        ]
         fallback_plan = build_research_query_plan(
             state.run.request,
             state.run.applied_relaxation_stage,
@@ -85,7 +92,10 @@ class EnrichStage:
             llm_query_count=len(generated_plan.planned_queries) if generated_plan is not None else 0,
             merged_query_count=len(plan.planned_queries),
             selected_query_count=len(selected_queries),
+            query_selection_policy="structured_state_only",
             query_history=state.memory.query_history[-20:],
+            resolved_fields=resolved_fields,
+            missing_fields=missing_fields,
             selected_queries=[item.query for item in selected_queries],
             anchored_company=dossier.company.name,
             notes=[f"missing_fields={','.join(missing_fields)}"] if missing_fields else [],

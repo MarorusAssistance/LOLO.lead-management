@@ -525,9 +525,12 @@ class SourceStageTrace(StrictModel):
     llm_query_count: int = Field(default=0, ge=0)
     merged_query_count: int = Field(default=0, ge=0)
     selected_query_count: int = Field(default=0, ge=0)
+    query_selection_policy: str | None = None
     query_history: list[str] = Field(default_factory=list)
     excluded_companies: list[str] = Field(default_factory=list)
     request_scoped_company_exclusions: list[str] = Field(default_factory=list)
+    resolved_fields: list[str] = Field(default_factory=list)
+    missing_fields: list[str] = Field(default_factory=list)
     selected_queries: list[str] = Field(default_factory=list)
     query_traces: list[SourceQueryTrace] = Field(default_factory=list)
     cross_company_rejections: list[str] = Field(default_factory=list)

@@ -929,8 +929,92 @@ def deterministic_anchor_queries(
             queries.extend(
                 [
                     ResearchQuery(
+                        query=f'"{anchor_company}" founder',
+                        objective="Find an explicit founder tied to the anchored company from public web sources.",
+                        research_phase="field_acquisition",
+                        source_role="governance_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_a",
+                        expected_field="person_name",
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.5,
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_site", "news", "event"],
+                    ),
+                    ResearchQuery(
+                        query=f'"{anchor_company}" CEO',
+                        objective="Find an explicit CEO tied to the anchored company from public web sources.",
+                        research_phase="field_acquisition",
+                        source_role="governance_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_a",
+                        expected_field="person_name",
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.5,
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_site", "news", "event"],
+                    ),
+                    ResearchQuery(
+                        query=f'"{anchor_company}" CTO',
+                        objective="Find an explicit CTO tied to the anchored company from public web sources.",
+                        research_phase="field_acquisition",
+                        source_role="governance_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_a",
+                        expected_field="person_name",
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.5,
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_site", "news", "event"],
+                    ),
+                    ResearchQuery(
+                        query=f'"{anchor_company}" cofounder',
+                        objective="Find an explicit cofounder tied to the anchored company from public web sources.",
+                        research_phase="field_acquisition",
+                        source_role="governance_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_a",
+                        expected_field="person_name",
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.49,
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_site", "news", "event"],
+                    ),
+                    ResearchQuery(
+                        query=f'"{anchor_company}" "project manager"',
+                        objective="Find an explicit project manager tied to the anchored company when the company looks more structured.",
+                        research_phase="field_acquisition",
+                        source_role="governance_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_a",
+                        expected_field="role_title",
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.48,
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_site", "news", "event"],
+                    ),
+                    ResearchQuery(
+                        query=f'"{anchor_company}" operations',
+                        objective="Find an explicit operations lead tied to the anchored company when the company looks more structured.",
+                        research_phase="field_acquisition",
+                        source_role="governance_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_a",
+                        expected_field="role_title",
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.47,
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_site", "news", "event"],
+                    ),
+                    ResearchQuery(
                         query=f'"{anchor_company}" administradores cargos directivos',
-                        objective="Find named administrators or executives from Spanish business-information directories.",
+                        objective="Find named administrators or executives from Spanish business-information directories as a public governance fallback.",
                         research_phase="field_acquisition",
                         source_role="governance_resolution",
                         candidate_company_name=anchor_company,
@@ -1083,6 +1167,66 @@ def deterministic_anchor_queries(
                         preferred_domains=["iberinform.es"],
                         excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
                         expected_source_types=["directory"],
+                    ),
+                    ResearchQuery(
+                        query=f'"{anchor_company}"',
+                        objective="Find the clearest public company result for the anchored company and any obvious official domain candidate.",
+                        research_phase="company_anchoring",
+                        source_role="website_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_a",
+                        expected_field="website",
+                        stop_if_resolved=True,
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.48,
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_site", "news"],
+                    ),
+                    ResearchQuery(
+                        query=f'"{anchor_company}" -site:linkedin.com -site:clutch.co -site:goodfirms.co -site:themanifest.com',
+                        objective="Find the likely official website while removing noisy directories and social profiles.",
+                        research_phase="company_anchoring",
+                        source_role="website_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_a",
+                        expected_field="website",
+                        stop_if_resolved=True,
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.48,
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_site", "news"],
+                    ),
+                    ResearchQuery(
+                        query=f'"{anchor_company}" contacto',
+                        objective="Find a corporate contact page that can confirm the official domain and company identity.",
+                        research_phase="company_anchoring",
+                        source_role="website_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_a",
+                        expected_field="website",
+                        stop_if_resolved=True,
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.47,
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_site"],
+                    ),
+                    ResearchQuery(
+                        query=f'"{anchor_company}" "aviso legal"',
+                        objective="Find a legal or corporate identity page that can confirm the official domain and entity naming.",
+                        research_phase="company_anchoring",
+                        source_role="website_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_a",
+                        expected_field="website",
+                        stop_if_resolved=True,
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.47,
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_site"],
                     ),
                 ]
             )
@@ -1256,7 +1400,7 @@ def sanitize_research_query_plan(
         phase = " ".join(item.research_phase.split()).strip()
         if len(query) < 3 or len(objective) < 3 or len(phase) < 3:
             continue
-        if len(query.split()) > 10:
+        if len(query.split()) > 14:
             continue
         if len(item.preferred_domains) > 4:
             continue
@@ -1416,13 +1560,18 @@ def _extract_freeform_website_candidates(text: str) -> list[str]:
 def clean_company_name(value: str | None) -> str | None:
     if value is None:
         return None
-    cleaned = re.sub(r"[_\-]+", " ", value)
+    cleaned = re.sub(r"https?://\S+", " ", value)
+    cleaned = re.sub(r"[_\-]+", " ", cleaned)
     cleaned = re.sub(r"[^\w.& ]+", " ", cleaned, flags=re.UNICODE)
     cleaned = re.sub(r"\b(page|directory|startups?|companies?|company profile)\b", " ", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -|")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -|,.;:")
     if not cleaned or len(cleaned) < 2:
         return None
-    if len(cleaned.split()) > 8 or len(cleaned) > 80:
+    if any(token in normalize_text(cleaned) for token in ["report abuse", "repository", "pull request", "sign in", "javascript:void"]):
+        return None
+    if len(cleaned.split()) > 16 or len(cleaned) > 140:
+        return None
+    if not any(char.isalpha() for char in cleaned):
         return None
     return cleaned.title() if cleaned.islower() else cleaned.strip()
 
@@ -1827,19 +1976,31 @@ def clean_person_name(value: str | None) -> str | None:
     cleaned = re.sub(r"https?://\S+", " ", value)
     cleaned = re.sub(r"[/=_+(){}\[\]]+", " ", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" -|,.;:")
-    if len(cleaned) < 4 or len(cleaned) > 60:
+    if len(cleaned) < 4 or len(cleaned) > 140:
         return None
-    if any(token in cleaned.lower() for token in ["report abuse", "repository", "pull request", "administrative boundaries", "enviado"]):
+    normalized_cleaned = normalize_text(cleaned)
+    if any(
+        token in normalized_cleaned
+        for token in [
+            "report abuse",
+            "repository",
+            "pull request",
+            "administrative boundaries",
+            "enviado",
+            "sign in",
+            "your cart is empty",
+            "items in your cart",
+            "javascript:void",
+        ]
+    ):
         return None
-    tokens = cleaned.split()
-    if not 2 <= len(tokens) <= 4:
+    raw_tokens = [token.strip(" .,:;") for token in cleaned.split() if token.strip(" .,:;")]
+    if not 2 <= len(raw_tokens) <= 10:
         return None
-    if not all(token[:1].isalpha() for token in tokens):
+    if any(any(char.isdigit() for char in token) for token in raw_tokens):
         return None
-    if sum(1 for token in tokens if token[:1].isupper()) < 2:
-        return None
-    normalized_tokens = {normalize_text(token.strip(" .,:;")) for token in tokens}
-    if normalized_tokens & {
+    connector_tokens = {"de", "del", "da", "das", "do", "dos", "di", "du", "la", "las", "los", "van", "von", "y", "e", "i"}
+    forbidden_tokens = {
         "administrador",
         "administradores",
         "apoderado",
@@ -1854,8 +2015,23 @@ def clean_person_name(value: str | None) -> str | None:
         "role",
         "puesto",
         "title",
-        *LEGAL_ENTITY_SUFFIX_TOKENS,
-    }:
+    }
+    significant_tokens: list[str] = []
+    uppercase_significant = 0
+    for token in raw_tokens:
+        if not any(char.isalpha() for char in token):
+            return None
+        normalized_token = normalize_text(token)
+        if normalized_token in connector_tokens:
+            continue
+        if normalized_token in forbidden_tokens or normalized_token in LEGAL_ENTITY_SUFFIX_TOKENS:
+            return None
+        significant_tokens.append(token)
+        if token[:1].isupper() or token.isupper():
+            uppercase_significant += 1
+    if len(significant_tokens) < 2:
+        return None
+    if uppercase_significant < 2:
         return None
     return cleaned
 
@@ -1864,17 +2040,28 @@ def clean_role_title(value: str | None) -> str | None:
     if not value:
         return None
     cleaned = re.sub(r"\s+", " ", value).strip(" -|,.;:")
-    if len(cleaned) < 2 or len(cleaned) > 80:
+    if len(cleaned) < 2 or len(cleaned) > 120:
         return None
-    if any(token in cleaned.lower() for token in ["administrative boundaries", "enviado", "report abuse", "repository"]):
+    lowered = normalize_text(cleaned)
+    if any(
+        token in lowered
+        for token in [
+            "administrative boundaries",
+            "enviado",
+            "report abuse",
+            "repository",
+            "sign in",
+            "your cart is empty",
+            "items in your cart",
+            "javascript:void",
+        ]
+    ):
         return None
-    lowered = cleaned.lower()
     if lowered.startswith(("in ", "for ", "how ", "what ", "why ", "the ")):
         return None
-    if len(cleaned.split()) > 8:
+    if len(cleaned.split()) > 12:
         return None
-    role_keywords = ("founder", "ceo", "cto", "chief", "head", "director", "manager", "lead", "vp", "president", "recruit", "talent", "engineering", "product", "operations")
-    if not any(keyword in lowered for keyword in role_keywords) and len(cleaned.split()) > 4:
+    if not any(char.isalpha() for char in cleaned):
         return None
     return cleaned
 
@@ -3938,8 +4125,6 @@ def merge_qualification_decisions(deterministic: QualificationDecision, llm_revi
 def collect_missing_fields_for_enrichment(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> list[str]:
     field_map = field_evidence_map(dossier)
     missing: list[str] = []
-    if field_map.get("website", AssembledFieldEvidence(field_name="website", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="website missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
-        missing.append("website")
     if request.constraints.preferred_country and field_map.get("country", AssembledFieldEvidence(field_name="country", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="country missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
         missing.append("country")
     if (request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and field_map.get("employee_estimate", AssembledFieldEvidence(field_name="employee_estimate", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="size missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
@@ -3948,6 +4133,8 @@ def collect_missing_fields_for_enrichment(dossier: AssembledLeadDossier, request
         missing.append("person_name")
     if field_map.get("role_title", AssembledFieldEvidence(field_name="role_title", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="role missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
         missing.append("role_title")
+    if request.search_themes and field_map.get("fit_signals", AssembledFieldEvidence(field_name="fit_signals", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="fit missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        missing.append("fit_signals")
     return dedupe_preserve_order(missing)
 
 
