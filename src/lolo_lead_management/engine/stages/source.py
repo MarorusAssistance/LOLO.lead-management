@@ -22,6 +22,7 @@ from lolo_lead_management.domain.models import (
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.agents.specs import STAGE_AGENT_SPECS
 from lolo_lead_management.engine.rules import (
+    ANCHOR_EXCLUDED_DOMAINS,
     anchor_name_looks_corrupted,
     build_research_query_plan,
     canonicalize_website,
@@ -61,6 +62,7 @@ from lolo_lead_management.engine.rules import (
     select_anchor_company,
     text_has_spanish_non_operational_signal,
     title_company_name,
+    website_candidate_seed_method,
 )
 from lolo_lead_management.engine.state import EngineRuntimeState
 from lolo_lead_management.ports.search import SearchPort
@@ -297,6 +299,8 @@ class SourceStage:
             anchor_raw_name=focus.legal_name or focus.selected_company,
             anchor_query_name=focus.query_name or focus.selected_company,
             anchor_brand_aliases=focus.brand_aliases,
+            website_probe_needed=bool(phase_state["website_probe_needed"]),
+            website_probe_attempts=int(phase_state["website_probe_attempts"]),
             notes=[],
         )
         if anchor_name_looks_corrupted(stage_trace.anchor_raw_name):
@@ -344,6 +348,11 @@ class SourceStage:
             selected_queries.append(item)
         stage_trace.selected_query_count = len(selected_queries)
         stage_trace.selected_queries = [item.query for item in selected_queries]
+        stage_trace.website_probe_queries_selected = [
+            item.query
+            for item in selected_queries
+            if self._query_phase(item) == "website_resolution_phase"
+        ]
         for query in selected_queries:
             if not state.run.budget.can_search():
                 stage_trace.notes.append("search_call_budget_exhausted_before_focus_locked_query")
@@ -391,6 +400,8 @@ class SourceStage:
             f"missing_fields={','.join(missing_fields)}" if missing_fields else "missing_fields=",
             f"company_validation_complete={phase_state['company_validation_complete']}",
             f"website_resolution_needed={phase_state['website_resolution_needed']}",
+            f"website_probe_needed={phase_state['website_probe_needed']}",
+            f"website_probe_attempts={phase_state['website_probe_attempts']}",
             f"persona_search_unlocked={phase_state['persona_search_unlocked']}",
             *query_notes,
             *selection_notes,
@@ -727,18 +738,42 @@ class SourceStage:
             required_validation_fields.add("fit_signals")
         missing = set(missing_fields)
         focus_confidence = self._focus_confidence(focus)
+        anchor_name = focus.query_name or focus.selected_company or ""
+        website_probe_attempts = self._website_probe_attempts(
+            state.memory.query_history + ([state.current_query] if state.current_query else []),
+            anchor_name,
+        )
         company_validation_complete = not bool(required_validation_fields & missing)
+        company_identity_viable = bool(
+            "company_name" in resolved_fields
+            and focus_confidence != "low"
+            and (
+                not state.run.request.constraints.preferred_country
+                or "country" in resolved_fields
+                or bool(focus.country_code)
+            )
+        )
         website_resolved = "website" in resolved_fields
         has_candidate_website = bool(canonicalize_website(focus.candidate_website))
-        website_resolution_needed = bool(
-            company_validation_complete
+        website_probe_needed = bool(
+            "company_name" in resolved_fields
             and not website_resolved
-            and (has_candidate_website or focus_confidence == "low" or bool(official_domain))
+            and not has_candidate_website
+            and focus_confidence != "low"
+            and website_probe_attempts < 2
         )
-        persona_search_unlocked = bool(company_validation_complete and not website_resolution_needed)
+        website_resolution_needed = bool(
+            company_identity_viable
+            and not website_resolved
+            and (has_candidate_website or bool(official_domain))
+        )
+        persona_search_unlocked = bool(company_identity_viable and not website_resolution_needed and not website_probe_needed)
         return {
             "company_validation_complete": company_validation_complete,
+            "company_identity_viable": company_identity_viable,
             "website_resolution_needed": website_resolution_needed,
+            "website_probe_needed": website_probe_needed,
+            "website_probe_attempts": website_probe_attempts,
             "persona_search_unlocked": persona_search_unlocked,
             "focus_confidence": focus_confidence,
         }
@@ -803,16 +838,18 @@ class SourceStage:
                     within_phase = 1
                 else:
                     within_phase = 2
+            elif query.candidate_company_name and normalize_text(query.query.replace('"', "")) == normalize_text(query.candidate_company_name):
+                within_phase = 0
             elif "-site:linkedin.com" in query.query:
+                within_phase = 1
+            elif "contacto" in query_text or "contact" in query_text:
+                within_phase = 2
+            elif "aviso legal" in query_text or "legal" in query_text:
                 within_phase = 3
             elif any(token in query_text for token in ["sitio web", "pagina web", "web"]):
                 within_phase = 4
-            elif "contacto" in query_text or "contact" in query_text:
-                within_phase = 5
-            elif "aviso legal" in query_text or "legal" in query_text:
-                within_phase = 6
             else:
-                within_phase = 7
+                within_phase = 5
         else:
             size_profile = self._persona_size_profile(state, focus=state.current_focus_company_resolution or CompanyFocusResolution())
             if official_domain and raw_query.startswith(f"site:{official_domain.lower()}"):
@@ -862,7 +899,7 @@ class SourceStage:
         missing = set(missing_fields)
         phase = self._query_phase(query)
         if phase == "website_resolution_phase":
-            return bool(phase_state["website_resolution_needed"])
+            return bool(phase_state["website_resolution_needed"] or phase_state["website_probe_needed"])
         if phase == "persona_search_phase":
             return bool(phase_state["persona_search_unlocked"] and ({"person_name", "role_title"} & missing))
         if not missing:
@@ -888,6 +925,10 @@ class SourceStage:
         used = {normalize_text(item) for item in query_history}
         if bool(phase_state["website_resolution_needed"]):
             for query in self._official_domain_queries(anchor_name, official_domain, query_history):
+                if normalize_text(query.query) not in used:
+                    queries.append(query)
+        elif bool(phase_state["website_probe_needed"]):
+            for query in self._website_probe_queries(anchor_name, query_history):
                 if normalize_text(query.query) not in used:
                     queries.append(query)
         if bool(phase_state["persona_search_unlocked"]) and ({"person_name", "role_title"} & set(missing_fields)):
@@ -922,6 +963,35 @@ class SourceStage:
                 pair[0],
             ),
         )
+        if not bool(phase_state["company_validation_complete"]) and bool(phase_state["website_probe_needed"]):
+            validation_query = next(
+                (
+                    query
+                    for _, query in ordered
+                    if normalize_text(query.query) not in used
+                    and self._query_phase(query) == "company_validation_phase"
+                    and self._query_targets_missing_fields(query, missing_fields, phase_state=phase_state)
+                ),
+                None,
+            )
+            if validation_query is not None:
+                selected.append(validation_query)
+                used.add(normalize_text(validation_query.query))
+            website_query = next(
+                (
+                    query
+                    for _, query in ordered
+                    if normalize_text(query.query) not in used
+                    and self._query_phase(query) == "website_resolution_phase"
+                    and self._query_targets_missing_fields(query, missing_fields, phase_state=phase_state)
+                ),
+                None,
+            )
+            if website_query is not None:
+                selected.append(website_query)
+                used.add(normalize_text(website_query.query))
+            if len(selected) >= 2:
+                return selected[:2]
         for _, query in ordered:
             if normalize_text(query.query) in used:
                 continue
@@ -1009,6 +1079,8 @@ class SourceStage:
         official_domain: str | None,
         supplemental_queries: list[ResearchQuery] | None = None,
     ):
+        if not bool(phase_state["company_validation_complete"]) and bool(phase_state["website_probe_needed"]):
+            return []
         candidates = []
         used = {normalize_text(item) for item in query_history}
         combined_queries = [*(supplemental_queries or []), *plan.planned_queries]
@@ -1457,20 +1529,22 @@ class SourceStage:
             return []
         website_scores: dict[str, dict] = {}
         for item in documents:
-            if not self._document_relates_to_anchor(item, anchored_company):
-                continue
-            if document_is_multi_entity_listing(item) and not item.is_company_controlled_source:
-                continue
             website = extracted_official_website_from_document(item, anchored_company)
             if not website:
                 continue
-            if not document_can_seed_website_candidate(item, website, anchor_company=anchored_company):
+            seed_allowed = document_can_seed_website_candidate(item, website, anchor_company=anchored_company)
+            if not self._document_relates_to_anchor(item, anchored_company) and not seed_allowed:
+                continue
+            if document_is_multi_entity_listing(item) and not item.is_company_controlled_source:
+                continue
+            if not seed_allowed:
                 continue
             domain = domain_from_url(website)
             if not domain or domain_is_directory(domain) or domain_is_publisher_like(domain) or self._is_unusable_website_host(domain):
                 continue
             score = 0
             signals: list[str] = []
+            seed_method = website_candidate_seed_method(item, website) or "unknown"
             if item.is_company_controlled_source:
                 score += 14
                 signals.append("company-controlled source")
@@ -1489,10 +1563,34 @@ class SourceStage:
             if domain_root and company_name_matches_anchor_strict(domain_root, anchored_company):
                 score += 8
                 signals.append("domain root matches company")
-            entry = website_scores.setdefault(website, {"score": 0, "signals": [], "evidence_urls": []})
+            if seed_method == "support_page_url":
+                score += 10
+                signals.append("support page url seeds candidate domain")
+            elif seed_method == "same_domain_url":
+                score += 6
+                signals.append("same-domain url seeds candidate domain")
+            elif seed_method == "explicit_field":
+                score += 4
+                signals.append("explicit website field found")
+            elif seed_method == "inline_text":
+                score += 2
+                signals.append("inline website mention found")
+            entry = website_scores.setdefault(
+                website,
+                {
+                    "score": 0,
+                    "signals": [],
+                    "evidence_urls": [],
+                    "seed_url": None,
+                    "seed_method": "unknown",
+                },
+            )
             entry["score"] += score
             entry["signals"] = dedupe_preserve_order([*entry["signals"], *signals])
             entry["evidence_urls"] = dedupe_preserve_order([*entry["evidence_urls"], item.url])
+            if entry["seed_url"] is None or entry["seed_method"] == "unknown":
+                entry["seed_url"] = item.url
+                entry["seed_method"] = seed_method
         if website_scores:
             ranked = sorted(
                 website_scores.items(),
@@ -1504,6 +1602,8 @@ class SourceStage:
                     candidate_website=website,
                     evidence_urls=data["evidence_urls"][:4],
                     signals=data["signals"][:4],
+                    seed_url=data["seed_url"],
+                    seed_method=data["seed_method"],
                     score=float(data["score"]),
                 )
                 for website, data in ranked[:3]
@@ -1521,6 +1621,8 @@ class SourceStage:
                         candidate_website=canonicalize_website(f"https://{domain}"),
                         evidence_urls=[item.url],
                         signals=["company-controlled source"],
+                        seed_url=item.url,
+                        seed_method="same_domain_url",
                         score=24,
                     )
                 ]
@@ -1531,6 +1633,8 @@ class SourceStage:
                         candidate_website=canonicalize_website(f"https://{domain}"),
                         evidence_urls=[item.url],
                         signals=["domain root matches company"],
+                        seed_url=item.url,
+                        seed_method="same_domain_url",
                         score=12,
                     )
                 ]
@@ -1988,9 +2092,88 @@ class SourceStage:
                 candidate_website=website,
                 evidence_urls=focus.evidence_urls[:3],
                 signals=focus.selection_reasons[:3],
+                seed_url=focus.evidence_urls[0] if focus.evidence_urls else None,
+                seed_method="unknown",
                 score=max(0, min(focus.confidence, 1)),
             )
         ]
+
+    def _website_probe_queries(self, anchored_company: str, query_history: list[str]) -> list[ResearchQuery]:
+        if not anchored_company:
+            return []
+        queries = [
+            ResearchQuery(
+                query=f'"{anchored_company}"',
+                objective="Find the clearest public result for the anchored company and a plausible official domain candidate.",
+                research_phase="company_anchoring",
+                source_role="website_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="website",
+                stop_if_resolved=True,
+                exact_match=False,
+                search_depth="advanced",
+                min_score=0.48,
+                excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                expected_source_types=["company_site", "news"],
+            ),
+            ResearchQuery(
+                query=f'"{anchored_company}" -site:linkedin.com -site:clutch.co -site:goodfirms.co -site:themanifest.com',
+                objective="Find the likely official website while removing noisy directories and social profiles.",
+                research_phase="company_anchoring",
+                source_role="website_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="website",
+                stop_if_resolved=True,
+                exact_match=False,
+                search_depth="advanced",
+                min_score=0.48,
+                excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                expected_source_types=["company_site", "news"],
+            ),
+            ResearchQuery(
+                query=f'"{anchored_company}" contacto',
+                objective="Find a corporate contact page that can seed or confirm the official company domain.",
+                research_phase="company_anchoring",
+                source_role="website_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="website",
+                stop_if_resolved=True,
+                exact_match=False,
+                search_depth="advanced",
+                min_score=0.47,
+                excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                expected_source_types=["company_site"],
+            ),
+            ResearchQuery(
+                query=f'"{anchored_company}" "aviso legal"',
+                objective="Find a legal or corporate identity page that can seed or confirm the official company domain.",
+                research_phase="company_anchoring",
+                source_role="website_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="website",
+                stop_if_resolved=True,
+                exact_match=False,
+                search_depth="advanced",
+                min_score=0.47,
+                excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                expected_source_types=["company_site"],
+            ),
+        ]
+        used = {normalize_text(item) for item in query_history}
+        return [query for query in queries if normalize_text(query.query) not in used]
+
+    def _website_probe_attempts(self, query_history: list[str], anchored_company: str) -> int:
+        if not anchored_company:
+            return 0
+        probe_queries = {
+            normalize_text(item.query)
+            for item in self._website_probe_queries(anchored_company, [])
+        }
+        return sum(1 for item in query_history if normalize_text(item) in probe_queries)
 
     def _focus_confidence(self, focus: CompanyFocusResolution) -> str:
         if focus.selection_mode == "confident" or focus.confidence >= 0.85:

@@ -208,7 +208,27 @@ FILIAL_COMPANY_TOKENS = {
     "iberia",
 }
 
-WEBSITE_SUPPORT_PAGE_TOKENS = ["about", "team", "leadership", "contact", "legal", "privacy", "terms", "careers", "docs", "blog"]
+WEBSITE_SUPPORT_PAGE_TOKENS = [
+    "about",
+    "contact",
+    "contacto",
+    "team",
+    "equipo",
+    "leadership",
+    "quienes somos",
+    "quienes-somos",
+    "sobre nosotros",
+    "sobre-nosotros",
+    "legal",
+    "aviso legal",
+    "aviso-legal",
+    "privacy",
+    "terms",
+    "cookies",
+    "careers",
+    "docs",
+    "blog",
+]
 WEBSITE_HARD_RISKS = {"directory_host", "publisher_host", "social_host", "maps_host", "cdn_or_proxy_host"}
 FULL_URL_PATTERN = re.compile(r"https?://[^\s)]+", flags=re.IGNORECASE)
 BARE_HOST_PATTERN = re.compile(
@@ -1921,7 +1941,6 @@ def extracted_official_website_from_document(document: EvidenceDocument, anchor_
     text = _document_text(document)
     source_host = domain_from_url(document.url)
     normalized_text = normalize_text(text)
-    supportish_scope = normalize_text(f"{document.title}\n{urlparse(document.url).path}")
     contextual_candidates = _extract_contextual_website_candidates(text)
     freeform_candidates = [] if (domain_is_directory(source_host) or domain_is_publisher_like(source_host)) else _extract_freeform_website_candidates(text)
     for candidate in [*contextual_candidates, *freeform_candidates]:
@@ -1937,10 +1956,51 @@ def extracted_official_website_from_document(document: EvidenceDocument, anchor_
         domain_root = domain_root_name(source_host)
         if anchor_company and domain_root and company_name_matches_anchor(domain_root, anchor_company):
             return canonicalize_website(document.url)
-        supportish = any(token in supportish_scope for token in WEBSITE_SUPPORT_PAGE_TOKENS)
+        supportish = _document_looks_corporate_support_page(document)
         if anchor_company and normalize_text(anchor_company) in normalized_text and supportish:
             return canonicalize_website(document.url)
     return None
+
+
+def _document_looks_corporate_support_page(document: EvidenceDocument) -> bool:
+    scope = normalize_text(f"{document.title}\n{urlparse(document.url).path}")
+    return any(token in scope for token in WEBSITE_SUPPORT_PAGE_TOKENS)
+
+
+def website_candidate_seed_method(
+    document: EvidenceDocument,
+    candidate_website: str | None,
+) -> Literal["explicit_field", "inline_text", "same_domain_url", "support_page_url", "unknown"] | None:
+    website = canonicalize_website(candidate_website)
+    if not website:
+        return None
+    candidate_domain = domain_from_url(website)
+    source_domain = document.domain or domain_from_url(document.url)
+    if not candidate_domain or domain_is_directory(candidate_domain) or domain_is_publisher_like(candidate_domain) or domain_is_unofficial_website_host(candidate_domain):
+        return None
+    if source_domain and candidate_domain == source_domain:
+        if _document_looks_corporate_support_page(document):
+            return "support_page_url"
+        return "same_domain_url"
+    text = _document_text(document)
+    contextual_matches = {
+        canonicalize_website(item)
+        for item in _extract_contextual_website_candidates(text)
+        if canonicalize_website(item)
+    }
+    if website in contextual_matches:
+        return "explicit_field"
+    if not (domain_is_directory(source_domain) or domain_is_publisher_like(source_domain)):
+        inline_matches = {
+            canonicalize_website(item)
+            for item in _extract_freeform_website_candidates(text)
+            if canonicalize_website(item)
+        }
+        if website in inline_matches:
+            return "inline_text"
+    if source_domain and domain_is_directory(source_domain):
+        return "explicit_field"
+    return "unknown"
 
 
 def extract_employee_estimate_from_text(text: str) -> int | None:
@@ -2429,7 +2489,25 @@ def document_can_seed_website_candidate(document: EvidenceDocument, candidate_we
         return False
     if document.is_company_controlled_source:
         return True
+    support_page = _document_looks_corporate_support_page(document)
+    anchor_names = dedupe_preserve_order(
+        [
+            *(derive_brand_aliases(anchor_company, [], candidate_website) if anchor_company else []),
+            anchor_company or "",
+        ]
+    )
+    strong_domain_match = bool(
+        candidate_domain
+        and any(
+            domain_root_name(candidate_domain)
+            and company_name_matches_anchor_strict(domain_root_name(candidate_domain), name)
+            for name in anchor_names
+            if name
+        )
+    )
     if source_domain and candidate_domain == source_domain:
+        if support_page and strong_domain_match:
+            return True
         return not anchor_company or document_matches_anchor_strong(document, anchor_company)
     if source_domain and domain_is_directory(source_domain):
         text = normalize_text(_document_text(document))
@@ -2442,8 +2520,7 @@ def document_can_seed_website_candidate(document: EvidenceDocument, candidate_we
     if document.source_tier == "tier_a":
         return not anchor_company or document_matches_anchor_strong(document, anchor_company)
     if anchor_company and source_domain and not domain_is_directory(source_domain) and not domain_is_publisher_like(source_domain):
-        root_name = domain_root_name(candidate_domain)
-        if root_name and company_name_matches_anchor_strict(root_name, anchor_company) and document_matches_anchor_strong(document, anchor_company):
+        if strong_domain_match and (document_matches_anchor_strong(document, anchor_company) or support_page):
             return True
     return False
 
@@ -2751,7 +2828,8 @@ def resolve_website_resolution(
     support_page_docs = [
         item
         for item in support_docs
-        if any(token in normalize_text(_document_text(item)) for token in WEBSITE_SUPPORT_PAGE_TOKENS)
+        if _document_looks_corporate_support_page(item)
+        or any(token in normalize_text(_document_text(item)) for token in WEBSITE_SUPPORT_PAGE_TOKENS)
     ]
     if support_page_docs:
         strong_signals.append("same-domain company page found")
@@ -2847,7 +2925,7 @@ def _website_has_strong_support(website: str | None, documents: list[EvidenceDoc
         return True
     if any(
         not item.is_publisher_like
-        and any(token in normalize_text(_document_text(item)) for token in WEBSITE_SUPPORT_PAGE_TOKENS)
+        and (_document_looks_corporate_support_page(item) or any(token in normalize_text(_document_text(item)) for token in WEBSITE_SUPPORT_PAGE_TOKENS))
         for item in exact_domain_docs
     ):
         return True

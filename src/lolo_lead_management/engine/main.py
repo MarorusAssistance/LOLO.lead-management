@@ -619,6 +619,8 @@ class LeadManagementEngine:
                         [*existing.evidence_urls, *candidate.evidence_urls]
                     ),
                     "signals": dedupe_preserve_order([*existing.signals, *candidate.signals]),
+                    "seed_url": existing.seed_url or candidate.seed_url,
+                    "seed_method": existing.seed_method if existing.seed_method != "unknown" else candidate.seed_method,
                     "score": max(existing.score, candidate.score),
                 }
             )

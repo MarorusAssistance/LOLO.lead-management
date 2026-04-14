@@ -195,6 +195,8 @@ class WebsiteCandidateHint(StrictModel):
     candidate_website: str
     evidence_urls: list[str] = Field(default_factory=list)
     signals: list[str] = Field(default_factory=list)
+    seed_url: str | None = None
+    seed_method: Literal["explicit_field", "inline_text", "same_domain_url", "support_page_url", "unknown"] = "unknown"
     score: float = Field(default=0, ge=0)
 
 
@@ -550,6 +552,9 @@ class SourceStageTrace(StrictModel):
     extracted_urls: list[str] = Field(default_factory=list)
     extract_error: str | None = None
     official_domain: str | None = None
+    website_probe_needed: bool = False
+    website_probe_attempts: int = Field(default=0, ge=0)
+    website_probe_queries_selected: list[str] = Field(default_factory=list)
     website_candidates: list[WebsiteCandidateHint] = Field(default_factory=list)
     selected_documents: list[SourceDocumentSelectionTrace] = Field(default_factory=list)
     documents_passed_to_assembler: list[SourceTraceDocumentSnapshot] = Field(default_factory=list)

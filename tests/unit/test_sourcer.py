@@ -915,6 +915,8 @@ def test_focus_locked_queries_prioritize_identity_and_size_before_website() -> N
         phase_state={
             "company_validation_complete": False,
             "website_resolution_needed": False,
+            "website_probe_needed": False,
+            "website_probe_attempts": 0,
             "persona_search_unlocked": False,
             "focus_confidence": "medium",
         },
@@ -1145,12 +1147,11 @@ def test_sourcer_passes_raw_focus_batch_to_assembler() -> None:
     assert source_result.source_trace.query_selection_policy == "structured_state_only"
     assert source_result.source_trace.resolved_fields == ["company_name", "country"]
     assert source_result.source_trace.missing_fields == ["employee_estimate", "fit_signals", "person_name", "role_title"]
-    assert source_result.source_trace.selected_queries == [
-        '"Bdeo" numero empleados exactos',
-        '"Bdeo" rango empleados plantilla',
-        '"Bdeo" plantilla iberinform axesor',
-        '"Bdeo" empleados media empresite',
-    ]
+    assert source_result.source_trace.website_probe_needed is True
+    assert source_result.source_trace.website_probe_attempts == 0
+    assert source_result.source_trace.selected_queries[0] == '"Bdeo" numero empleados exactos'
+    assert source_result.source_trace.selected_queries[1] == '"Bdeo"'
+    assert source_result.source_trace.website_probe_queries_selected == ['"Bdeo"']
     assert {item.url for item in source_result.documents} == {
         "https://empresite.eleconomista.es/BDEO-SPAIN.html"
     }
@@ -1177,6 +1178,8 @@ def test_focus_locked_queries_prioritize_persona_after_company_validation_when_w
         phase_state={
             "company_validation_complete": True,
             "website_resolution_needed": False,
+            "website_probe_needed": False,
+            "website_probe_attempts": 0,
             "persona_search_unlocked": True,
             "focus_confidence": "high",
         },
@@ -1214,6 +1217,8 @@ def test_focus_locked_queries_prioritize_domain_validation_before_persona_when_d
         phase_state={
             "company_validation_complete": True,
             "website_resolution_needed": True,
+            "website_probe_needed": False,
+            "website_probe_attempts": 0,
             "persona_search_unlocked": False,
             "focus_confidence": "high",
         },
@@ -1228,6 +1233,8 @@ def test_focus_locked_queries_prioritize_domain_validation_before_persona_when_d
         phase_state={
             "company_validation_complete": True,
             "website_resolution_needed": True,
+            "website_probe_needed": False,
+            "website_probe_attempts": 0,
             "persona_search_unlocked": False,
             "focus_confidence": "high",
         },
@@ -1238,6 +1245,107 @@ def test_focus_locked_queries_prioritize_domain_validation_before_persona_when_d
     assert selected
     assert all(item.expected_field == "website" for item in selected)
     assert selected[0].query == "site:bitbrain.com contacto"
+
+
+def test_focus_locked_queries_mix_validation_and_website_probe_when_probe_is_active() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(
+        LeadSearchStartRequest(user_text="busca 1 founder o CTO de una empresa espanola de software con menos de 50 empleados")
+    )
+    plan = build_research_query_plan(request, relaxation_stage=0, anchor_company="Interactiveai", mode="source_focus_locked")
+    stage = SourceStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
+    state = EngineRuntimeState(
+        run=SearchRunSnapshot(request=request),
+        memory=ExplorationMemoryState(),
+    )
+    state.current_focus_company_resolution = CompanyFocusResolution(selected_company="Interactiveai", query_name="Interactiveai", confidence=0.88)
+
+    supplemental = stage._supplemental_focus_locked_queries(
+        state,
+        focus=state.current_focus_company_resolution,
+        missing_fields=["employee_estimate", "person_name", "role_title"],
+        official_domain=None,
+        phase_state={
+            "company_validation_complete": False,
+            "website_resolution_needed": False,
+            "website_probe_needed": True,
+            "website_probe_attempts": 0,
+            "persona_search_unlocked": False,
+            "focus_confidence": "high",
+        },
+        query_history=[],
+    )
+    selected = stage._choose_focus_locked_queries(
+        state=state,
+        plan=plan,
+        query_history=[],
+        missing_fields=["employee_estimate", "person_name", "role_title"],
+        phase_state={
+            "company_validation_complete": False,
+            "website_resolution_needed": False,
+            "website_probe_needed": True,
+            "website_probe_attempts": 0,
+            "persona_search_unlocked": False,
+            "focus_confidence": "high",
+        },
+        official_domain=None,
+        supplemental_queries=supplemental,
+    )
+
+    assert [item.expected_field for item in selected] == ["employee_estimate", "website"]
+    assert selected[0].query == '"Interactiveai" numero empleados exactos'
+    assert selected[1].query == '"Interactiveai"'
+
+
+def test_focus_phase_state_unlocks_persona_after_two_website_probe_attempts() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(
+        LeadSearchStartRequest(user_text="busca 1 founder o CTO de una empresa espanola de software con menos de 50 empleados")
+    )
+    state = EngineRuntimeState(
+        run=SearchRunSnapshot(request=request),
+        memory=ExplorationMemoryState(
+            query_history=[
+                '"Interactiveai"',
+                '"Interactiveai" -site:linkedin.com -site:clutch.co -site:goodfirms.co -site:themanifest.com',
+            ]
+        ),
+    )
+    stage = SourceStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
+    focus = CompanyFocusResolution(selected_company="Interactiveai", query_name="Interactiveai", country_code="es", confidence=0.88)
+
+    phase_state = stage._focus_phase_state(
+        state,
+        focus=focus,
+        resolved_fields=["company_name", "country"],
+        missing_fields=["employee_estimate", "fit_signals", "person_name", "role_title"],
+        official_domain=None,
+    )
+
+    assert phase_state["website_probe_attempts"] == 2
+    assert phase_state["website_probe_needed"] is False
+    assert phase_state["persona_search_unlocked"] is True
+
+
+def test_support_page_url_can_seed_website_candidate_for_anchor() -> None:
+    stage = SourceStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
+    document = enrich_document_metadata(
+        EvidenceDocument(
+            url="https://interactiveai.com/contacto",
+            title="Contacto | Interactive AI",
+            snippet="Escribenos para mas informacion.",
+            source_type="fixture",
+            raw_content="Escribenos para mas informacion.",
+        ),
+        anchor_company="Interactiveai",
+    )
+
+    candidates = stage._website_candidates_for_company([document], "Interactiveai")
+
+    assert candidates
+    assert candidates[0].candidate_website == "https://interactiveai.com"
+    assert candidates[0].seed_url == "https://interactiveai.com/contacto"
+    assert candidates[0].seed_method == "support_page_url"
 
 
 def test_resolve_person_signal_rejects_generic_editorial_cto_page() -> None:

@@ -96,12 +96,14 @@ Planning rules:
     2. resolve the official website only when it still materially helps disambiguate the company or unlock the contact
     3. find `person_name + role_title`
   - prioritize proving company identity, geography, size, and thematic fit before spending on contact discovery
+  - when the company already looks reasonably correct but there is still no website, run a small early website probe even if full company validation is not closed yet
+  - that early website probe should normally be one validation query plus one website query in the same pass
   - once the company still looks viable, prioritize named-person and role queries ahead of optional website work unless website resolution is still needed to disambiguate the company or unlock domain-specific team pages
   - website is supporting evidence, not a mandatory acceptance field
   - if the discovery ficha for the focus company already exists, you may reuse it and enrich its content before searching for another URL
   - a directory ficha already seen in this run may be reused in focus-locked retrieval when it is the cleanest evidence for website or legal identity
   - if a trusted discovery ficha is already present but sparse, try to enrich that same URL before assuming a new search is required
-  - do not spend scarce searches on website resolution while company-fit or named-contact fields remain unresolved
+  - do not let employee-count uncertainty block website probing forever when the domain could unlock cleaner persona discovery
 
 Official website query pattern:
 - Use short, single-intent website queries in this order when website resolution is still needed:
@@ -119,6 +121,7 @@ Official website query pattern:
   - contact page
   - legal/about page
   - visible email on the same domain
+- if a recovered page is already on a plausible company domain and looks like `/contacto`, `/about`, `/quienes-somos`, or `/aviso-legal`, treat the consulted URL itself as a strong seed for the candidate domain even when the body text is thin
 - Do not keep pushing website work once it is no longer helping company validation or contact discovery.
 
 Persona query pattern:
