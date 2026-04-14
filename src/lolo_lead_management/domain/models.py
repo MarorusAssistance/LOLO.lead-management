@@ -469,6 +469,9 @@ class SourceQueryTrace(StrictModel):
     raw_results_before_filter: list[SourceTraceDocumentSnapshot] = Field(default_factory=list)
     documents_after_enrichment: list[SourceTraceDocumentSnapshot] = Field(default_factory=list)
     documents_selected_for_pass: list[SourceTraceDocumentSnapshot] = Field(default_factory=list)
+    search_backend_status: Literal["ok", "empty_results", "backend_error"] = "ok"
+    backend_http_status: int | None = Field(default=None, ge=100, le=599)
+    backend_error_message: str | None = None
     error: str | None = None
     notes: list[str] = Field(default_factory=list)
 

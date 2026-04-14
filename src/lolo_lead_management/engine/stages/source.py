@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from urllib.error import HTTPError
 from urllib.parse import urlparse
 
 from lolo_lead_management.domain.enums import FieldEvidenceStatus, SourceQuality, StageName, SourcingStatus
@@ -441,6 +442,9 @@ class SourceStage:
         enrichment_details: dict[str, dict] = {}
         error_note: str | None = None
         error: str | None = None
+        backend_http_status: int | None = None
+        backend_error_message: str | None = None
+        search_backend_status: str = "ok"
         try:
             raw_results = self._search_port.web_search(query, max_results=self._max_results)
             filtered = []
@@ -473,7 +477,12 @@ class SourceStage:
         except Exception as exc:
             error = str(exc)
             error_note = f"search_query_failed={query.query}: {exc}"
+            backend_http_status, backend_error_message = self._search_backend_error_details(exc)
+            search_backend_status = "backend_error"
             result_traces = []
+        else:
+            if not raw_results:
+                search_backend_status = "empty_results"
         trace_entry = ResearchTraceEntry(
             query_planned=query.query,
             query_executed=query.query,
@@ -509,11 +518,36 @@ class SourceStage:
             raw_results_before_filter=self._document_snapshots(raw_results),
             documents_after_enrichment=self._document_snapshots(enriched, enrichment_details),
             documents_selected_for_pass=self._document_snapshots(selected, enrichment_details),
+            search_backend_status=search_backend_status,
+            backend_http_status=backend_http_status,
+            backend_error_message=backend_error_message,
             error=error,
-            notes=self._query_trace_notes(query, filtered, fetched_urls, empty_fetch_urls, enrichment_details),
+            notes=self._query_trace_notes(
+                query,
+                filtered,
+                fetched_urls,
+                empty_fetch_urls,
+                enrichment_details,
+                search_backend_status=search_backend_status,
+                backend_http_status=backend_http_status,
+            ),
         )
         self._mark_run_scoped_visited(state, selected)
         return selected, trace_entry, query_trace, error_note
+
+    def _search_backend_error_details(self, exc: Exception) -> tuple[int | None, str | None]:
+        http_status = getattr(exc, "code", None)
+        message = str(exc) or exc.__class__.__name__
+        http_error = exc if isinstance(exc, HTTPError) else getattr(exc, "__cause__", None)
+        if isinstance(http_error, HTTPError):
+            http_status = http_error.code
+            try:
+                body = http_error.read().decode("utf-8", errors="ignore").strip()
+            except Exception:
+                body = ""
+            if body:
+                message = f"{message} | body={body[:500]}"
+        return http_status, message
 
     def _result_rejection_reasons(self, item, query: ResearchQuery, state: EngineRuntimeState) -> list[str]:
         reasons: list[str] = []
@@ -528,8 +562,14 @@ class SourceStage:
         fetched_urls: list[str],
         empty_fetch_urls: list[str],
         enrichment_details: dict[str, dict],
+        *,
+        search_backend_status: str,
+        backend_http_status: int | None,
     ) -> list[str]:
         notes: list[str] = []
+        notes.append(f"backend_status={search_backend_status}")
+        if backend_http_status is not None:
+            notes.append(f"backend_http_status={backend_http_status}")
         if query.preferred_domains:
             notes.append(f"preferred_domains={','.join(query.preferred_domains[:4])}")
         if any(
@@ -832,28 +872,32 @@ class SourceStage:
                 within_phase = 2
         elif phase == "website_resolution_phase":
             if official_domain and raw_query.startswith(f"site:{official_domain.lower()}"):
-                if "contacto" in query_text or "contact" in query_text:
+                if any(token in query_text for token in ["contacto", "contact us", "contact"]):
                     within_phase = 0
-                elif "aviso legal" in query_text or "legal" in query_text or "privacy" in query_text:
+                elif any(token in query_text for token in ["aviso legal", "legal", "privacy"]):
                     within_phase = 1
-                else:
+                elif any(token in query_text for token in ["quienes somos", "sobre nosotros", "about us", "about"]):
                     within_phase = 2
+                else:
+                    within_phase = 3
             elif query.candidate_company_name and normalize_text(query.query.replace('"', "")) == normalize_text(query.candidate_company_name):
                 within_phase = 0
             elif "-site:linkedin.com" in query.query:
                 within_phase = 1
-            elif "contacto" in query_text or "contact" in query_text:
+            elif any(token in query_text for token in ["contacto", "contact us", "contact"]):
                 within_phase = 2
-            elif "aviso legal" in query_text or "legal" in query_text:
+            elif any(token in query_text for token in ["aviso legal", "legal", "privacy"]):
                 within_phase = 3
-            elif any(token in query_text for token in ["sitio web", "pagina web", "web"]):
+            elif any(token in query_text for token in ["quienes somos", "sobre nosotros", "about us", "about"]):
                 within_phase = 4
-            else:
+            elif any(token in query_text for token in ["sitio web", "pagina web", "web"]):
                 within_phase = 5
+            else:
+                within_phase = 6
         else:
             size_profile = self._persona_size_profile(state, focus=state.current_focus_company_resolution or CompanyFocusResolution())
             if official_domain and raw_query.startswith(f"site:{official_domain.lower()}"):
-                if any(token in query_text for token in ["equipo", "team", "quienes somos", "sobre nosotros"]):
+                if any(token in query_text for token in ["equipo", "team", "quienes somos", "sobre nosotros", "about us", "about"]):
                     within_phase = 0
                 else:
                     within_phase = 1
@@ -1352,9 +1396,25 @@ class SourceStage:
                 expected_field="website",
                 stop_if_resolved=True,
                 exact_match=False,
-                search_depth="advanced",
-                min_score=0.58,
-                preferred_domains=[official_domain],
+                search_depth="basic",
+                min_score=0.45,
+                preferred_domains=[],
+                excluded_domains=[],
+                expected_source_types=["company_site"],
+            ),
+            ResearchQuery(
+                query=f'site:{official_domain} "contact us"',
+                objective="Validate that the candidate company domain exposes a real contact page tied to the anchored company.",
+                research_phase="company_anchoring",
+                source_role="website_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="website",
+                stop_if_resolved=True,
+                exact_match=False,
+                search_depth="basic",
+                min_score=0.45,
+                preferred_domains=[],
                 excluded_domains=[],
                 expected_source_types=["company_site"],
             ),
@@ -1368,9 +1428,25 @@ class SourceStage:
                 expected_field="website",
                 stop_if_resolved=True,
                 exact_match=False,
-                search_depth="advanced",
-                min_score=0.58,
-                preferred_domains=[official_domain],
+                search_depth="basic",
+                min_score=0.44,
+                preferred_domains=[],
+                excluded_domains=[],
+                expected_source_types=["company_site"],
+            ),
+            ResearchQuery(
+                query=f"site:{official_domain} legal",
+                objective="Validate that the candidate company domain exposes legal or corporate identity pages tied to the anchored company.",
+                research_phase="company_anchoring",
+                source_role="website_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="website",
+                stop_if_resolved=True,
+                exact_match=False,
+                search_depth="basic",
+                min_score=0.44,
+                preferred_domains=[],
                 excluded_domains=[],
                 expected_source_types=["company_site"],
             ),
@@ -1384,9 +1460,25 @@ class SourceStage:
                 expected_field="website",
                 stop_if_resolved=True,
                 exact_match=False,
-                search_depth="advanced",
-                min_score=0.56,
-                preferred_domains=[official_domain],
+                search_depth="basic",
+                min_score=0.43,
+                preferred_domains=[],
+                excluded_domains=[],
+                expected_source_types=["company_site"],
+            ),
+            ResearchQuery(
+                query=f"site:{official_domain} about",
+                objective="Validate that the candidate company domain exposes an about page consistent with the anchored company brand and identity.",
+                research_phase="company_anchoring",
+                source_role="website_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="website",
+                stop_if_resolved=True,
+                exact_match=False,
+                search_depth="basic",
+                min_score=0.43,
+                preferred_domains=[],
                 excluded_domains=[],
                 expected_source_types=["company_site"],
             ),
@@ -1397,7 +1489,7 @@ class SourceStage:
             if normalize_text(query.query) in used:
                 continue
             selected.append(query)
-        return selected[:3]
+        return selected[:4]
 
     def _official_domain_persona_queries(
         self,
@@ -1417,9 +1509,9 @@ class SourceStage:
                 source_tier_target="tier_a",
                 expected_field="person_name",
                 exact_match=False,
-                search_depth="advanced",
-                min_score=0.58,
-                preferred_domains=[official_domain],
+                search_depth="basic",
+                min_score=0.45,
+                preferred_domains=[],
                 excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
                 expected_source_types=["company_site"],
             ),
@@ -1432,9 +1524,9 @@ class SourceStage:
                 source_tier_target="tier_a",
                 expected_field="person_name",
                 exact_match=False,
-                search_depth="advanced",
-                min_score=0.58,
-                preferred_domains=[official_domain],
+                search_depth="basic",
+                min_score=0.45,
+                preferred_domains=[],
                 excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
                 expected_source_types=["company_site"],
             ),
@@ -1447,9 +1539,24 @@ class SourceStage:
                 source_tier_target="tier_a",
                 expected_field="person_name",
                 exact_match=False,
-                search_depth="advanced",
-                min_score=0.57,
-                preferred_domains=[official_domain],
+                search_depth="basic",
+                min_score=0.44,
+                preferred_domains=[],
+                excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                expected_source_types=["company_site"],
+            ),
+            ResearchQuery(
+                query=f"site:{official_domain} about",
+                objective="Find about pages on the company domain that may explicitly tie named people and roles to the anchored company.",
+                research_phase="field_acquisition",
+                source_role="governance_resolution",
+                candidate_company_name=anchored_company,
+                source_tier_target="tier_a",
+                expected_field="person_name",
+                exact_match=False,
+                search_depth="basic",
+                min_score=0.44,
+                preferred_domains=[],
                 excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
                 expected_source_types=["company_site"],
             ),
@@ -1470,9 +1577,9 @@ class SourceStage:
                     source_tier_target="tier_a",
                     expected_field="person_name",
                     exact_match=False,
-                    search_depth="advanced",
-                    min_score=0.56,
-                    preferred_domains=[official_domain],
+                    search_depth="basic",
+                    min_score=0.44,
+                    preferred_domains=[],
                     excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
                     expected_source_types=["company_site"],
                 )

@@ -2,7 +2,7 @@ from lolo_lead_management.adapters.search.fake import FakeSearchPort
 from lolo_lead_management.adapters.search.tavily import TavilySearchPort
 from lolo_lead_management.adapters.stores.sqlite import SqliteExplorationMemoryStore
 from lolo_lead_management.domain.enums import SourcingStatus
-from lolo_lead_management.domain.models import CompanyFocusResolution, CompanyObservation, EvidenceDocument, ExplorationMemoryState, LeadSearchStartRequest, ResearchQuery, ResearchTraceEntry, SearchBudget, SearchRunSnapshot, SourcePassResult
+from lolo_lead_management.domain.models import CompanyFocusResolution, CompanyObservation, EvidenceDocument, ExplorationMemoryState, LeadSearchStartRequest, ResearchQuery, ResearchQueryPlan, ResearchTraceEntry, SearchBudget, SearchRunSnapshot, SourcePassResult
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.rules import (
     build_research_query_plan,
@@ -19,6 +19,7 @@ from lolo_lead_management.engine.rules import (
     extracted_official_website_from_document,
     is_plausible_company_name,
     resolve_person_signal,
+    sanitize_research_query_plan,
     select_anchor_company,
 )
 from lolo_lead_management.engine.stages.assemble import AssembleStage
@@ -1297,6 +1298,52 @@ def test_focus_locked_queries_mix_validation_and_website_probe_when_probe_is_act
     assert selected[1].query == '"Interactiveai"'
 
 
+def test_official_domain_queries_are_basic_and_not_domain_filtered() -> None:
+    stage = SourceStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
+
+    selected = stage._official_domain_queries("Modelmanagement Dot Com S.l", "modelmanagement.com", [])
+
+    assert selected
+    assert all(item.search_depth == "basic" for item in selected)
+    assert all(not item.preferred_domains for item in selected)
+    assert selected[0].query == "site:modelmanagement.com contacto"
+    assert any(item.query == 'site:modelmanagement.com "contact us"' for item in selected)
+    assert any(item.query == "site:modelmanagement.com about" for item in selected)
+
+
+def test_sanitize_research_query_plan_does_not_inject_country_or_domains_into_site_queries() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(
+        LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
+    )
+    candidate = ResearchQueryPlan(
+        planned_queries=[
+            ResearchQuery(
+                query="site:modelmanagement.com contacto",
+                objective="Validate official website.",
+                research_phase="company_anchoring",
+                source_role="website_resolution",
+                candidate_company_name="Modelmanagement Dot Com S.l",
+                source_tier_target="tier_a",
+                expected_field="website",
+                search_depth="advanced",
+                min_score=0.58,
+                preferred_domains=["modelmanagement.com"],
+                exact_match=False,
+            )
+        ]
+    )
+    fallback = ResearchQueryPlan(planned_queries=[])
+
+    sanitized = sanitize_research_query_plan(candidate, fallback=fallback, request=request, anchor_company="Modelmanagement Dot Com S.l")
+
+    assert sanitized.planned_queries
+    query = sanitized.planned_queries[0]
+    assert query.search_depth == "basic"
+    assert query.country is None
+    assert query.preferred_domains == []
+
+
 def test_focus_phase_state_unlocks_persona_after_two_website_probe_attempts() -> None:
     normalizer = NormalizeStage(StageAgentExecutor(None))
     request = normalizer.execute(
@@ -1346,6 +1393,35 @@ def test_support_page_url_can_seed_website_candidate_for_anchor() -> None:
     assert candidates[0].candidate_website == "https://interactiveai.com"
     assert candidates[0].seed_url == "https://interactiveai.com/contacto"
     assert candidates[0].seed_method == "support_page_url"
+
+
+def test_source_query_trace_distinguishes_empty_results_from_backend_error() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 empresa de software en espana"))
+    state = EngineRuntimeState(run=SearchRunSnapshot(request=request), memory=ExplorationMemoryState())
+    query = ResearchQuery(
+        query="site:modelmanagement.com contacto",
+        objective="Validate official website.",
+        research_phase="company_anchoring",
+        source_role="website_resolution",
+        candidate_company_name="Modelmanagement Dot Com S.l",
+        source_tier_target="tier_a",
+        expected_field="website",
+    )
+
+    empty_stage = SourceStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
+    _, _, empty_trace, _ = empty_stage._execute_query(state, query)
+    assert empty_trace.search_backend_status == "empty_results"
+    assert empty_trace.backend_http_status is None
+
+    flaky_stage = SourceStage(
+        search_port=FlakySearchPort(search_index={}, failing_queries={query.query}),
+        agent_executor=StageAgentExecutor(None),
+        max_results=5,
+    )
+    _, _, error_trace, _ = flaky_stage._execute_query(state, query)
+    assert error_trace.search_backend_status == "backend_error"
+    assert error_trace.backend_error_message is not None
 
 
 def test_resolve_person_signal_rejects_generic_editorial_cto_page() -> None:

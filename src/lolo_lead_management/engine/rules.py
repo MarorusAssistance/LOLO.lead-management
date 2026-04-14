@@ -1418,6 +1418,7 @@ def sanitize_research_query_plan(
         query = " ".join(item.query.split()).strip()
         objective = " ".join(item.objective.split()).strip()
         phase = " ".join(item.research_phase.split()).strip()
+        is_domain_scoped_query = query.lower().startswith("site:")
         if len(query) < 3 or len(objective) < 3 or len(phase) < 3:
             continue
         if len(query.split()) > 14:
@@ -1458,7 +1459,11 @@ def sanitize_research_query_plan(
                 update["min_score"] = max(item.min_score, 0.65)
             update["exact_match"] = False
         elif item.candidate_company_name or anchor_company:
-            if (
+            if is_domain_scoped_query:
+                update["search_depth"] = "basic"
+                update["min_score"] = max(item.min_score, 0.42)
+                update["preferred_domains"] = []
+            elif (
                 is_spain_sourcing_request(request)
                 and source_tier_target == "tier_b"
             ):
@@ -1472,7 +1477,7 @@ def sanitize_research_query_plan(
                 update["min_score"] = max(item.min_score, 0.55)
             if expected_field == "website":
                 update["stop_if_resolved"] = True
-        update["country"] = item.country or request.constraints.preferred_country
+        update["country"] = None if is_domain_scoped_query else item.country or request.constraints.preferred_country
         sanitized.append(item.model_copy(update=update))
     if not sanitized:
         return fallback
