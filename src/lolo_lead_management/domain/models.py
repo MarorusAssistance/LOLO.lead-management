@@ -170,12 +170,21 @@ class ResearchTraceEntry(StrictModel):
     selected_urls: list[str] = Field(default_factory=list)
 
 
+class FieldEvidenceSpan(StrictModel):
+    url: str
+    excerpt: str = ""
+    segment_index: int | None = Field(default=None, ge=0)
+    heading_path: list[str] = Field(default_factory=list)
+
+
 class AssembledFieldEvidence(StrictModel):
     field_name: str
     value: str | int | None = None
     status: FieldEvidenceStatus
     supporting_evidence: list[EvidenceItem] = Field(default_factory=list)
     contradicting_evidence: list[EvidenceItem] = Field(default_factory=list)
+    supporting_spans: list[FieldEvidenceSpan] = Field(default_factory=list)
+    contradicting_spans: list[FieldEvidenceSpan] = Field(default_factory=list)
     source_quality: SourceQuality = SourceQuality.UNKNOWN
     source_tier: Literal["tier_a", "tier_b", "tier_c", "mixed", "unknown"] = "unknown"
     support_type: Literal["explicit", "corroborated", "weak_inference"] = "explicit"
@@ -280,6 +289,7 @@ class ChunkFieldAssertion(StrictModel):
     segment_index: int = Field(default=0, ge=0)
     source_url: str = ""
     evidence_excerpt: str = ""
+    heading_path: list[str] = Field(default_factory=list)
     employee_count_type: Literal["exact", "range", "estimate", "unknown"] = "unknown"
 
 
@@ -293,6 +303,7 @@ class ChunkContactAssertion(StrictModel):
     segment_index: int = Field(default=0, ge=0)
     source_url: str = ""
     evidence_excerpt: str = ""
+    heading_path: list[str] = Field(default_factory=list)
 
 
 class ChunkExtractionResolution(StrictModel):

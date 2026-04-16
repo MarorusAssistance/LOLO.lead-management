@@ -18,8 +18,11 @@ from lolo_lead_management.engine.agents.specs import STAGE_AGENT_SPECS
 from lolo_lead_management.engine.rules import (
     build_research_query_plan,
     choose_queries,
+    company_name_matches_anchor_strict,
     collect_missing_fields_for_enrichment,
+    document_matches_anchor_strong,
     enrich_document_metadata,
+    extracted_official_website_from_document,
     merge_research_query_plans,
     merge_documents,
     sanitize_research_query_plan,
@@ -120,11 +123,17 @@ class EnrichStage:
             previously_visited = set(state.visited_urls_run_scoped)
             try:
                 results = self._search_port.web_search(query, max_results=self._max_results)
-                filtered = [item for item in results if item.url not in previously_visited]
+                filtered, result_rejections, filter_notes = self._filter_results_for_enrich(
+                    results,
+                    query=query,
+                    anchor_company=dossier.company.name,
+                    previously_visited=previously_visited,
+                )
                 enriched, fetched_urls, empty_fetch_urls = self._enrich_missing_content(filtered, query.query)
                 selected = merge_documents(enriched[: self._max_results])
                 error = None
                 state.visited_urls_run_scoped = list(dict.fromkeys([*state.visited_urls_run_scoped, *[item.url for item in selected]]))
+                stage_trace.notes.extend(filter_notes)
             except Exception as exc:
                 results = []
                 filtered = []
@@ -132,6 +141,7 @@ class EnrichStage:
                 selected = []
                 fetched_urls = []
                 empty_fetch_urls = []
+                result_rejections = {}
                 error = str(exc)
                 stage_trace.notes.append(f"enrich_query_failed={query.query}: {exc}")
             research_trace.append(
@@ -175,8 +185,8 @@ class EnrichStage:
                             title=item.title,
                             source_type=item.source_type,
                             search_score=item.search_score,
-                            kept=item.url not in previously_visited,
-                            rejection_reasons=[] if item.url not in previously_visited else ["visited_url_in_run"],
+                            kept=item.url in {entry.url for entry in filtered},
+                            rejection_reasons=result_rejections.get(item.url, []),
                         )
                         for item in results
                     ],
@@ -295,6 +305,64 @@ class EnrichStage:
                 return self._search_port.fetch_page_capture(url)
         except Exception:
             return PageCapture(url=url, extracted_text="", content_format="unknown")
+
+    def _filter_results_for_enrich(self, results, *, query, anchor_company: str, previously_visited: set[str]):
+        anchored_field = query.expected_field in {"employee_estimate", "person_name", "role_title", "website"}
+        annotated = [
+            enrich_document_metadata(item, anchor_company=query.candidate_company_name or anchor_company)
+            for item in results
+        ]
+        result_rejections: dict[str, list[str]] = {}
+        notes: list[str] = []
+        if anchored_field and (query.candidate_company_name or anchor_company):
+            target_company = query.candidate_company_name or anchor_company
+            anchor_matches = [item for item in annotated if self._strong_anchor_match(item, target_company)]
+            if anchor_matches:
+                unvisited_anchor = [item for item in anchor_matches if item.url not in previously_visited]
+                if unvisited_anchor:
+                    selected_urls = {item.url for item in unvisited_anchor}
+                    selected_domains = {self._document_domain(item) for item in unvisited_anchor if self._document_domain(item)}
+                    for item in annotated:
+                        if item.url in selected_urls:
+                            continue
+                        if item in anchor_matches and item.url in previously_visited:
+                            result_rejections[item.url] = ["visited_url_in_run"]
+                        else:
+                            result_rejections[item.url] = ["rejected_wrong_company_for_anchor"]
+                    if any(
+                        item.url not in selected_urls
+                        and item.url not in previously_visited
+                        and self._document_domain(item) in selected_domains
+                        for item in anchor_matches
+                    ):
+                        notes.append("selected_distinct_same_domain_url")
+                    return unvisited_anchor, result_rejections, notes
+                for item in anchor_matches:
+                    result_rejections[item.url] = ["already_covered_by_prior_pass"]
+                for item in annotated:
+                    if item.url not in result_rejections:
+                        result_rejections[item.url] = ["rejected_wrong_company_for_anchor"]
+                notes.append("already_covered_by_prior_pass")
+                return [], result_rejections, notes
+
+        filtered = []
+        for item in annotated:
+            if item.url in previously_visited:
+                result_rejections[item.url] = ["visited_url_in_run"]
+                continue
+            filtered.append(item)
+        return filtered, result_rejections, notes
+
+    def _strong_anchor_match(self, item, anchor_company: str) -> bool:
+        if document_matches_anchor_strong(item, anchor_company):
+            return True
+        company_anchor = getattr(item, "company_anchor", None)
+        if company_anchor and company_name_matches_anchor_strict(company_anchor, anchor_company):
+            return True
+        return bool(extracted_official_website_from_document(item, anchor_company) and getattr(item, "is_company_controlled_source", False))
+
+    def _document_domain(self, item) -> str | None:
+        return getattr(item, "domain", None) or (item.url.split("/", 3)[2].lower() if "://" in item.url else None)
 
     def _compact_dossier_payload(self, payload: dict) -> dict:
         compact = dict(payload)

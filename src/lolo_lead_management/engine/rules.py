@@ -884,7 +884,7 @@ def deterministic_anchor_queries(
             queries.extend(
                 [
                     ResearchQuery(
-                        query=f'"{anchor_company}" numero empleados exactos',
+                        query=f'einforma "{anchor_company}" empleados',
                         objective="Find an exact employee count from eInforma if a public employee total is available.",
                         research_phase="evidence_closing",
                         source_role="employee_count_resolution",
@@ -899,7 +899,7 @@ def deterministic_anchor_queries(
                         expected_source_types=["directory"],
                     ),
                     ResearchQuery(
-                        query=f'"{anchor_company}" rango empleados plantilla',
+                        query=f'infoempresa "{anchor_company}" empleados plantilla',
                         objective="Find a public employee range from Infoempresa when no exact employee total is available.",
                         research_phase="evidence_closing",
                         source_role="employee_count_resolution",
@@ -1046,6 +1046,36 @@ def deterministic_anchor_queries(
                         preferred_domains=SPAIN_GOVERNANCE_PRIMARY_DOMAINS,
                         excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
                         expected_source_types=["directory", "company_registry"],
+                    ),
+                    ResearchQuery(
+                        query=f'boe "{anchor_company}" administrador',
+                        objective="Find an explicit legal administrator in BOE when no operational decision-maker is publicly visible.",
+                        research_phase="field_acquisition",
+                        source_role="governance_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_b",
+                        expected_field="person_name",
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.44,
+                        preferred_domains=["boe.es"],
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_registry"],
+                    ),
+                    ResearchQuery(
+                        query=f'borme "{anchor_company}" administrador',
+                        objective="Find an explicit legal administrator in mercantile announcements when no operational decision-maker is publicly visible.",
+                        research_phase="field_acquisition",
+                        source_role="governance_resolution",
+                        candidate_company_name=anchor_company,
+                        source_tier_target="tier_b",
+                        expected_field="person_name",
+                        exact_match=False,
+                        search_depth="advanced",
+                        min_score=0.44,
+                        preferred_domains=["boe.es"],
+                        excluded_domains=ANCHOR_EXCLUDED_DOMAINS,
+                        expected_source_types=["company_registry"],
                     ),
                     ResearchQuery(
                         query=f'"{anchor_company}" directivos funcionales cto founder ceo',
@@ -1916,7 +1946,14 @@ def extract_official_website(text: str, source_url: str) -> str | None:
     freeform_candidates = [] if (domain_is_directory(source_host) or domain_is_publisher_like(source_host)) else _extract_freeform_website_candidates(text)
     for candidate in [*contextual_candidates, *freeform_candidates]:
         hostname = domain_from_url(candidate)
-        if not hostname or hostname == source_host or domain_is_directory(hostname) or domain_is_publisher_like(hostname) or domain_is_unofficial_website_host(hostname):
+        if (
+            not hostname
+            or hostname == source_host
+            or (source_host and (hostname.endswith(f".{source_host}") or source_host.endswith(f".{hostname}")))
+            or domain_is_directory(hostname)
+            or domain_is_publisher_like(hostname)
+            or domain_is_unofficial_website_host(hostname)
+        ):
             continue
         return candidate
     lowered_source = source_url.lower()
@@ -1950,7 +1987,14 @@ def extracted_official_website_from_document(document: EvidenceDocument, anchor_
     freeform_candidates = [] if (domain_is_directory(source_host) or domain_is_publisher_like(source_host)) else _extract_freeform_website_candidates(text)
     for candidate in [*contextual_candidates, *freeform_candidates]:
         hostname = domain_from_url(candidate)
-        if not hostname or hostname == source_host or domain_is_directory(hostname) or domain_is_publisher_like(hostname) or domain_is_unofficial_website_host(hostname):
+        if (
+            not hostname
+            or hostname == source_host
+            or (source_host and (hostname.endswith(f".{source_host}") or source_host.endswith(f".{hostname}")))
+            or domain_is_directory(hostname)
+            or domain_is_publisher_like(hostname)
+            or domain_is_unofficial_website_host(hostname)
+        ):
             continue
         website = canonicalize_website(candidate)
         if website:
@@ -2033,6 +2077,25 @@ def extract_employee_size_hint(text: str) -> tuple[int | None, Literal["exact", 
     if "pyme" in normalized:
         return 49, "estimate"
     return None, "unknown"
+
+
+def employee_excerpt_is_aggregate_signal(text: str | None) -> bool:
+    normalized = normalize_text(text or "")
+    if not normalized:
+        return False
+    aggregate_tokens = [
+        "la media de empleados",
+        "media de empleados",
+        "empleados media",
+        "employee average",
+        "average employees",
+        "media del sector",
+        "promedio de empleados",
+        "tamano medio de la empresa",
+        "tamano medio",
+        "company size average",
+    ]
+    return any(token in normalized for token in aggregate_tokens)
 
 
 def clean_person_name(value: str | None) -> str | None:
@@ -3969,6 +4032,42 @@ def downgrade_enrich_to_close_match(
     )
 
 
+def _employee_values_from_field_evidence(item: AssembledFieldEvidence | None) -> list[int]:
+    if item is None:
+        return []
+    values: list[int] = []
+    for document in [*item.supporting_evidence, *item.contradicting_evidence]:
+        value, _ = extract_employee_size_hint(_document_text(document))
+        if value is not None:
+            values.append(value)
+    if isinstance(item.value, int):
+        values.append(item.value)
+    return list(dict.fromkeys(values))
+
+
+def _employee_contradiction_still_within_requested_range(
+    field: QualificationRubricField,
+    dossier: AssembledLeadDossier,
+    request: NormalizedLeadSearchRequest,
+) -> bool:
+    if field.status != FieldEvidenceStatus.CONTRADICTED:
+        return False
+    minimum = request.constraints.min_company_size
+    maximum = request.constraints.max_company_size
+    if minimum is None and maximum is None:
+        return False
+    evidence_item = next((item for item in dossier.field_evidence if item.field_name == "employee_estimate"), None)
+    values = _employee_values_from_field_evidence(evidence_item)
+    if not values:
+        return False
+    for value in values:
+        if minimum is not None and value < minimum:
+            return False
+        if maximum is not None and value > maximum:
+            return False
+    return True
+
+
 def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> QualificationDecision:
     if dossier.field_evidence == [] and dossier.evidence:
         dossier = overlay_explicit_dossier_fields(
@@ -4120,8 +4219,11 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
     if request.constraints.min_company_size is not None or request.constraints.max_company_size is not None:
         size = dossier.company.employee_estimate
         if size_field.status == FieldEvidenceStatus.CONTRADICTED:
-            hard_failure = True
-            reasons.append("public evidence for company size is contradictory")
+            if _employee_contradiction_still_within_requested_range(size_field, dossier, request):
+                reasons.append("public evidence for company size is contradictory but all explicit values still fit the requested range")
+            else:
+                hard_failure = True
+                reasons.append("public evidence for company size is contradictory")
         elif size is None or size_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
             reasons.append("company size is not yet proven")
         else:
@@ -4187,22 +4289,8 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
 
 
 def merge_qualification_decisions(deterministic: QualificationDecision, llm_review: QualificationDecision | None) -> QualificationDecision:
-    if llm_review is None:
-        return deterministic
-    if deterministic.outcome == QualificationOutcome.REJECT:
-        return deterministic
-    if deterministic.outcome == QualificationOutcome.ENRICH and llm_review.outcome == QualificationOutcome.ACCEPT:
-        return deterministic
-    if deterministic.outcome == QualificationOutcome.REJECT_CLOSE_MATCH and llm_review.outcome == QualificationOutcome.ACCEPT:
-        return deterministic
-    merged = llm_review.model_copy(deep=True)
-    if merged.qualification_rubric is None:
-        merged.qualification_rubric = deterministic.qualification_rubric
-    if merged.score == 0:
-        merged.score = deterministic.score
-    if deterministic.outcome == QualificationOutcome.ACCEPT and merged.outcome != QualificationOutcome.ACCEPT:
-        merged.match_type = deterministic.match_type
-    return merged
+    _ = llm_review
+    return deterministic.model_copy(deep=True)
 
 
 def collect_missing_fields_for_enrichment(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> list[str]:
@@ -4210,7 +4298,7 @@ def collect_missing_fields_for_enrichment(dossier: AssembledLeadDossier, request
     missing: list[str] = []
     if request.constraints.preferred_country and field_map.get("country", AssembledFieldEvidence(field_name="country", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="country missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
         missing.append("country")
-    if (request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and field_map.get("employee_estimate", AssembledFieldEvidence(field_name="employee_estimate", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="size missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+    if (request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and field_map.get("employee_estimate", AssembledFieldEvidence(field_name="employee_estimate", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="size missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED, FieldEvidenceStatus.CONTRADICTED}:
         missing.append("employee_estimate")
     if field_map.get("person_name", AssembledFieldEvidence(field_name="person_name", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="person missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
         missing.append("person_name")

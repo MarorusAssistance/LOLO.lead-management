@@ -20,6 +20,7 @@ from lolo_lead_management.domain.models import (
     DiscoveryCandidateExtractionResolution,
     DiscoveryCompanyCandidate,
     EvidenceDocument,
+    FieldEvidenceSpan,
     PersonCandidate,
     RejectedCompanyCandidate,
     SourcePassResult,
@@ -43,11 +44,13 @@ from lolo_lead_management.engine.rules import (
     domain_from_url,
     domain_is_directory,
     domain_is_publisher_like,
+    employee_excerpt_is_aggregate_signal,
     extracted_official_website_from_document,
     is_plausible_company_name,
     merge_documents,
     normalize_text,
     request_scoped_company_exclusions,
+    resolve_person_signal,
     resolve_website_resolution,
 )
 from lolo_lead_management.engine.state import EngineRuntimeState
@@ -74,6 +77,7 @@ class AssembleStage:
         self.last_company_selection_trace: dict | None = None
 
     def execute(self, state: EngineRuntimeState) -> AssembledLeadDossier:
+        self._employee_filter_events: list[dict] = []
         source_result = state.current_source_result
         if source_result is None:
             dossier = AssembledLeadDossier(sourcing_status=SourcingStatus.NO_CANDIDATE, notes=["no_source_result"])
@@ -137,7 +141,8 @@ class AssembleStage:
             llm_error = next((item.get("llm_error") for item in document_steps if item.get("llm_error")), None)
             status = llm_error or "fallback"
 
-        state.current_assembler_trace = {
+        assembled = self._backfill_contact_metadata(assembled)
+        trace = {
             "status": status,
             "used_fallback": used_fallback,
             "focus_company": focus_company,
@@ -167,8 +172,21 @@ class AssembleStage:
                 if resolution is not None and (resolution.person_name or resolution.role_title)
                 else None
             ),
-            "final_dossier_after_overlay": assembled.model_dump(mode="json"),
         }
+        assembled = self._attach_field_provenance(assembled, trace)
+        if self._employee_filter_events:
+            trace.setdefault("notes", []).extend(
+                [f"employee_assertion_filtered_as_aggregate={item['source_url']}" for item in self._employee_filter_events]
+            )
+        if trace.get("selected_contact_pair") and assembled.person is not None:
+            trace["selected_contact_pair"] = {
+                **trace["selected_contact_pair"],
+                "lead_source_type": assembled.lead_source_type,
+                "person_confidence": assembled.person_confidence,
+                "primary_person_source_url": assembled.primary_person_source_url,
+            }
+        trace["final_dossier_after_overlay"] = assembled.model_dump(mode="json")
+        state.current_assembler_trace = trace
         return assembled
 
     def select_focus_company(self, state: EngineRuntimeState) -> CompanyFocusResolution:
@@ -634,6 +652,8 @@ class AssembleStage:
         selection_reasons = dedupe_preserve_order(generated.selection_reasons)
         hard_rejections = dedupe_preserve_order(generated.hard_rejections)
         notes = dedupe_preserve_order([*notes, *generated.notes])
+        employee_count_hint_value = generated.employee_count_hint_value
+        employee_count_hint_type = generated.employee_count_hint_type
 
         if not selected_company:
             return CompanyFocusResolution(
@@ -668,6 +688,16 @@ class AssembleStage:
         selection_mode = generated.selection_mode if generated.selection_mode in {"confident", "plausible", "fallback", "none"} else "plausible"
         if selection_mode == "none":
             selection_mode = "plausible"
+        if employee_count_hint_value is not None and (
+            employee_count_hint_type == "estimate"
+            and (
+                any(employee_excerpt_is_aggregate_signal(item) for item in selection_reasons)
+                or any(employee_excerpt_is_aggregate_signal(f"{item.title}\n{item.snippet}\n{item.raw_content}") for item in documents if item.url in evidence_urls)
+            )
+        ):
+            employee_count_hint_value = None
+            employee_count_hint_type = "unknown"
+            notes = dedupe_preserve_order([*notes, "employee_hint_rejected_as_aggregate"])
         return CompanyFocusResolution(
             selected_company=selected_company,
             legal_name=legal_name or selected_company,
@@ -675,8 +705,8 @@ class AssembleStage:
             brand_aliases=brand_aliases,
             candidate_website=candidate_website,
             country_code=country_code,
-            employee_count_hint_value=generated.employee_count_hint_value,
-            employee_count_hint_type=generated.employee_count_hint_type,
+            employee_count_hint_value=employee_count_hint_value,
+            employee_count_hint_type=employee_count_hint_type,
             selection_mode=selection_mode,
             confidence=max(0.0, min(generated.confidence, 1.0)),
             evidence_urls=evidence_urls,
@@ -970,6 +1000,156 @@ class AssembleStage:
             reasoning_note=f"{field_name} has no explicit grounded segment assertion.",
         )
 
+    def _backfill_contact_metadata(self, dossier: AssembledLeadDossier) -> AssembledLeadDossier:
+        if dossier.company is None or dossier.person is None or not dossier.person.full_name or not dossier.person.role_title:
+            return dossier
+        if dossier.lead_source_type and dossier.person_confidence and dossier.primary_person_source_url:
+            return dossier
+        documents = [item for item in dossier.evidence if isinstance(item, EvidenceDocument)]
+        if not documents:
+            documents = [EvidenceDocument.model_validate(item.model_dump(mode="python")) for item in dossier.evidence]
+        resolved = resolve_person_signal(
+            documents,
+            company_name=dossier.company.name,
+            preferred_person_name=dossier.person.full_name,
+            preferred_role_title=dossier.person.role_title,
+        )
+        updates: dict[str, object] = {}
+        if not dossier.lead_source_type and resolved.get("lead_source_type") not in {None, "unknown"}:
+            updates["lead_source_type"] = resolved["lead_source_type"]
+        if not dossier.person_confidence and resolved.get("person_confidence") not in {None, "unknown"}:
+            updates["person_confidence"] = resolved["person_confidence"]
+        if not dossier.primary_person_source_url and resolved.get("primary_person_source_url"):
+            updates["primary_person_source_url"] = resolved["primary_person_source_url"]
+        return dossier.model_copy(update=updates) if updates else dossier
+
+    def _attach_field_provenance(self, dossier: AssembledLeadDossier, trace: dict | None) -> AssembledLeadDossier:
+        if not isinstance(trace, dict):
+            return dossier
+        outputs = trace.get("extraction_sanitized_outputs") or []
+        field_assertions: list[dict] = []
+        contact_assertions: list[dict] = []
+        for item in outputs:
+            resolution = item.get("resolution") or {}
+            field_assertions.extend(resolution.get("field_assertions") or [])
+            contact_assertions.extend(resolution.get("contact_assertions") or [])
+        if not field_assertions and not contact_assertions:
+            return dossier
+        updated_fields: list[AssembledFieldEvidence] = []
+        for field in dossier.field_evidence:
+            supporting_spans, contradicting_spans = self._field_spans_for_item(
+                field,
+                dossier=dossier,
+                field_assertions=field_assertions,
+                contact_assertions=contact_assertions,
+            )
+            updated_fields.append(
+                field.model_copy(
+                    update={
+                        "supporting_spans": supporting_spans,
+                        "contradicting_spans": contradicting_spans,
+                    }
+                )
+            )
+        return dossier.model_copy(update={"field_evidence": updated_fields})
+
+    def _field_spans_for_item(
+        self,
+        field: AssembledFieldEvidence,
+        *,
+        dossier: AssembledLeadDossier,
+        field_assertions: list[dict],
+        contact_assertions: list[dict],
+    ) -> tuple[list[FieldEvidenceSpan], list[FieldEvidenceSpan]]:
+        support_urls = {item.url for item in field.supporting_evidence if getattr(item, "url", None)}
+        contradict_urls = {item.url for item in field.contradicting_evidence if getattr(item, "url", None)}
+        value_key = self._provenance_value_key(field.value)
+        company_name = dossier.company.name if dossier.company else None
+        support_candidates: list[FieldEvidenceSpan] = []
+        contradict_candidates: list[FieldEvidenceSpan] = []
+
+        if field.field_name in {"person_name", "role_title"}:
+            assertion_field = "person_name" if field.field_name == "person_name" else "role_title"
+            for assertion in contact_assertions:
+                span = self._span_from_payload(assertion)
+                if span is None:
+                    continue
+                assertion_company = assertion.get("company_name")
+                if company_name and assertion_company and not company_name_matches_anchor_strict(assertion_company, company_name):
+                    continue
+                candidate_key = self._provenance_value_key(assertion.get(assertion_field))
+                if not candidate_key:
+                    continue
+                if candidate_key == value_key:
+                    support_candidates.append(span)
+                else:
+                    contradict_candidates.append(span)
+        else:
+            for assertion in field_assertions:
+                if assertion.get("field_name") != field.field_name:
+                    continue
+                span = self._span_from_payload(assertion)
+                if span is None:
+                    continue
+                assertion_company = assertion.get("company_name")
+                if company_name and assertion_company and not company_name_matches_anchor_strict(assertion_company, company_name):
+                    continue
+                candidate_key = self._provenance_value_key(assertion.get("value"))
+                if not candidate_key and field.field_name != "website":
+                    continue
+                if candidate_key == value_key:
+                    support_candidates.append(span)
+                elif candidate_key:
+                    contradict_candidates.append(span)
+
+        supporting_spans = [span for span in support_candidates if not support_urls or span.url in support_urls]
+        contradicting_spans = [span for span in contradict_candidates if not contradict_urls or span.url in contradict_urls]
+        if not supporting_spans:
+            supporting_spans = support_candidates
+        if not contradicting_spans and field.status == FieldEvidenceStatus.CONTRADICTED:
+            contradicting_spans = contradict_candidates
+        if not supporting_spans:
+            supporting_spans = [self._fallback_span_from_document(item) for item in field.supporting_evidence]
+        if not contradicting_spans:
+            contradicting_spans = [self._fallback_span_from_document(item) for item in field.contradicting_evidence]
+        return self._dedupe_spans(supporting_spans), self._dedupe_spans(contradicting_spans)
+
+    def _span_from_payload(self, payload: dict) -> FieldEvidenceSpan | None:
+        url = payload.get("source_url") or payload.get("url")
+        if not url:
+            return None
+        return FieldEvidenceSpan(
+            url=url,
+            excerpt=(payload.get("evidence_excerpt") or payload.get("excerpt") or "")[:600],
+            segment_index=payload.get("segment_index"),
+            heading_path=list(payload.get("heading_path") or []),
+        )
+
+    def _fallback_span_from_document(self, document) -> FieldEvidenceSpan:
+        excerpt = (getattr(document, "raw_content", None) or getattr(document, "snippet", None) or getattr(document, "title", None) or "")[:600]
+        return FieldEvidenceSpan(url=document.url, excerpt=excerpt, segment_index=None, heading_path=[])
+
+    def _dedupe_spans(self, spans: list[FieldEvidenceSpan]) -> list[FieldEvidenceSpan]:
+        seen: set[tuple[str, str, int | None]] = set()
+        ordered: list[FieldEvidenceSpan] = []
+        for span in spans:
+            key = (span.url, span.excerpt, span.segment_index)
+            if key in seen:
+                continue
+            seen.add(key)
+            ordered.append(span)
+        return ordered
+
+    def _provenance_value_key(self, value) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, int):
+            return str(value)
+        website = canonicalize_website(value)
+        if website:
+            return website
+        return normalize_text(str(value))
+
     def _source_quality_from_docs(self, documents: list[EvidenceDocument]) -> SourceQuality:
         priority = {
             SourceQuality.HIGH: 3,
@@ -1202,6 +1382,15 @@ class AssembleStage:
         candidates: dict[tuple[int, str], list[str]] = defaultdict(list)
         for assertion in assertions:
             if not isinstance(assertion.value, int):
+                continue
+            if employee_excerpt_is_aggregate_signal(assertion.evidence_excerpt) or employee_excerpt_is_aggregate_signal(assertion.reasoning_note):
+                self._employee_filter_events.append(
+                    {
+                        "source_url": assertion.source_url,
+                        "segment_index": assertion.segment_index,
+                        "evidence_excerpt": (assertion.evidence_excerpt or "")[:240],
+                    }
+                )
                 continue
             candidates[(assertion.value, assertion.employee_count_type)].append(assertion.source_url)
         if not candidates:
@@ -1873,6 +2062,7 @@ class AssembleStage:
                 "mode": payload["mode"],
                 "chunk_index": 1,
                 "resolution": sanitized.model_dump(mode="json"),
+                "sanitizer_rejections": list(getattr(self, "_current_sanitizer_rejections", [])),
                 "llm_error": attempt.error,
             }
         )
@@ -1952,6 +2142,7 @@ class AssembleStage:
                     "mode": payload["mode"],
                     "chunk_index": chunk["index"],
                     "resolution": sanitized.model_dump(mode="json"),
+                    "sanitizer_rejections": list(getattr(self, "_current_sanitizer_rejections", [])),
                     "llm_error": attempt.error,
                 }
             )
@@ -2132,6 +2323,7 @@ class AssembleStage:
         focus_company: str | None,
         error: str | None,
     ) -> ChunkExtractionResolution:
+        self._current_sanitizer_rejections = []
         if generated is None:
             notes = ["fallback_chunk_resolution"]
             if error:
@@ -2201,13 +2393,55 @@ class AssembleStage:
         if assertion.field_name == "website":
             value = canonicalize_website(str(assertion.value)) if assertion.value is not None else None
             if value is None:
+                self._append_sanitizer_rejection(
+                    field="website",
+                    raw_value=assertion.value,
+                    reason="website_canonicalization_failed",
+                    function="_sanitize_chunk_field_assertion",
+                    document=document,
+                    chunk=chunk,
+                )
                 return None
         elif assertion.field_name == "country":
             value = canonicalize_country_code(str(assertion.value)) if assertion.value is not None else None
             if value is None:
+                self._append_sanitizer_rejection(
+                    field="country",
+                    raw_value=assertion.value,
+                    reason="country_canonicalization_failed",
+                    function="_sanitize_chunk_field_assertion",
+                    document=document,
+                    chunk=chunk,
+                )
                 return None
         elif assertion.field_name == "employee_estimate":
             if not isinstance(assertion.value, int):
+                self._append_sanitizer_rejection(
+                    field="employee_estimate",
+                    raw_value=assertion.value,
+                    reason="employee_value_not_integer",
+                    function="_sanitize_chunk_field_assertion",
+                    document=document,
+                    chunk=chunk,
+                )
+                return None
+            excerpt_candidate = self._excerpt_for_value(chunk["text"], assertion.value)
+            if employee_excerpt_is_aggregate_signal(excerpt_candidate) or employee_excerpt_is_aggregate_signal(assertion.reasoning_note):
+                self._employee_filter_events.append(
+                    {
+                        "source_url": document.url,
+                        "segment_index": chunk["index"],
+                        "evidence_excerpt": excerpt_candidate[:240],
+                    }
+                )
+                self._append_sanitizer_rejection(
+                    field="employee_estimate",
+                    raw_value=assertion.value,
+                    reason="employee_aggregate_signal",
+                    function="_sanitize_chunk_field_assertion",
+                    document=document,
+                    chunk=chunk,
+                )
                 return None
             value = assertion.value
         else:
@@ -2239,6 +2473,7 @@ class AssembleStage:
                 "segment_index": chunk["index"],
                 "source_url": document.url,
                 "evidence_excerpt": self._excerpt_for_value(chunk["text"], value or company_name),
+                "heading_path": list(chunk.get("heading_path") or []),
             }
         )
 
@@ -2254,11 +2489,27 @@ class AssembleStage:
         person_name = clean_person_name(assertion.person_name)
         role_title = clean_role_title(assertion.role_title)
         if not person_name or not role_title:
+            self._append_sanitizer_rejection(
+                field="contact_pair",
+                raw_value=f"{assertion.person_name} | {assertion.role_title}",
+                reason="contact_name_or_role_rejected",
+                function="_sanitize_chunk_contact_assertion",
+                document=document,
+                chunk=chunk,
+            )
             return None
         company_name = clean_company_name(assertion.company_name) or segment_company
         if company_name is None and focus_company and document_matches_anchor_strong(document, focus_company):
             company_name = clean_company_name(focus_company)
         if company_name is None:
+            self._append_sanitizer_rejection(
+                field="contact_pair",
+                raw_value=f"{assertion.person_name} | {assertion.role_title}",
+                reason="contact_company_missing",
+                function="_sanitize_chunk_contact_assertion",
+                document=document,
+                chunk=chunk,
+            )
             return None
         status = assertion.status
         if status == FieldEvidenceStatus.UNKNOWN:
@@ -2276,6 +2527,19 @@ class AssembleStage:
                 "segment_index": chunk["index"],
                 "source_url": document.url,
                 "evidence_excerpt": self._excerpt_for_value(chunk["text"], person_name) or self._excerpt_for_value(chunk["text"], role_title),
+                "heading_path": list(chunk.get("heading_path") or []),
+            }
+        )
+
+    def _append_sanitizer_rejection(self, *, field: str, raw_value, reason: str, function: str, document: EvidenceDocument, chunk: dict) -> None:
+        self._current_sanitizer_rejections.append(
+            {
+                "field": field,
+                "raw_value": raw_value,
+                "reason": reason,
+                "function": function,
+                "source_url": document.url,
+                "segment_index": chunk.get("index"),
             }
         )
 

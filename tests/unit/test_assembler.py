@@ -557,6 +557,13 @@ def test_assembler_llm_resolution_builds_dossier_without_fallback() -> None:
     assert dossier.person is not None
     assert dossier.person.full_name == "Laura Martin"
     assert dossier.person.role_title == "CTO"
+    assert dossier.primary_person_source_url == "https://acme.ai/about"
+    employee_field = next(item for item in dossier.field_evidence if item.field_name == "employee_estimate")
+    person_field = next(item for item in dossier.field_evidence if item.field_name == "person_name")
+    assert employee_field.supporting_spans
+    assert any(item.url == "https://acme.ai/about" for item in employee_field.supporting_spans)
+    assert person_field.supporting_spans
+    assert person_field.supporting_spans[0].excerpt
     assert "assembled_by_grounded_segment_merge" in dossier.notes
     assert state.current_assembler_trace is not None
     assert state.current_assembler_trace["used_fallback"] is False

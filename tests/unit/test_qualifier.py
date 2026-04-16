@@ -6,6 +6,7 @@ from lolo_lead_management.domain.models import (
     EvidenceItem,
     LeadSearchStartRequest,
     PersonCandidate,
+    QualificationDecision,
     SourcingDossier,
     WebsiteResolution,
 )
@@ -13,6 +14,17 @@ from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.rules import collect_missing_fields_for_enrichment, downgrade_enrich_to_close_match
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
 from lolo_lead_management.engine.stages.qualify import QualifyStage
+
+
+class RejectingQualifierLlmPort:
+    def generate_json(self, *, agent_name: str, system_prompt: str, input_payload: dict, schema: dict) -> dict:
+        _ = (agent_name, system_prompt, input_payload, schema)
+        return {
+            "outcome": "REJECT",
+            "score": 0,
+            "summary": "llm advisory reject",
+            "reasons": [],
+        }
 
 
 def test_qualifier_accepts_exact_match() -> None:
@@ -118,6 +130,50 @@ def test_qualifier_rejects_hard_country_miss() -> None:
     )
 
     assert decision.outcome == QualificationOutcome.REJECT
+
+
+def test_qualifier_keeps_code_primary_decision_when_llm_review_is_weaker() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 lead founder en espana entre 5 y 50 empleados con genai"))
+    evidence = [
+        EvidenceItem(
+            url="https://acme.ai/about",
+            title="about",
+            snippet="Company: Acme AI | Country: Spain | Employees: 25",
+            source_type="fixture",
+            raw_content="Company: Acme AI\nCountry: Spain\nEmployees: 25\nGenAI automation engineering",
+            source_tier="tier_a",
+            is_company_controlled_source=True,
+        )
+    ]
+    dossier = SourcingDossier(
+        sourcing_status=SourcingStatus.FOUND,
+        person=PersonCandidate(full_name=None, role_title=None),
+        company=CompanyCandidate(name="Acme AI", website="https://acme.ai", country_code="es", employee_estimate=25),
+        fit_signals=["genai", "automation"],
+        evidence=evidence,
+        field_evidence=[
+            AssembledFieldEvidence(field_name="company_name", value="Acme AI", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, source_tier="tier_a", support_type="explicit", reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="website", value="https://acme.ai", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, source_tier="tier_a", support_type="explicit", reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="country", value="es", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, source_tier="tier_a", support_type="explicit", reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="employee_estimate", value=25, status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, source_tier="tier_a", support_type="explicit", reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="person_name", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="role_title", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="fit_signals", value="genai, automation", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, source_tier="tier_a", support_type="explicit", reasoning_note="ok"),
+        ],
+        notes=[],
+    )
+
+    stage = QualifyStage(StageAgentExecutor(RejectingQualifierLlmPort()))
+    decision = stage.execute(
+        request_payload=request.model_dump(mode="json"),
+        dossier_payload=dossier.model_dump(mode="json"),
+    )
+
+    assert decision.outcome == QualificationOutcome.ENRICH
+    assert stage.last_trace is not None
+    assert stage.last_trace.llm_review is not None
+    assert "final_verdict=code_primary" in stage.last_trace.notes
 
 
 def test_qualifier_requires_named_person_for_acceptance_when_requested() -> None:

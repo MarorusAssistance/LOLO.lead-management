@@ -30,7 +30,8 @@ class QualifyStage:
         if attempt.error:
             notes.append("llm_decision_unavailable_fallback_to_deterministic")
         else:
-            notes.append("llm_review_merged_with_deterministic" if generated is not None else "llm_review_empty")
+            notes.append("llm_review_recorded_advisory" if generated is not None else "llm_review_empty")
+        notes.append("final_verdict=code_primary")
         self.last_trace = QualificationTrace(
             deterministic_decision=deterministic,
             llm_review=generated,

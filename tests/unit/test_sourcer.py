@@ -5,6 +5,7 @@ from lolo_lead_management.domain.enums import SourcingStatus
 from lolo_lead_management.domain.models import CompanyFocusResolution, CompanyObservation, EvidenceDocument, ExplorationMemoryState, LeadSearchStartRequest, ResearchQuery, ResearchQueryPlan, ResearchTraceEntry, SearchBudget, SearchRunSnapshot, SourcePassResult
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.rules import (
+    collect_missing_fields_for_enrichment,
     build_research_query_plan,
     canonicalize_website,
     candidate_company_names_from_document,
@@ -23,6 +24,7 @@ from lolo_lead_management.engine.rules import (
     select_anchor_company,
 )
 from lolo_lead_management.engine.stages.assemble import AssembleStage
+from lolo_lead_management.engine.stages.enrich import EnrichStage
 from lolo_lead_management.engine.stages.load_state import LoadStateStage
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
 from lolo_lead_management.engine.stages.source import SourceStage
@@ -448,6 +450,8 @@ def test_spain_anchor_queries_prioritize_identity_size_and_persona_before_websit
     assert any(query.query == '"BitBrain" CEO' for query in governance_queries)
     assert any(query.query == '"BitBrain" CTO' for query in governance_queries)
     assert any(query.query == '"BitBrain" administradores cargos directivos' for query in governance_queries)
+    assert any(query.query == 'boe "BitBrain" administrador' for query in governance_queries)
+    assert any(query.query == 'borme "BitBrain" administrador' for query in governance_queries)
     assert all("boe.es" not in query.preferred_domains for query in website_queries + employee_queries)
 
 
@@ -456,10 +460,10 @@ def test_domain_validation_queries_are_domain_centric_and_not_exact_match() -> N
 
     queries = stage._official_domain_queries("Software Ag", "softwareag.es", [])
 
-    assert len(queries) == 3
+    assert len(queries) == 4
     assert queries[0].query == "site:softwareag.es contacto"
-    assert queries[1].query == 'site:softwareag.es "aviso legal"'
-    assert queries[0].preferred_domains == ["softwareag.es"]
+    assert queries[1].query == 'site:softwareag.es "contact us"'
+    assert queries[0].preferred_domains == []
     assert queries[0].exact_match is False
 
 
@@ -718,6 +722,50 @@ def test_sourcer_allows_reusing_anchor_directory_page_for_website_in_same_run() 
     assert "visited_url_in_run" not in reasons
 
 
+def test_enrich_does_not_fall_through_to_wrong_company_when_exact_anchor_url_was_already_covered() -> None:
+    stage = EnrichStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
+    query = ResearchQuery(
+        query='einforma "IA PAMPLONA SL" empleados',
+        objective="Resolve employee estimate",
+        research_phase="evidence_closing",
+        source_role="employee_count_resolution",
+        candidate_company_name="IA PAMPLONA SL",
+        expected_field="employee_estimate",
+    )
+    exact = enrich_document_metadata(
+        EvidenceDocument(
+            url="https://www.einforma.com/informacion-empresa/ia-pamplona",
+            title="IA PAMPLONA SL - eInforma",
+            snippet="IA PAMPLONA SL. Empleados 1-9.",
+            source_type="fixture",
+            raw_content="IA PAMPLONA SL. Empleados 1-9.",
+        ),
+        anchor_company="IA PAMPLONA SL",
+    )
+    wrong = enrich_document_metadata(
+        EvidenceDocument(
+            url="https://www.einforma.com/informacion-empresa/asesoria-pamplona",
+            title="ASESORIA PAMPLONA SL - eInforma",
+            snippet="ASESORIA PAMPLONA SL. Empleados 25.",
+            source_type="fixture",
+            raw_content="ASESORIA PAMPLONA SL. Empleados 25.",
+        ),
+        anchor_company="ASESORIA PAMPLONA SL",
+    )
+
+    filtered, rejection_map, notes = stage._filter_results_for_enrich(
+        [exact, wrong],
+        query=query,
+        anchor_company="IA PAMPLONA SL",
+        previously_visited={exact.url},
+    )
+
+    assert filtered == []
+    assert rejection_map[exact.url] == ["already_covered_by_prior_pass"]
+    assert rejection_map[wrong.url] == ["rejected_wrong_company_for_anchor"]
+    assert "already_covered_by_prior_pass" in notes
+
+
 def test_focus_locked_website_branch_tries_second_candidate_query_before_abort() -> None:
     tmp_path = workspace_tmp_dir("sourcer-second-website-attempt")
     search_index = {
@@ -783,7 +831,7 @@ def test_focus_locked_website_branch_tries_second_candidate_query_before_abort()
     assert source_result.source_trace.query_selection_policy == "structured_state_only"
     assert source_result.source_trace.missing_fields == ["country", "employee_estimate", "fit_signals", "person_name", "role_title"]
     assert 'infoempresa "Acme AI" razon social cif' in source_result.source_trace.selected_queries
-    assert '"Acme AI" numero empleados exactos' in source_result.source_trace.selected_queries
+    assert 'einforma "Acme AI" empleados' in source_result.source_trace.selected_queries
     assert 'datoscif "Acme AI" sitio web pagina web' not in source_result.source_trace.selected_queries
 
 
@@ -1148,11 +1196,10 @@ def test_sourcer_passes_raw_focus_batch_to_assembler() -> None:
     assert source_result.source_trace.query_selection_policy == "structured_state_only"
     assert source_result.source_trace.resolved_fields == ["company_name", "country"]
     assert source_result.source_trace.missing_fields == ["employee_estimate", "fit_signals", "person_name", "role_title"]
-    assert source_result.source_trace.website_probe_needed is True
+    assert source_result.source_trace.website_probe_needed is False
     assert source_result.source_trace.website_probe_attempts == 0
-    assert source_result.source_trace.selected_queries[0] == '"Bdeo" numero empleados exactos'
-    assert source_result.source_trace.selected_queries[1] == '"Bdeo"'
-    assert source_result.source_trace.website_probe_queries_selected == ['"Bdeo"']
+    assert 'infoempresa "Bdeo" razon social cif' in source_result.source_trace.selected_queries
+    assert 'einforma "Bdeo" empleados' in source_result.source_trace.selected_queries
     assert {item.url for item in source_result.documents} == {
         "https://empresite.eleconomista.es/BDEO-SPAIN.html"
     }
@@ -1294,7 +1341,7 @@ def test_focus_locked_queries_mix_validation_and_website_probe_when_probe_is_act
     )
 
     assert [item.expected_field for item in selected] == ["employee_estimate", "website"]
-    assert selected[0].query == '"Interactiveai" numero empleados exactos'
+    assert selected[0].query == 'einforma "Interactiveai" empleados'
     assert selected[1].query == '"Interactiveai"'
 
 
@@ -1308,7 +1355,7 @@ def test_official_domain_queries_are_basic_and_not_domain_filtered() -> None:
     assert all(not item.preferred_domains for item in selected)
     assert selected[0].query == "site:modelmanagement.com contacto"
     assert any(item.query == 'site:modelmanagement.com "contact us"' for item in selected)
-    assert any(item.query == "site:modelmanagement.com about" for item in selected)
+    assert any(item.query == 'site:modelmanagement.com "aviso legal"' for item in selected)
 
 
 def test_sanitize_research_query_plan_does_not_inject_country_or_domains_into_site_queries() -> None:
@@ -1766,8 +1813,8 @@ def test_source_uses_structured_state_and_skips_domain_validation_branching() ->
     assert source_result.source_trace.query_selection_policy == "structured_state_only"
     assert source_result.source_trace.candidate_branch_stop_reason is None
     assert source_result.source_trace.selected_queries == [
-        '"Bdeo" numero empleados exactos',
-        '"Bdeo" rango empleados plantilla',
+        'einforma "Bdeo" empleados',
+        'infoempresa "Bdeo" empleados plantilla',
         '"Bdeo" plantilla iberinform axesor',
         '"Bdeo" empleados media empresite',
     ]
@@ -1797,7 +1844,7 @@ def test_sourcer_continues_when_one_search_query_fails() -> None:
                 )
             ],
         },
-        failing_queries={'"Acme AI" numero empleados exactos'},
+        failing_queries={'einforma "Acme AI" empleados'},
     )
     normalizer = NormalizeStage(StageAgentExecutor(None))
     request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai"))
@@ -1828,7 +1875,7 @@ def test_sourcer_continues_when_one_search_query_fails() -> None:
     source_result = source_stage.execute(state)
 
     assert source_result.sourcing_status.value == "FOUND"
-    assert any('search_query_failed="Acme AI" numero empleados exactos' in note for note in source_result.notes)
+    assert any('search_query_failed=einforma "Acme AI" empleados' in note for note in source_result.notes)
     assert source_result.anchored_company_name == "Acme AI"
 
 
