@@ -9,9 +9,21 @@ from lolo_lead_management.ports.llm import LlmPort
 
 
 class LmStudioLlmPort(LlmPort):
-    def __init__(self, *, base_url: str, model: str, timeout_seconds: int = 30) -> None:
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        model: str,
+        api_key: str | None = None,
+        max_completion_tokens: int | None = None,
+        reasoning_effort: str | None = None,
+        timeout_seconds: int = 30,
+    ) -> None:
         self._base_url = base_url
         self._model = model
+        self._api_key = api_key
+        self._max_completion_tokens = max_completion_tokens
+        self._reasoning_effort = reasoning_effort
         self._timeout_seconds = timeout_seconds
 
     def generate_json(
@@ -25,7 +37,6 @@ class LmStudioLlmPort(LlmPort):
         schema_name = f"{agent_name.lower()}_response"
         payload = {
             "model": self._model,
-            "temperature": 0.1,
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {
@@ -47,14 +58,21 @@ class LmStudioLlmPort(LlmPort):
                 },
             ],
         }
+        if self._max_completion_tokens is not None:
+            payload["max_completion_tokens"] = self._max_completion_tokens
+        if self._reasoning_effort:
+            payload["reasoning_effort"] = self._reasoning_effort
         data = json.dumps(payload).encode("utf-8")
-        req = request.Request(self._base_url, method="POST", data=data, headers={"Content-Type": "application/json"})
+        headers = {"Content-Type": "application/json"}
+        if self._api_key:
+            headers["Authorization"] = f"Bearer {self._api_key}"
+        req = request.Request(self._base_url, method="POST", data=data, headers=headers)
         try:
             with request.urlopen(req, timeout=self._timeout_seconds) as response:
                 raw = json.loads(response.read().decode("utf-8"))
         except error.HTTPError as exc:  # pragma: no cover - network failure path
             detail = exc.read().decode("utf-8", errors="ignore")
-            raise InvalidAgentOutputError(f"LM Studio returned HTTP {exc.code}: {detail}") from exc
+            raise InvalidAgentOutputError(f"LLM endpoint returned HTTP {exc.code}: {detail}") from exc
 
         content = raw["choices"][0]["message"]["content"]
         if isinstance(content, list):

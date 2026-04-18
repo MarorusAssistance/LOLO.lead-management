@@ -78,7 +78,7 @@ def health(container: ServiceContainer) -> HealthResponse:
         database_path=settings.database_path,
         tavily_configured=bool(settings.tavily_api_key),
         search_provider="tavily",
-        lm_studio_configured=bool(settings.lm_studio_base_url and settings.lm_studio_model),
+        lm_studio_configured=bool(settings.llm_base_url and settings.llm_model),
         llm_enabled=settings.llm_enabled,
         search_enabled=settings.search_enabled,
     )

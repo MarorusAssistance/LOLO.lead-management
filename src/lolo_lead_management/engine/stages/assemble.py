@@ -35,6 +35,7 @@ from lolo_lead_management.engine.rules import (
     canonicalize_website,
     clean_company_name,
     clean_person_name,
+    clean_person_name_raw,
     clean_role_title,
     company_name_matches_anchor,
     company_name_matches_anchor_strict,
@@ -49,6 +50,7 @@ from lolo_lead_management.engine.rules import (
     is_plausible_company_name,
     merge_documents,
     normalize_text,
+    normalize_person_name_for_search,
     request_scoped_company_exclusions,
     resolve_person_signal,
     resolve_website_resolution,
@@ -859,6 +861,8 @@ class AssembleStage:
             country_code=country_value,
             employee_estimate=employee_value,
             person_name=contact["person_name"],
+            person_name_raw=contact["person_name_raw"],
+            person_name_normalization_status=contact["person_name_normalization_status"],
             role_title=contact["role_title"],
             fit_signals=fit_signals,
             selected_evidence_urls=selected_urls,
@@ -911,11 +915,12 @@ class AssembleStage:
         country_code = generated.country_code
         employee_estimate = generated.employee_estimate
         person_name = generated.person_name
+        person_name_raw = generated.person_name_raw or person_name
         role_title = generated.role_title
         fit_signals = dedupe_preserve_order(generated.fit_signals)
 
         company = CompanyCandidate(name=company_name, website=website, country_code=country_code, employee_estimate=employee_estimate)
-        person = PersonCandidate(full_name=person_name, role_title=role_title) if person_name or role_title else None
+        person = PersonCandidate(full_name=person_name, full_name_raw=person_name_raw, role_title=role_title) if person_name or person_name_raw or role_title else None
         website_resolution = WebsiteResolution(
             candidate_website=candidate_website,
             officiality=generated.website_officiality or "unknown",
@@ -1571,6 +1576,7 @@ class AssembleStage:
         pairs: dict[tuple[str, str], dict[str, object]] = {}
         for assertion in contact_assertions:
             person_name = clean_person_name(assertion.person_name)
+            person_name_raw = clean_person_name_raw(assertion.person_name_raw or assertion.person_name)
             role_title = clean_role_title(assertion.role_title)
             if not person_name or not role_title:
                 continue
@@ -1579,10 +1585,12 @@ class AssembleStage:
                 key,
                 {
                     "person_name": person_name,
+                    "person_name_raw": person_name_raw or person_name,
                     "role_title": role_title,
                     "support_urls": [],
                     "score": 0,
                     "support_type": assertion.support_type,
+                    "normalization_status": assertion.person_name_normalization_status or "preserved",
                 },
             )
             bucket["support_urls"] = dedupe_preserve_order([*bucket["support_urls"], assertion.source_url])  # type: ignore[index]
@@ -1593,11 +1601,13 @@ class AssembleStage:
 
         if not pairs:
             return {
-                "person_name": None,
-                "role_title": None,
-                "support_urls": [],
-                "status": FieldEvidenceStatus.UNKNOWN,
-                "support_type": "explicit",
+            "person_name": None,
+            "person_name_raw": None,
+            "person_name_normalization_status": None,
+            "role_title": None,
+            "support_urls": [],
+            "status": FieldEvidenceStatus.UNKNOWN,
+            "support_type": "explicit",
                 "reasoning_note": "No explicit person+role pair was grounded in the segment assertions.",
             }
 
@@ -1609,6 +1619,8 @@ class AssembleStage:
         status = FieldEvidenceStatus.SATISFIED if support_urls else FieldEvidenceStatus.UNKNOWN
         return {
             "person_name": chosen["person_name"],
+            "person_name_raw": chosen["person_name_raw"],
+            "person_name_normalization_status": chosen["normalization_status"],
             "role_title": chosen["role_title"],
             "support_urls": support_urls,
             "status": status,
@@ -2486,13 +2498,46 @@ class AssembleStage:
         segment_company: str | None,
         focus_company: str | None,
     ) -> ChunkContactAssertion | None:
-        person_name = clean_person_name(assertion.person_name)
+        person_name_raw = clean_person_name_raw(assertion.person_name)
+        person_name, person_name_normalization_status = normalize_person_name_for_search(person_name_raw)
         role_title = clean_role_title(assertion.role_title)
-        if not person_name or not role_title:
+        if not person_name_raw:
             self._append_sanitizer_rejection(
-                field="contact_pair",
-                raw_value=f"{assertion.person_name} | {assertion.role_title}",
-                reason="contact_name_or_role_rejected",
+                field="person_name",
+                raw_value=assertion.person_name,
+                reason="person_name_invalid",
+                function="_sanitize_chunk_contact_assertion",
+                document=document,
+                chunk=chunk,
+            )
+            return None
+        if not person_name:
+            self._append_sanitizer_rejection(
+                field="person_name",
+                raw_value=person_name_raw,
+                reason="person_name_ambiguous_multiple_people",
+                function="_sanitize_chunk_contact_assertion",
+                document=document,
+                chunk=chunk,
+            )
+            return None
+        if not role_title:
+            self._append_sanitizer_rejection(
+                field="role_title",
+                raw_value=assertion.role_title,
+                reason="role_title_invalid",
+                function="_sanitize_chunk_contact_assertion",
+                document=document,
+                chunk=chunk,
+            )
+            return None
+        normalized_person_name = re.sub(r"[^a-z]+", " ", normalize_text(person_name)).strip()
+        normalized_role_title = re.sub(r"[^a-z]+", " ", normalize_text(role_title)).strip()
+        if normalized_person_name and normalized_person_name == normalized_role_title:
+            self._append_sanitizer_rejection(
+                field="person_name",
+                raw_value=assertion.person_name,
+                reason="person_name_matches_role_title",
                 function="_sanitize_chunk_contact_assertion",
                 document=document,
                 chunk=chunk,
@@ -2521,6 +2566,8 @@ class AssembleStage:
         return assertion.model_copy(
             update={
                 "person_name": person_name,
+                "person_name_raw": person_name_raw,
+                "person_name_normalization_status": person_name_normalization_status,
                 "role_title": role_title,
                 "company_name": company_name,
                 "status": status,

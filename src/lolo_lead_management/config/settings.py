@@ -21,8 +21,14 @@ class Settings(BaseModel):
         "TAVILY_API_KEY": "tavily_api_key",
         "LOLO_TAVILY_BASE_URL": "tavily_base_url",
         "TAVILY_BASE_URL": "tavily_base_url",
-        "LOLO_LM_STUDIO_BASE_URL": "lm_studio_base_url",
-        "LOLO_LM_STUDIO_MODEL": "lm_studio_model",
+        "LOLO_LLM_BASE_URL": "llm_base_url",
+        "LOLO_LLM_MODEL": "llm_model",
+        "LOLO_LLM_API_KEY": "llm_api_key",
+        "OPENAI_API_KEY": "llm_api_key",
+        "LOLO_LM_STUDIO_BASE_URL": "llm_base_url",
+        "LOLO_LM_STUDIO_MODEL": "llm_model",
+        "LOLO_LLM_MAX_COMPLETION_TOKENS": "llm_max_completion_tokens",
+        "LOLO_LLM_REASONING_EFFORT": "llm_reasoning_effort",
         "LOLO_LLM_TIMEOUT_SECONDS": "llm_timeout_seconds",
         "LOLO_LLM_ENABLED": "llm_enabled",
         "LOLO_SEARCH_ENABLED": "search_enabled",
@@ -40,8 +46,11 @@ class Settings(BaseModel):
     database_path: str | None = None
     tavily_api_key: str | None = None
     tavily_base_url: str = "https://api.tavily.com/search"
-    lm_studio_base_url: str = "http://127.0.0.1:1234/v1/chat/completions"
-    lm_studio_model: str = "qwen/qwen3-30b-a3b-instruct-2507"
+    llm_base_url: str = "http://127.0.0.1:1234/v1/chat/completions"
+    llm_model: str = "qwen/qwen3-30b-a3b-instruct-2507"
+    llm_api_key: str | None = None
+    llm_max_completion_tokens: int | None = Field(default=None, ge=1, le=200000)
+    llm_reasoning_effort: str | None = Field(default=None, min_length=1, max_length=32)
     llm_timeout_seconds: int = Field(default=90, ge=5, le=600)
     llm_enabled: bool = False
     search_enabled: bool = False
@@ -69,6 +78,14 @@ class Settings(BaseModel):
     @property
     def database_file(self) -> Path:
         return Path(self.database_path or self.default_database_path_for_environment(self.environment))
+
+    @property
+    def lm_studio_base_url(self) -> str:
+        return self.llm_base_url
+
+    @property
+    def lm_studio_model(self) -> str:
+        return self.llm_model
 
     @classmethod
     def from_environ(cls, env: dict[str, str] | None = None) -> "Settings":

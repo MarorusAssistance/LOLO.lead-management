@@ -16,8 +16,15 @@ LOLO_ENV_KEYS = [
     "TAVILY_API_KEY",
     "LOLO_TAVILY_BASE_URL",
     "TAVILY_BASE_URL",
+    "LOLO_LLM_BASE_URL",
+    "LOLO_LLM_MODEL",
+    "LOLO_LLM_API_KEY",
+    "LOLO_LLM_MAX_COMPLETION_TOKENS",
+    "LOLO_LLM_REASONING_EFFORT",
+    "OPENAI_API_KEY",
     "LOLO_LM_STUDIO_BASE_URL",
     "LOLO_LM_STUDIO_MODEL",
+    "LOLO_LLM_TIMEOUT_SECONDS",
     "LOLO_LLM_ENABLED",
     "LOLO_SEARCH_ENABLED",
     "LOLO_SEARCH_MAX_RESULTS",
@@ -107,3 +114,33 @@ def test_settings_database_override_wins_over_environment_default() -> None:
         }
     )
     assert parsed.database_path == "data/custom.sqlite3"
+
+
+def test_settings_support_generic_llm_env_names() -> None:
+    parsed = Settings.from_environ(
+        {
+            "LOLO_LLM_BASE_URL": "https://api.openai.com/v1/chat/completions",
+            "LOLO_LLM_MODEL": "gpt-5-mini",
+            "LOLO_LLM_API_KEY": "sk-test",
+            "LOLO_LLM_MAX_COMPLETION_TOKENS": "4096",
+            "LOLO_LLM_REASONING_EFFORT": "medium",
+        }
+    )
+    assert parsed.llm_base_url == "https://api.openai.com/v1/chat/completions"
+    assert parsed.llm_model == "gpt-5-mini"
+    assert parsed.llm_api_key == "sk-test"
+    assert parsed.llm_max_completion_tokens == 4096
+    assert parsed.llm_reasoning_effort == "medium"
+
+
+def test_settings_keep_backward_compatible_llm_aliases() -> None:
+    parsed = Settings.from_environ(
+        {
+            "LOLO_LM_STUDIO_BASE_URL": "http://127.0.0.1:1234/v1/chat/completions",
+            "LOLO_LM_STUDIO_MODEL": "qwen/test-model",
+            "OPENAI_API_KEY": "sk-legacy",
+        }
+    )
+    assert parsed.llm_base_url == "http://127.0.0.1:1234/v1/chat/completions"
+    assert parsed.llm_model == "qwen/test-model"
+    assert parsed.llm_api_key == "sk-legacy"

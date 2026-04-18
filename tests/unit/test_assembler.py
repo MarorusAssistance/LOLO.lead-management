@@ -3,7 +3,13 @@ from urllib.parse import urlparse
 from lolo_lead_management.domain.enums import FieldEvidenceStatus, SourcingStatus
 from lolo_lead_management.domain.models import ChunkExtractionResolution, CompanyFocusResolution, EvidenceDocument, ExplorationMemoryState, LeadSearchStartRequest, ResearchQuery, ResearchTraceEntry, SearchRunSnapshot, SourcePassResult
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
-from lolo_lead_management.engine.rules import clean_person_name, clean_role_title, enrich_document_metadata
+from lolo_lead_management.engine.rules import (
+    clean_person_name,
+    clean_person_name_raw,
+    clean_role_title,
+    enrich_document_metadata,
+    normalize_person_name_for_search,
+)
 from lolo_lead_management.engine.stages.assemble import AssembleStage
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
 from lolo_lead_management.engine.state import EngineRuntimeState
@@ -888,12 +894,35 @@ def test_assembler_rejects_product_copy_as_role_title() -> None:
     assert dossier.person is None or dossier.person.role_title is None
 
 
-def test_clean_person_name_preserves_long_iberian_name_and_admin_role() -> None:
-    assert clean_person_name("Nunes de Almeida Branco Bernardo Jose Amaral") == "Nunes de Almeida Branco Bernardo Jose Amaral"
+def test_normalize_person_name_for_search_reorders_registry_style_name() -> None:
+    raw = clean_person_name_raw("Iglesias Villacampa Agustin")
+    normalized, status = normalize_person_name_for_search(raw)
+
+    assert raw == "Iglesias Villacampa Agustin"
+    assert normalized == "Agustin Iglesias Villacampa"
+    assert status == "reordered"
     assert clean_role_title("Administrador único") == "Administrador único"
 
 
-def test_assembler_preserves_explicit_long_contact_assertion() -> None:
+def test_normalize_person_name_for_search_reorders_single_surname_blocks_around_given_names() -> None:
+    raw = clean_person_name_raw("Branco Bernardo Jose Amaral")
+    normalized, status = normalize_person_name_for_search(raw)
+
+    assert raw == "Branco Bernardo Jose Amaral"
+    assert normalized == "Bernardo Jose Amaral Branco"
+    assert status == "reordered"
+
+
+def test_normalize_person_name_for_search_rejects_ambiguous_multi_block_name() -> None:
+    raw = clean_person_name_raw("Nunes de Almeida Branco Bernardo Jose Amaral")
+    normalized, status = normalize_person_name_for_search(raw)
+
+    assert raw == "Nunes de Almeida Branco Bernardo Jose Amaral"
+    assert normalized is None
+    assert status == "rejected_ambiguous"
+
+
+def test_assembler_rejects_ambiguous_registry_contact_assertion() -> None:
     request = NormalizeStage(StageAgentExecutor(None)).execute(
         LeadSearchStartRequest(user_text="busca 1 lead para contactar en espana entre 5 y 50 empleados con genai")
     )
@@ -946,14 +975,12 @@ def test_assembler_preserves_explicit_long_contact_assertion() -> None:
 
     dossier = AssembleStage(StageAgentExecutor(llm)).execute(state)
 
-    assert dossier.person is not None
-    assert dossier.person.full_name == "Nunes de Almeida Branco Bernardo Jose Amaral"
-    assert dossier.person.role_title == "Administrador único"
+    assert dossier.person is None or dossier.person.full_name is None
     assert state.current_assembler_trace is not None
     sanitized_outputs = state.current_assembler_trace["extraction_sanitized_outputs"]
     assert sanitized_outputs
-    assert sanitized_outputs[0]["resolution"]["contact_assertions"]
-    assert sanitized_outputs[0]["sanitizer_rejections"] == []
+    assert sanitized_outputs[0]["resolution"]["contact_assertions"] == []
+    assert any(item["reason"] == "person_name_ambiguous_multiple_people" for item in sanitized_outputs[0]["sanitizer_rejections"])
 
 
 def test_assembler_traces_contact_sanitizer_rejection() -> None:
@@ -1011,6 +1038,61 @@ def test_assembler_traces_contact_sanitizer_rejection() -> None:
     assert sanitized_outputs
     rejections = sanitized_outputs[0]["sanitizer_rejections"]
     assert any(item["reason"] == "person_name_invalid" for item in rejections)
+
+
+def test_assembler_rejects_contact_when_person_name_matches_role_title() -> None:
+    request = NormalizeStage(StageAgentExecutor(None)).execute(
+        LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
+    )
+    source_result = SourcePassResult(
+        sourcing_status=SourcingStatus.FOUND,
+        anchored_company_name="Interactiveai España Sl",
+        documents=[
+            EvidenceDocument(
+                url="https://www.hubmub.com/jobs/756920/lead-uiux-product-designer",
+                title="Lead UI/UX Product Designer | HubMub",
+                snippet="InteractiveAI Lead UI/UX Product Designer",
+                source_type="fixture",
+                raw_content="InteractiveAI Lead UI/UX Product Designer Publication date: 02/09/2025",
+            ),
+        ],
+    )
+    state = EngineRuntimeState(run=SearchRunSnapshot(request=request), memory=ExplorationMemoryState(), current_source_result=source_result)
+    llm = FakeAssemblerLlmPort(
+        {
+            "segment_company_name": "Interactiveai España Sl",
+            "field_assertions": [
+                {
+                    "field_name": "company_name",
+                    "company_name": "Interactiveai España Sl",
+                    "value": "Interactiveai España Sl",
+                    "status": "satisfied",
+                    "support_type": "explicit",
+                    "reasoning_note": "company",
+                }
+            ],
+            "contact_assertions": [
+                {
+                    "person_name": "Lead UI UX Product Designer",
+                    "role_title": "Lead UI/UX Product Designer",
+                    "company_name": "Interactiveai España Sl",
+                    "status": "satisfied",
+                    "support_type": "explicit",
+                    "reasoning_note": "job title mirrored as person",
+                }
+            ],
+            "fit_signals": ["genai"],
+            "contradictions": [],
+            "notes": ["mirrored_job_title_contact"],
+        }
+    )
+
+    dossier = AssembleStage(StageAgentExecutor(llm)).execute(state)
+
+    assert dossier.person is None or dossier.person.full_name is None
+    sanitized_outputs = state.current_assembler_trace["extraction_sanitized_outputs"]
+    rejections = sanitized_outputs[0]["sanitizer_rejections"]
+    assert any(item["reason"] == "person_name_matches_role_title" for item in rejections)
 
 
 def test_assembler_rejects_person_not_tied_to_company_evidence() -> None:

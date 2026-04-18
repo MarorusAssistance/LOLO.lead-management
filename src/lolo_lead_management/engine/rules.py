@@ -2098,7 +2098,84 @@ def employee_excerpt_is_aggregate_signal(text: str | None) -> bool:
     return any(token in normalized for token in aggregate_tokens)
 
 
-def clean_person_name(value: str | None) -> str | None:
+PERSON_NAME_CONNECTOR_TOKENS = {"de", "del", "da", "das", "do", "dos", "di", "du", "la", "las", "los", "van", "von", "y", "e", "i"}
+PERSON_NAME_FORBIDDEN_TOKENS = {
+    "administrador",
+    "administradores",
+    "apoderado",
+    "consejero",
+    "delegado",
+    "representante",
+    "legal",
+    "empresa",
+    "directivos",
+    "infoempresa",
+    "cargo",
+    "role",
+    "puesto",
+    "title",
+}
+COMMON_IBERIAN_GIVEN_NAMES = {
+    "agustin",
+    "alberto",
+    "alejandro",
+    "alex",
+    "alfonso",
+    "ana",
+    "andres",
+    "antonio",
+    "beatriz",
+    "bernardo",
+    "carlos",
+    "carmen",
+    "clara",
+    "cristina",
+    "daniel",
+    "david",
+    "diego",
+    "eduardo",
+    "elena",
+    "enrique",
+    "eva",
+    "fernando",
+    "francisco",
+    "giuseppe",
+    "ignacio",
+    "ines",
+    "isabel",
+    "ivan",
+    "javier",
+    "joan",
+    "joao",
+    "jordi",
+    "jose",
+    "josep",
+    "juan",
+    "julio",
+    "laura",
+    "luis",
+    "manuel",
+    "maria",
+    "marina",
+    "mario",
+    "marta",
+    "martin",
+    "miguel",
+    "nuria",
+    "pablo",
+    "paula",
+    "pedro",
+    "rafael",
+    "ricardo",
+    "roberto",
+    "sergio",
+    "sindhu",
+    "sofia",
+    "victor",
+}
+
+
+def clean_person_name_raw(value: str | None) -> str | None:
     if not value:
         return None
     cleaned = re.sub(r"https?://\S+", " ", value)
@@ -2127,32 +2204,17 @@ def clean_person_name(value: str | None) -> str | None:
         return None
     if any(any(char.isdigit() for char in token) for token in raw_tokens):
         return None
-    connector_tokens = {"de", "del", "da", "das", "do", "dos", "di", "du", "la", "las", "los", "van", "von", "y", "e", "i"}
-    forbidden_tokens = {
-        "administrador",
-        "administradores",
-        "apoderado",
-        "consejero",
-        "delegado",
-        "representante",
-        "legal",
-        "empresa",
-        "directivos",
-        "infoempresa",
-        "cargo",
-        "role",
-        "puesto",
-        "title",
-    }
     significant_tokens: list[str] = []
     uppercase_significant = 0
     for token in raw_tokens:
         if not any(char.isalpha() for char in token):
             return None
         normalized_token = normalize_text(token)
-        if normalized_token in connector_tokens:
+        if normalized_token in PERSON_NAME_CONNECTOR_TOKENS:
             continue
-        if normalized_token in forbidden_tokens or normalized_token in LEGAL_ENTITY_SUFFIX_TOKENS:
+        if normalized_token in PERSON_NAME_FORBIDDEN_TOKENS or normalized_token in LEGAL_ENTITY_SUFFIX_TOKENS:
+            return None
+        if len(re.sub(r"[^A-Za-zÀ-ÿ]", "", token)) < 2:
             return None
         significant_tokens.append(token)
         if token[:1].isupper() or token.isupper():
@@ -2162,6 +2224,96 @@ def clean_person_name(value: str | None) -> str | None:
     if uppercase_significant < 2:
         return None
     return cleaned
+
+
+def _format_person_token(token: str, *, connector: bool) -> str:
+    cleaned = token.strip(" .,:;")
+    if connector:
+        return cleaned.lower()
+    pieces = re.split(r"([\-'])", cleaned)
+    return "".join(
+        piece if piece in {"-", "'"} else (piece[:1].upper() + piece[1:].lower() if piece else "")
+        for piece in pieces
+    )
+
+
+def _person_name_tokens(value: str) -> list[dict[str, str | bool]]:
+    tokens: list[dict[str, str | bool]] = []
+    for raw in value.split():
+        stripped = raw.strip(" .,:;")
+        if not stripped:
+            continue
+        normalized = normalize_text(stripped)
+        tokens.append(
+            {
+                "raw": stripped,
+                "normalized": normalized,
+                "connector": normalized in PERSON_NAME_CONNECTOR_TOKENS,
+            }
+        )
+    return tokens
+
+
+def _render_person_name(tokens: list[dict[str, str | bool]]) -> str | None:
+    rendered = [
+        _format_person_token(str(item["raw"]), connector=bool(item["connector"]))
+        for item in tokens
+        if str(item["raw"]).strip()
+    ]
+    return " ".join(rendered).strip() or None
+
+
+def _candidate_given_block(significant_tokens: list[str]) -> tuple[int, int] | None:
+    if len(significant_tokens) < 3:
+        return None
+    given_flags = [token in COMMON_IBERIAN_GIVEN_NAMES for token in significant_tokens]
+    if given_flags[-2:] == [True, True] and not any(given_flags[:-2]):
+        return len(significant_tokens) - 2, len(significant_tokens)
+    if given_flags[-1] and not any(given_flags[:-1]):
+        return len(significant_tokens) - 1, len(significant_tokens)
+    if len(significant_tokens) >= 4 and given_flags[-3:-1] == [True, True] and not given_flags[-1] and not any(given_flags[:-3]):
+        return len(significant_tokens) - 3, len(significant_tokens) - 1
+    if given_flags[-2] and not given_flags[-1] and not any(given_flags[:-2]):
+        return len(significant_tokens) - 2, len(significant_tokens) - 1
+    return None
+
+
+def normalize_person_name_for_search(value: str | None) -> tuple[str | None, str | None]:
+    raw = clean_person_name_raw(value)
+    if raw is None:
+        return None, None
+    tokens = _person_name_tokens(raw)
+    significant_positions = [index for index, item in enumerate(tokens) if not bool(item["connector"])]
+    significant_tokens = [str(tokens[index]["normalized"]) for index in significant_positions]
+    if len(significant_tokens) < 2:
+        return None, "rejected_ambiguous"
+
+    given_block = _candidate_given_block(significant_tokens)
+    if given_block is None:
+        normalized = _render_person_name(tokens)
+        return normalized, "preserved" if normalized else "rejected_ambiguous"
+
+    raw_start = significant_positions[given_block[0]]
+    raw_end = len(tokens) if given_block[1] >= len(significant_positions) else significant_positions[given_block[1]]
+    given_tokens = tokens[raw_start:raw_end]
+    leading_tokens = tokens[:raw_start]
+    trailing_tokens = tokens[raw_end:]
+    trailing_significant = len(significant_tokens) - given_block[1]
+
+    if trailing_significant == 0:
+        normalized = _render_person_name([*given_tokens, *leading_tokens])
+        return normalized, "reordered" if normalized else "rejected_ambiguous"
+
+    if given_block[0] == 1 and trailing_significant == 1:
+        normalized = _render_person_name([*given_tokens, *trailing_tokens, *leading_tokens])
+        return normalized, "reordered" if normalized else "rejected_ambiguous"
+
+    return None, "rejected_ambiguous"
+
+
+def clean_person_name(value: str | None) -> str | None:
+    normalized, _ = normalize_person_name_for_search(value)
+    return normalized
 
 
 def clean_role_title(value: str | None) -> str | None:
@@ -2196,6 +2348,7 @@ def clean_role_title(value: str | None) -> str | None:
 
 def parse_candidate_from_text(text: str, url: str) -> tuple[PersonCandidate | None, CompanyCandidate | None]:
     person_name = PERSON_PATTERN.search(text).group(1).strip() if PERSON_PATTERN.search(text) else None
+    person_name_raw = None
     role_title = ROLE_VALUE_PATTERN.search(text).group(1).strip() if ROLE_VALUE_PATTERN.search(text) else None
     if person_name is None and (match := NAME_WITH_LABELED_ROLE_PATTERN.search(text)):
         person_name = match.group(1).strip()
@@ -2213,7 +2366,8 @@ def parse_candidate_from_text(text: str, url: str) -> tuple[PersonCandidate | No
         for match in ROLE_PATTERN.finditer(text):
             role_title = match.group(1)
             break
-    person_name = clean_person_name(person_name)
+    person_name_raw = clean_person_name_raw(person_name)
+    person_name, _ = normalize_person_name_for_search(person_name_raw)
     if person_name is None and role_title is not None:
         segments = [segment.strip() for segment in re.split(r"(?:\n|\||(?<=[.])\s+)", text) if segment.strip()]
         for index, segment in enumerate(segments):
@@ -2223,9 +2377,11 @@ def parse_candidate_from_text(text: str, url: str) -> tuple[PersonCandidate | No
                 continue
             candidates = re.findall(r"[A-Z][A-Za-zÀ-ÿ.-]+(?:\s+[A-Z][A-Za-zÀ-ÿ.-]+){1,3}", segments[index - 1])
             for candidate in reversed(candidates):
-                cleaned_candidate = clean_person_name(candidate)
+                cleaned_candidate_raw = clean_person_name_raw(candidate)
+                cleaned_candidate, _ = normalize_person_name_for_search(cleaned_candidate_raw)
                 if cleaned_candidate:
                     person_name = cleaned_candidate
+                    person_name_raw = cleaned_candidate_raw
                     break
             if person_name:
                 break
@@ -2235,7 +2391,7 @@ def parse_candidate_from_text(text: str, url: str) -> tuple[PersonCandidate | No
     employee_estimate = extract_employee_estimate_from_text(text)
     if company_name is None:
         company_name = title_company_name(text.splitlines()[0] if text else "") or extract_domain_company_name(url)
-    person = PersonCandidate(full_name=person_name, role_title=role_title) if person_name or role_title else None
+    person = PersonCandidate(full_name=person_name, full_name_raw=person_name_raw, role_title=role_title) if person_name or person_name_raw or role_title else None
     company = (
         CompanyCandidate(
             name=company_name,
@@ -3153,7 +3309,7 @@ def build_fallback_assembled_dossier(
     )
     resolved_website = website_resolution.candidate_website if website_resolution.officiality in {"confirmed", "probable"} else None
     company = CompanyCandidate(name=anchor_company, website=resolved_website, country_code=country_value, employee_estimate=size_value)
-    person = PersonCandidate(full_name=person_name, role_title=role_title) if person_name or role_title else None
+    person = PersonCandidate(full_name=person_name, full_name_raw=person_name, role_title=role_title) if person_name or role_title else None
     fit_signals = collect_fit_signals(" ".join(_document_text(item) for item in relevant_docs or documents), request)
     website_supporting = _documents_from_urls(website_resolution.evidence_urls, {item.url: item for item in documents}) or website_docs[:2]
     field_evidence = [
@@ -3464,7 +3620,7 @@ def sanitize_assembly_resolution(
     )
     resolved_website = website_resolution.candidate_website if website_resolution.officiality in {"confirmed", "probable"} else None
 
-    person = PersonCandidate(full_name=person_name, role_title=role_title) if person_name or role_title else None
+    person = PersonCandidate(full_name=person_name, full_name_raw=person_name, role_title=role_title) if person_name or role_title else None
     company = CompanyCandidate(name=company_name, website=resolved_website, country_code=country_code, employee_estimate=employee_estimate)
 
     fit_signals = [item for item in canonicalize_search_themes(generated.fit_signals) if item in request.search_themes] or fallback.fit_signals

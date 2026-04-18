@@ -44,3 +44,31 @@ def test_lm_studio_uses_configured_timeout_and_does_not_duplicate_schema(monkeyp
     user_content = json.loads(captured["payload"]["messages"][1]["content"])
     assert "schema" not in user_content
     assert captured["payload"]["response_format"]["json_schema"]["schema"]["type"] == "object"
+
+
+def test_lm_studio_includes_optional_budget_fields_when_configured(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_urlopen(req, timeout):
+        captured["payload"] = json.loads(req.data.decode("utf-8"))
+        return _FakeResponse()
+
+    monkeypatch.setattr("lolo_lead_management.adapters.llm.lm_studio.request.urlopen", fake_urlopen)
+    port = LmStudioLlmPort(
+        base_url="http://localhost",
+        model="gpt-5-mini",
+        max_completion_tokens=2048,
+        reasoning_effort="medium",
+        timeout_seconds=30,
+    )
+
+    result = port.generate_json(
+        agent_name="AssemblerAgent",
+        system_prompt="system",
+        input_payload={"foo": "bar"},
+        schema={"type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"]},
+    )
+
+    assert result == {"ok": True}
+    assert captured["payload"]["max_completion_tokens"] == 2048
+    assert captured["payload"]["reasoning_effort"] == "medium"

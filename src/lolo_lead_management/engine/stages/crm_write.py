@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from lolo_lead_management.domain.enums import QualificationOutcome
 from lolo_lead_management.domain.models import AcceptedLeadRecord, CompanyObservation, ShortlistOption, ShortlistRecord
 from lolo_lead_management.engine.state import EngineRuntimeState
-from lolo_lead_management.engine.rules import domain_from_url
+from lolo_lead_management.engine.rules import clean_person_name, clean_role_title, domain_from_url
 from lolo_lead_management.ports.crm import CrmWriterPort
 from lolo_lead_management.ports.stores import ExplorationMemoryStore, LeadStore, SearchRunStore, ShortlistStore
 
@@ -205,13 +205,7 @@ class CrmWriteStage:
         return updated
 
     def _sanitize_person_name(self, value: str | None) -> str | None:
-        normalized = " ".join((value or "").split()).strip()
-        if not normalized or len(normalized) > 80 or len(normalized.split()) > 6 or "industries:" in normalized.lower():
-            return None
-        return normalized
+        return clean_person_name(value)
 
     def _sanitize_role_title(self, value: str | None) -> str | None:
-        normalized = " ".join((value or "").split()).strip()
-        if not normalized or len(normalized) > 80:
-            return None
-        return normalized
+        return clean_role_title(value)

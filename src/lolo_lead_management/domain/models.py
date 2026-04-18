@@ -62,6 +62,7 @@ class LeadSearchStartRequest(StrictModel):
 
 class PersonCandidate(StrictModel):
     full_name: str | None = None
+    full_name_raw: str | None = None
     role_title: str | None = None
 
 
@@ -295,6 +296,8 @@ class ChunkFieldAssertion(StrictModel):
 
 class ChunkContactAssertion(StrictModel):
     person_name: str | None = None
+    person_name_raw: str | None = None
+    person_name_normalization_status: Literal["preserved", "reordered", "rejected_ambiguous"] | None = None
     role_title: str | None = None
     company_name: str | None = None
     status: FieldEvidenceStatus
@@ -338,6 +341,8 @@ class AssemblyResolution(StrictModel):
     country_code: str | None = None
     employee_estimate: int | None = None
     person_name: str | None = None
+    person_name_raw: str | None = None
+    person_name_normalization_status: Literal["preserved", "reordered", "rejected_ambiguous"] | None = None
     role_title: str | None = None
     fit_signals: list[str] = Field(default_factory=list)
     selected_evidence_urls: list[str] = Field(default_factory=list)

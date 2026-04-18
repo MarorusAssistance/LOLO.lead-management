@@ -59,8 +59,11 @@ def build_container(settings: Settings) -> ServiceContainer:
     llm_port = None
     if settings.llm_enabled:
         llm_port = LmStudioLlmPort(
-            base_url=settings.lm_studio_base_url,
-            model=settings.lm_studio_model,
+            base_url=settings.llm_base_url,
+            model=settings.llm_model,
+            api_key=settings.llm_api_key,
+            max_completion_tokens=settings.llm_max_completion_tokens,
+            reasoning_effort=settings.llm_reasoning_effort,
             timeout_seconds=settings.llm_timeout_seconds,
         )
 

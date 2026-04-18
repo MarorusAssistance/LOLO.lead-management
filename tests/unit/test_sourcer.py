@@ -1198,8 +1198,8 @@ def test_sourcer_passes_raw_focus_batch_to_assembler() -> None:
     assert source_result.source_trace.missing_fields == ["employee_estimate", "fit_signals", "person_name", "role_title"]
     assert source_result.source_trace.website_probe_needed is False
     assert source_result.source_trace.website_probe_attempts == 0
-    assert 'infoempresa "Bdeo" razon social cif' in source_result.source_trace.selected_queries
     assert 'einforma "Bdeo" empleados' in source_result.source_trace.selected_queries
+    assert 'infoempresa "Bdeo" empleados plantilla' in source_result.source_trace.selected_queries
     assert {item.url for item in source_result.documents} == {
         "https://empresite.eleconomista.es/BDEO-SPAIN.html"
     }
