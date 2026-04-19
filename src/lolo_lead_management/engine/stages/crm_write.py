@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from lolo_lead_management.domain.enums import QualificationOutcome
-from lolo_lead_management.domain.models import AcceptedLeadRecord, CompanyObservation, ShortlistOption, ShortlistRecord
+from lolo_lead_management.domain.models import AcceptedLeadRecord, CompanyObservation, ContactCandidate, ShortlistOption, ShortlistRecord
 from lolo_lead_management.engine.state import EngineRuntimeState
-from lolo_lead_management.engine.rules import clean_person_name, clean_role_title, domain_from_url
+from lolo_lead_management.engine.rules import clean_person_name, clean_person_name_raw, clean_role_title, domain_from_url
 from lolo_lead_management.ports.crm import CrmWriterPort
 from lolo_lead_management.ports.stores import ExplorationMemoryStore, LeadStore, SearchRunStore, ShortlistStore
 
@@ -51,11 +51,13 @@ class CrmWriteStage:
 
         person_name = self._sanitize_person_name(dossier.person.full_name) if dossier.person else None
         role_title = self._sanitize_role_title(dossier.person.role_title) if dossier.person else None
+        alternate_contacts = self._sanitize_contact_candidates(dossier.alternate_contacts)
 
         if qualification.outcome == QualificationOutcome.ACCEPT and dossier.company and commercial:
             accepted = AcceptedLeadRecord(
                 person_name=person_name,
                 role_title=role_title,
+                alternate_contacts=alternate_contacts,
                 lead_source_type=dossier.lead_source_type,
                 person_confidence=dossier.person_confidence,
                 primary_person_source_url=dossier.primary_person_source_url,
@@ -84,6 +86,7 @@ class CrmWriteStage:
                     company_name=dossier.company.name,
                     person_name=person_name,
                     role_title=role_title,
+                    alternate_contacts=alternate_contacts,
                     lead_source_type=dossier.lead_source_type,
                     person_confidence=dossier.person_confidence,
                     primary_person_source_url=dossier.primary_person_source_url,
@@ -209,3 +212,27 @@ class CrmWriteStage:
 
     def _sanitize_role_title(self, value: str | None) -> str | None:
         return clean_role_title(value)
+
+    def _sanitize_contact_candidates(self, contacts: list[ContactCandidate]) -> list[ContactCandidate]:
+        sanitized: list[ContactCandidate] = []
+        seen: set[tuple[str, str]] = set()
+        for contact in contacts:
+            full_name = clean_person_name(contact.full_name) or clean_person_name(contact.full_name_raw)
+            role_title = clean_role_title(contact.role_title)
+            full_name_raw = clean_person_name_raw(contact.full_name_raw or contact.full_name)
+            if not full_name:
+                continue
+            key = (full_name.casefold(), (role_title or "").casefold())
+            if key in seen:
+                continue
+            seen.add(key)
+            sanitized.append(
+                contact.model_copy(
+                    update={
+                        "full_name": full_name,
+                        "full_name_raw": full_name_raw or full_name,
+                        "role_title": role_title,
+                    }
+                )
+            )
+        return sanitized

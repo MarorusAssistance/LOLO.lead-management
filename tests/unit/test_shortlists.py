@@ -6,6 +6,7 @@ from lolo_lead_management.domain.models import (
     CompanyCandidate,
     CloseMatch,
     CommercialBundle,
+    ContactCandidate,
     EvidenceItem,
     LeadSearchStartRequest,
     NormalizedLeadSearchRequest,
@@ -114,6 +115,15 @@ def test_selecting_one_shortlist_option_keeps_remaining_options_available() -> N
         company_name="Alpha Dev",
         person_name="Ana Ruiz",
         role_title="Engineering Director",
+        alternate_contacts=[
+            ContactCandidate(
+                full_name="Luis Perez",
+                full_name_raw="Perez Luis",
+                role_title="CTO",
+                primary_person_source_url="https://alpha.dev/team/luis-perez",
+                support_urls=["https://alpha.dev/team/luis-perez"],
+            )
+        ],
         website="https://alpha.dev",
         country_code="es",
         lead_source_type="speaker_or_event",
@@ -156,6 +166,8 @@ def test_selecting_one_shortlist_option_keeps_remaining_options_available() -> N
     assert promoted.accepted_leads[-1].lead_source_type == "speaker_or_event"
     assert promoted.accepted_leads[-1].person_confidence == "corroborated"
     assert promoted.accepted_leads[-1].primary_person_source_url == "https://events.example.com/ana-ruiz"
+    assert promoted.accepted_leads[-1].alternate_contacts[0].full_name == "Luis Perez"
+    assert promoted.accepted_leads[-1].alternate_contacts[0].primary_person_source_url == "https://alpha.dev/team/luis-perez"
 
 
 def test_shortlist_uses_normalized_person_name_for_display() -> None:
@@ -195,6 +207,15 @@ def test_shortlist_uses_normalized_person_name_for_display() -> None:
             full_name_raw="Iglesias Villacampa Agustin",
             role_title="Administrador único",
         ),
+        alternate_contacts=[
+            ContactCandidate(
+                full_name="Jordi Zanca Soler",
+                full_name_raw="Zanca Soler Jordi",
+                role_title="Administrador Único",
+                primary_person_source_url="https://www.datoscif.es/empresa/bee-the-data-sl",
+                support_urls=["https://www.datoscif.es/empresa/bee-the-data-sl"],
+            )
+        ],
         company=CompanyCandidate(
             name="Bee The Data Sl",
             website="http://www.beethedata.com",
@@ -232,3 +253,5 @@ def test_shortlist_uses_normalized_person_name_for_display() -> None:
     assert option.lead_source_type == "mercantile_directory"
     assert option.person_confidence == "strong"
     assert option.primary_person_source_url == "https://www.datoscif.es/empresa/bee-the-data-sl"
+    assert option.alternate_contacts[0].full_name == "Jordi Zanca Soler"
+    assert option.alternate_contacts[0].primary_person_source_url == "https://www.datoscif.es/empresa/bee-the-data-sl"

@@ -489,6 +489,7 @@ class LeadManagementEngine:
         accepted_record = AcceptedLeadRecord(
             person_name=option.person_name,
             role_title=option.role_title,
+            alternate_contacts=option.alternate_contacts,
             lead_source_type=option.lead_source_type,
             person_confidence=option.person_confidence,
             primary_person_source_url=option.primary_person_source_url,

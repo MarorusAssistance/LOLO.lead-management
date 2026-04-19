@@ -18,6 +18,7 @@ from lolo_lead_management.domain.models import (
     ChunkFieldAssertion,
     CompanyCandidate,
     CompanyFocusResolution,
+    ContactCandidate,
     DiscoveryCandidateExtractionResolution,
     DiscoveryCompanyCandidate,
     EmployeeEvidenceSignal,
@@ -241,11 +242,22 @@ class AssembleStage:
             "selected_contact_pair": (
                 {
                     "person_name": resolution.person_name,
+                    "person_name_raw": resolution.person_name_raw,
                     "role_title": resolution.role_title,
+                    "primary_person_source_url": (
+                        resolution.contact_candidates[0].primary_person_source_url
+                        if resolution.contact_candidates
+                        else None
+                    ),
+                    "support_urls": resolution.contact_candidates[0].support_urls if resolution.contact_candidates else [],
                 }
                 if resolution is not None and (resolution.person_name or resolution.role_title)
                 else None
             ),
+            "alternate_contacts": [
+                item.model_dump(mode="json")
+                for item in (resolution.contact_candidates[1:] if resolution is not None else [])
+            ],
         }
         assembled = self._attach_field_provenance(assembled, trace)
         if self._employee_filter_events:
@@ -259,6 +271,8 @@ class AssembleStage:
                 "person_confidence": assembled.person_confidence,
                 "primary_person_source_url": assembled.primary_person_source_url,
             }
+        if assembled.alternate_contacts:
+            trace["alternate_contacts"] = [item.model_dump(mode="json") for item in assembled.alternate_contacts]
         trace["final_dossier_after_overlay"] = assembled.model_dump(mode="json")
         state.current_assembler_trace = trace
         return assembled
@@ -967,6 +981,7 @@ class AssembleStage:
             person_name_raw=contact["person_name_raw"],
             person_name_normalization_status=contact["person_name_normalization_status"],
             role_title=contact["role_title"],
+            contact_candidates=contact["contact_candidates"],
             fit_signals=fit_signals,
             selected_evidence_urls=selected_urls,
             field_assertions=field_assertions,
@@ -1029,6 +1044,17 @@ class AssembleStage:
 
         company = CompanyCandidate(name=company_name, website=website, country_code=country_code, employee_estimate=employee_estimate)
         person = PersonCandidate(full_name=person_name, full_name_raw=person_name_raw, role_title=role_title) if person_name or person_name_raw or role_title else None
+        primary_contact = generated.contact_candidates[0] if generated.contact_candidates else None
+        primary_contact_key = (
+            normalize_text(person.full_name or ""),
+            normalize_text(person.role_title or ""),
+        ) if person is not None else None
+        alternate_contacts = [
+            item
+            for item in generated.contact_candidates
+            if primary_contact_key is None
+            or (normalize_text(item.full_name), normalize_text(item.role_title or "")) != primary_contact_key
+        ]
         website_resolution = WebsiteResolution(
             candidate_website=candidate_website,
             officiality=generated.website_officiality or "unknown",
@@ -1063,10 +1089,20 @@ class AssembleStage:
             sourcing_status=SourcingStatus.FOUND,
             query_used=source_result.executed_queries[0].query if source_result.executed_queries else None,
             person=person,
+            alternate_contacts=alternate_contacts,
             company=company,
-            lead_source_type=prior_dossier.lead_source_type if prior_dossier else None,
-            person_confidence=prior_dossier.person_confidence if prior_dossier else None,
-            primary_person_source_url=prior_dossier.primary_person_source_url if prior_dossier else None,
+            lead_source_type=(
+                (primary_contact.lead_source_type if primary_contact and primary_contact.lead_source_type not in {None, "unknown"} else None)
+                or (prior_dossier.lead_source_type if prior_dossier else None)
+            ),
+            person_confidence=(
+                (primary_contact.person_confidence if primary_contact and primary_contact.person_confidence not in {None, "unknown"} else None)
+                or (prior_dossier.person_confidence if prior_dossier else None)
+            ),
+            primary_person_source_url=(
+                (primary_contact.primary_person_source_url if primary_contact else None)
+                or (prior_dossier.primary_person_source_url if prior_dossier else None)
+            ),
             fit_signals=fit_signals,
             evidence=evidence,
             notes=dedupe_preserve_order([*source_result.notes, *generated.confidence_notes, *generated.notes]),
@@ -1726,32 +1762,96 @@ class AssembleStage:
 
         if not pairs:
             return {
-            "person_name": None,
-            "person_name_raw": None,
-            "person_name_normalization_status": None,
-            "role_title": None,
-            "support_urls": [],
-            "status": FieldEvidenceStatus.UNKNOWN,
-            "support_type": "explicit",
+                "person_name": None,
+                "person_name_raw": None,
+                "person_name_normalization_status": None,
+                "role_title": None,
+                "support_urls": [],
+                "status": FieldEvidenceStatus.UNKNOWN,
+                "support_type": "explicit",
+                "contact_candidates": [],
                 "reasoning_note": "No explicit person+role pair was grounded in the segment assertions.",
             }
 
-        chosen = max(
+        ordered = sorted(
             pairs.values(),
             key=lambda item: (int(item["score"]), len(item["support_urls"])),  # type: ignore[index]
+            reverse=True,
         )
-        support_urls = dedupe_preserve_order([url for url in chosen["support_urls"] if url in allowed_docs])  # type: ignore[index]
+        contact_candidates = [
+            self._build_contact_candidate(
+                subject_company=subject_company,
+                bucket=item,
+                allowed_docs=allowed_docs,
+            )
+            for item in ordered[:5]
+        ]
+        chosen = contact_candidates[0]
+        support_urls = dedupe_preserve_order([url for url in chosen.support_urls if url in allowed_docs])
         status = FieldEvidenceStatus.SATISFIED if support_urls else FieldEvidenceStatus.UNKNOWN
         return {
-            "person_name": chosen["person_name"],
-            "person_name_raw": chosen["person_name_raw"],
-            "person_name_normalization_status": chosen["normalization_status"],
-            "role_title": chosen["role_title"],
+            "person_name": chosen.full_name,
+            "person_name_raw": chosen.full_name_raw,
+            "person_name_normalization_status": chosen.person_name_normalization_status,
+            "role_title": chosen.role_title,
             "support_urls": support_urls,
             "status": status,
-            "support_type": chosen["support_type"],
+            "support_type": chosen.support_type,
+            "contact_candidates": contact_candidates,
             "reasoning_note": "Person and role kept only from explicit grounded contact assertions tied to the selected company.",
         }
+
+    def _build_contact_candidate(
+        self,
+        *,
+        subject_company: str,
+        bucket: dict[str, object],
+        allowed_docs: dict[str, EvidenceDocument],
+    ) -> ContactCandidate:
+        support_urls = dedupe_preserve_order(
+            [url for url in bucket.get("support_urls", []) if url in allowed_docs]
+        )
+        supporting_documents = [allowed_docs[url] for url in support_urls if url in allowed_docs]
+        metadata = (
+            resolve_person_signal(
+                supporting_documents,
+                company_name=subject_company,
+                preferred_person_name=str(bucket["person_name"]),
+                preferred_role_title=str(bucket["role_title"]),
+            )
+            if supporting_documents
+            else {}
+        )
+        metadata_matches_candidate = (
+            clean_person_name(metadata.get("person_name")) == clean_person_name(str(bucket["person_name"]))
+            and clean_role_title(metadata.get("role_title")) == clean_role_title(str(bucket["role_title"]))
+        )
+        lead_source_type = (
+            metadata.get("lead_source_type")
+            if metadata_matches_candidate and metadata.get("lead_source_type") not in {None, "unknown"}
+            else None
+        )
+        person_confidence = (
+            metadata.get("person_confidence")
+            if metadata_matches_candidate and metadata.get("person_confidence") not in {None, "unknown"}
+            else None
+        )
+        primary_person_source_url = (
+            metadata.get("primary_person_source_url")
+            if metadata_matches_candidate and metadata.get("primary_person_source_url")
+            else (support_urls[0] if support_urls else None)
+        )
+        return ContactCandidate(
+            full_name=str(bucket["person_name"]),
+            full_name_raw=str(bucket["person_name_raw"]),
+            person_name_normalization_status=str(bucket["normalization_status"]),
+            role_title=str(bucket["role_title"]),
+            lead_source_type=lead_source_type,
+            person_confidence=person_confidence,
+            primary_person_source_url=primary_person_source_url,
+            support_urls=support_urls,
+            support_type=str(bucket["support_type"]),
+        )
 
     def _merge_fit_signals(
         self,

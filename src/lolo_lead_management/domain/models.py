@@ -66,6 +66,18 @@ class PersonCandidate(StrictModel):
     role_title: str | None = None
 
 
+class ContactCandidate(StrictModel):
+    full_name: str
+    full_name_raw: str | None = None
+    person_name_normalization_status: Literal["preserved", "reordered", "rejected_ambiguous"] | None = None
+    role_title: str | None = None
+    lead_source_type: Literal["functional_exec", "company_team_page", "speaker_or_event", "interview_or_press", "mercantile_directory", "legal_registry", "unknown"] | None = None
+    person_confidence: Literal["strong", "corroborated", "weak", "unknown"] | None = None
+    primary_person_source_url: str | None = None
+    support_urls: list[str] = Field(default_factory=list)
+    support_type: Literal["explicit", "corroborated", "weak_inference"] = "explicit"
+
+
 class CompanyCandidate(StrictModel):
     name: str
     website: str | None = None
@@ -369,6 +381,7 @@ class AssemblyResolution(StrictModel):
     person_name_raw: str | None = None
     person_name_normalization_status: Literal["preserved", "reordered", "rejected_ambiguous"] | None = None
     role_title: str | None = None
+    contact_candidates: list[ContactCandidate] = Field(default_factory=list)
     fit_signals: list[str] = Field(default_factory=list)
     selected_evidence_urls: list[str] = Field(default_factory=list)
     field_assertions: list[AssemblyFieldAssertion] = Field(default_factory=list)
@@ -402,6 +415,7 @@ class AssembledLeadDossier(StrictModel):
     sourcing_status: SourcingStatus
     query_used: str | None = None
     person: PersonCandidate | None = None
+    alternate_contacts: list[ContactCandidate] = Field(default_factory=list)
     company: CompanyCandidate | None = None
     lead_source_type: Literal["functional_exec", "company_team_page", "speaker_or_event", "interview_or_press", "mercantile_directory", "legal_registry", "unknown"] | None = None
     person_confidence: Literal["strong", "corroborated", "weak", "unknown"] | None = None
@@ -655,6 +669,7 @@ class AcceptedLeadRecord(StrictModel):
     lead_id: str = Field(default_factory=lambda: f"lead_{uuid4().hex[:12]}")
     person_name: str | None = None
     role_title: str | None = None
+    alternate_contacts: list[ContactCandidate] = Field(default_factory=list)
     lead_source_type: Literal["functional_exec", "company_team_page", "speaker_or_event", "interview_or_press", "mercantile_directory", "legal_registry", "unknown"] | None = None
     person_confidence: Literal["strong", "corroborated", "weak", "unknown"] | None = None
     primary_person_source_url: str | None = None
@@ -676,6 +691,7 @@ class ShortlistOption(StrictModel):
     company_name: str
     person_name: str | None = None
     role_title: str | None = None
+    alternate_contacts: list[ContactCandidate] = Field(default_factory=list)
     lead_source_type: Literal["functional_exec", "company_team_page", "speaker_or_event", "interview_or_press", "mercantile_directory", "legal_registry", "unknown"] | None = None
     person_confidence: Literal["strong", "corroborated", "weak", "unknown"] | None = None
     primary_person_source_url: str | None = None

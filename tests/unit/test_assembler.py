@@ -1095,6 +1095,81 @@ def test_assembler_rejects_contact_when_person_name_matches_role_title() -> None
     assert any(item["reason"] == "person_name_matches_role_title" for item in rejections)
 
 
+def test_assembler_preserves_alternate_contacts_for_same_company() -> None:
+    request = NormalizeStage(StageAgentExecutor(None)).execute(
+        LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
+    )
+    source_result = SourcePassResult(
+        sourcing_status=SourcingStatus.FOUND,
+        anchored_company_name="Bee The Data Sl",
+        documents=[
+            EvidenceDocument(
+                url="https://www.datoscif.es/empresa/bee-the-data-sl",
+                title="BEE THE DATA SL - Informe de empresa | DatosCif",
+                snippet="Zanca Soler Jordi Administrador Unico; Iglesias Villacampa Agustin Apoderado Solidario",
+                source_type="fixture",
+                raw_content=(
+                    "BEE THE DATA SL\n"
+                    "Administrador Unico\n"
+                    "Zanca Soler Jordi\n"
+                    "Apoderado Solidario\n"
+                    "Iglesias Villacampa Agustin\n"
+                ),
+                source_tier="tier_b",
+            ),
+        ],
+    )
+    state = EngineRuntimeState(run=SearchRunSnapshot(request=request), memory=ExplorationMemoryState(), current_source_result=source_result)
+    llm = FakeAssemblerLlmPort(
+        {
+            "segment_company_name": "Bee The Data Sl",
+            "field_assertions": [
+                {
+                    "field_name": "company_name",
+                    "company_name": "Bee The Data Sl",
+                    "value": "Bee The Data Sl",
+                    "status": "satisfied",
+                    "support_type": "explicit",
+                    "reasoning_note": "company",
+                }
+            ],
+            "contact_assertions": [
+                {
+                    "person_name": "Zanca Soler Jordi",
+                    "role_title": "Administrador Unico",
+                    "company_name": "Bee The Data Sl",
+                    "status": "satisfied",
+                    "support_type": "explicit",
+                    "reasoning_note": "legal contact",
+                },
+                {
+                    "person_name": "Iglesias Villacampa Agustin",
+                    "role_title": "Apoderado Solidario",
+                    "company_name": "Bee The Data Sl",
+                    "status": "satisfied",
+                    "support_type": "explicit",
+                    "reasoning_note": "alternate legal contact",
+                },
+            ],
+            "fit_signals": ["genai"],
+            "contradictions": [],
+            "notes": ["multiple_grounded_contacts"],
+        }
+    )
+
+    dossier = AssembleStage(StageAgentExecutor(llm)).execute(state)
+
+    assert dossier.person is not None
+    assert dossier.person.full_name == "Jordi Zanca Soler"
+    assert dossier.person.role_title == "Administrador Unico"
+    assert len(dossier.alternate_contacts) == 1
+    assert dossier.alternate_contacts[0].full_name == "Agustin Iglesias Villacampa"
+    assert dossier.alternate_contacts[0].role_title == "Apoderado Solidario"
+    assert dossier.alternate_contacts[0].primary_person_source_url == "https://www.datoscif.es/empresa/bee-the-data-sl"
+    assert state.current_assembler_trace is not None
+    assert state.current_assembler_trace["alternate_contacts"][0]["full_name"] == "Agustin Iglesias Villacampa"
+
+
 def test_assembler_rejects_person_not_tied_to_company_evidence() -> None:
     request = NormalizeStage(StageAgentExecutor(None)).execute(
         LeadSearchStartRequest(user_text="busca 1 lead founder en espana entre 5 y 50 empleados con genai")
