@@ -6,6 +6,7 @@ import time
 from collections import defaultdict
 from urllib.parse import urlparse
 
+from lolo_lead_management.domain.errors import RerankerUnavailableError
 from lolo_lead_management.domain.enums import FieldEvidenceStatus, SourceQuality, SourcingStatus, StageName
 from lolo_lead_management.domain.models import (
     AssembledFieldEvidence,
@@ -29,6 +30,7 @@ from lolo_lead_management.domain.models import (
 )
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.agents.specs import STAGE_AGENT_SPECS
+from lolo_lead_management.engine.reranking import build_rerank_candidate_text, build_rerank_query_text
 from lolo_lead_management.engine.rules import (
     build_fallback_assembled_dossier,
     canonicalize_country_code,
@@ -41,6 +43,7 @@ from lolo_lead_management.engine.rules import (
     company_name_matches_anchor,
     company_name_matches_anchor_strict,
     classify_employee_contradiction,
+    collect_prioritized_enrichment_needs,
     dedupe_preserve_order,
     document_can_seed_website_candidate,
     document_matches_anchor_strong,
@@ -62,6 +65,7 @@ from lolo_lead_management.engine.rules import (
     resolve_website_resolution,
 )
 from lolo_lead_management.engine.state import EngineRuntimeState
+from lolo_lead_management.ports.reranker import RerankCandidate, RerankerPort
 
 SPANISH_CITY_HINTS = {
     "madrid",
@@ -80,8 +84,18 @@ WHOLE_DOCUMENT_TOKEN_THRESHOLD = 10_000
 
 
 class AssembleStage:
-    def __init__(self, agent_executor: StageAgentExecutor) -> None:
+    def __init__(
+        self,
+        agent_executor: StageAgentExecutor,
+        reranker: RerankerPort | None = None,
+        *,
+        top_k_initial: int = 10,
+        expansion_docs: int = 2,
+    ) -> None:
         self._agent_executor = agent_executor
+        self._reranker = reranker
+        self._top_k_initial = top_k_initial
+        self._expansion_docs = expansion_docs
         self.last_company_selection_trace: dict | None = None
 
     def execute(self, state: EngineRuntimeState) -> AssembledLeadDossier:
@@ -102,34 +116,77 @@ class AssembleStage:
         if state.current_focus_company_resolution and state.current_focus_company_resolution.selected_company:
             focus_company = state.current_focus_company_resolution.selected_company
         focused_source = self._focus_source_result(source_result, focus_company)
-        documents = self._prioritize_documents(focused_source.documents, focus_company)[:8]
-        compact_source = focused_source.model_copy(update={"documents": documents})
+        selection = self._select_documents_for_assembly(
+            state,
+            source_result=focused_source,
+            focus_company=focus_company,
+        )
+        documents = selection["initial_documents"]
         extraction_inputs: list[dict] = []
         extraction_raw_outputs: list[dict] = []
         extraction_sanitized_outputs: list[dict] = []
         segment_field_resolutions: list[dict] = []
         document_steps: list[dict] = []
         merged_segments: list[ChunkExtractionResolution] = []
-        for document in documents:
-            step = self._extract_document_assertions(
-                state,
-                document,
-                focus_company=focus_company,
-                extraction_inputs=extraction_inputs,
-                extraction_raw_outputs=extraction_raw_outputs,
-                extraction_sanitized_outputs=extraction_sanitized_outputs,
-                segment_field_resolutions=segment_field_resolutions,
-            )
-            document_steps.append(step)
-            merged_segments.extend(step["segment_resolutions"])
+        self._extract_documents(
+            state,
+            documents,
+            focus_company=focus_company,
+            extraction_inputs=extraction_inputs,
+            extraction_raw_outputs=extraction_raw_outputs,
+            extraction_sanitized_outputs=extraction_sanitized_outputs,
+            segment_field_resolutions=segment_field_resolutions,
+            document_steps=document_steps,
+            merged_segments=merged_segments,
+        )
 
-        resolution = self._build_grounded_resolution(
+        compact_source = focused_source.model_copy(update={"documents": documents})
+        initial_resolution = self._build_grounded_resolution(
             state,
             source_result=compact_source,
             prior_dossier=state.current_dossier,
             focus_company=focus_company,
             segment_resolutions=merged_segments,
         )
+        resolution = initial_resolution
+        if (
+            self._reranker is not None
+            and selection["remaining_documents"]
+            and self._should_expand_for_urgent_field(selection["urgent_field"], initial_resolution)
+        ):
+            expansion_documents, expansion_trace = self._select_expansion_documents(
+                state,
+                documents=selection["remaining_documents"],
+                source_result=focused_source,
+                focus_company=focus_company,
+                urgent_field=selection["urgent_field"],
+            )
+            selection["expansion_documents"] = expansion_documents
+            selection["expansion_trace"] = expansion_trace
+            if isinstance(selection.get("reranker_trace"), dict):
+                selection["reranker_trace"]["expansion"] = expansion_trace
+            if expansion_documents:
+                documents = [*documents, *expansion_documents]
+                self._extract_documents(
+                    state,
+                    expansion_documents,
+                    focus_company=focus_company,
+                    extraction_inputs=extraction_inputs,
+                    extraction_raw_outputs=extraction_raw_outputs,
+                    extraction_sanitized_outputs=extraction_sanitized_outputs,
+                    segment_field_resolutions=segment_field_resolutions,
+                    document_steps=document_steps,
+                    merged_segments=merged_segments,
+                )
+                compact_source = focused_source.model_copy(update={"documents": documents})
+                resolution = self._build_grounded_resolution(
+                    state,
+                    source_result=compact_source,
+                    prior_dossier=state.current_dossier,
+                    focus_company=focus_company,
+                    segment_resolutions=merged_segments,
+                )
+        selection["field_coverage"] = self._document_field_coverage(documents, selection["trace_by_url"])
         if resolution is not None:
             assembled = self._resolution_to_dossier(
                 resolution,
@@ -155,6 +212,15 @@ class AssembleStage:
             "used_fallback": used_fallback,
             "focus_company": focus_company,
             "input_documents": [self._document_snapshot(item) for item in documents],
+            "document_selection_strategy": selection["strategy"],
+            "document_selection_urgent_field": selection["urgent_field"],
+            "document_selection_initial_candidates": [self._document_snapshot(item) for item in selection["initial_candidates"]],
+            "document_selection_initial_selected": [self._document_snapshot(item) for item in selection["initial_documents"]],
+            "document_selection_expansion_candidates": [self._document_snapshot(item) for item in selection["expansion_candidates"]],
+            "document_selection_expansion_selected": [self._document_snapshot(item) for item in selection["expansion_documents"]],
+            "document_selection_field_coverage": selection["field_coverage"],
+            "document_selection_skipped_reasons": selection["skipped_reasons"],
+            "reranker_trace": selection["reranker_trace"],
             "llm_input_payload": None,
             "llm_error": llm_error,
             "llm_raw_output": None,
@@ -2734,6 +2800,231 @@ class AssembleStage:
                     item.model_copy(update={"selected_urls": [document.url], "documents_selected": 1})
                 )
         return source_result.model_copy(update={"documents": [document], "research_trace": matching_trace or source_result.research_trace[:1]})
+
+    def _extract_documents(
+        self,
+        state: EngineRuntimeState,
+        documents: list[EvidenceDocument],
+        *,
+        focus_company: str | None,
+        extraction_inputs: list[dict],
+        extraction_raw_outputs: list[dict],
+        extraction_sanitized_outputs: list[dict],
+        segment_field_resolutions: list[dict],
+        document_steps: list[dict],
+        merged_segments: list[ChunkExtractionResolution],
+    ) -> None:
+        for document in documents:
+            step = self._extract_document_assertions(
+                state,
+                document,
+                focus_company=focus_company,
+                extraction_inputs=extraction_inputs,
+                extraction_raw_outputs=extraction_raw_outputs,
+                extraction_sanitized_outputs=extraction_sanitized_outputs,
+                segment_field_resolutions=segment_field_resolutions,
+            )
+            document_steps.append(step)
+            merged_segments.extend(step["segment_resolutions"])
+
+    def _select_documents_for_assembly(
+        self,
+        state: EngineRuntimeState,
+        *,
+        source_result: SourcePassResult,
+        focus_company: str | None,
+    ) -> dict:
+        ranked_documents = self._prioritize_documents(source_result.documents, focus_company)
+        trace_by_url = self._trace_by_url(source_result)
+        urgent_field = self._assembly_urgent_field(state)
+        selection = {
+            "strategy": "heuristic",
+            "urgent_field": urgent_field,
+            "initial_candidates": ranked_documents,
+            "initial_documents": ranked_documents[: self._top_k_initial],
+            "remaining_documents": ranked_documents[self._top_k_initial :],
+            "expansion_candidates": ranked_documents[self._top_k_initial :],
+            "expansion_documents": [],
+            "field_coverage": self._document_field_coverage(ranked_documents[: self._top_k_initial], trace_by_url),
+            "skipped_reasons": {
+                item.url: "heuristic_cut_after_initial_window" for item in ranked_documents[self._top_k_initial :]
+            },
+            "reranker_trace": None,
+            "trace_by_url": trace_by_url,
+        }
+        if self._reranker is None or not ranked_documents:
+            return selection
+        rerank_query = build_rerank_query_text(
+            request=state.run.request,
+            focus_company=focus_company,
+            field_name=urgent_field,
+            query_hint=None,
+        )
+        candidates = [
+            RerankCandidate(
+                id=str(index),
+                url=item.url,
+                field_target=urgent_field,
+                text=build_rerank_candidate_text(
+                    item,
+                    field_name=urgent_field,
+                    research_trace=trace_by_url.get(item.url),
+                ),
+                source_tier=item.source_tier,
+                is_company_controlled_source=item.is_company_controlled_source,
+            )
+            for index, item in enumerate(ranked_documents)
+        ]
+        results = self._reranker.rerank(
+            query=rerank_query,
+            candidates=candidates,
+            top_k=min(len(candidates), self._top_k_initial),
+        )
+        if not results:
+            raise RerankerUnavailableError("reranker_returned_no_initial_results")
+        initial_documents, remaining_documents = self._ordered_documents_from_rerank(ranked_documents, results)
+        selection.update(
+            {
+                "strategy": "reranker",
+                "initial_documents": initial_documents[: self._top_k_initial],
+                "remaining_documents": remaining_documents,
+                "expansion_candidates": remaining_documents,
+                "field_coverage": self._document_field_coverage(initial_documents[: self._top_k_initial], trace_by_url),
+                "skipped_reasons": {item.url: "reranked_below_initial_window" for item in remaining_documents},
+                "reranker_trace": {
+                    "initial": getattr(self._reranker, "last_call_trace", None),
+                    "expansion": None,
+                },
+            }
+        )
+        return selection
+
+    def _select_expansion_documents(
+        self,
+        state: EngineRuntimeState,
+        *,
+        documents: list[EvidenceDocument],
+        source_result: SourcePassResult,
+        focus_company: str | None,
+        urgent_field: str,
+    ) -> tuple[list[EvidenceDocument], dict | None]:
+        if self._reranker is None or not documents or self._expansion_docs <= 0:
+            return [], None
+        trace_by_url = self._trace_by_url(source_result)
+        rerank_query = build_rerank_query_text(
+            request=state.run.request,
+            focus_company=focus_company,
+            field_name=urgent_field,
+            query_hint="expansion_for_still_unresolved_field",
+        )
+        candidates = [
+            RerankCandidate(
+                id=str(index),
+                url=item.url,
+                field_target=urgent_field,
+                text=build_rerank_candidate_text(
+                    item,
+                    field_name=urgent_field,
+                    research_trace=trace_by_url.get(item.url),
+                ),
+                source_tier=item.source_tier,
+                is_company_controlled_source=item.is_company_controlled_source,
+            )
+            for index, item in enumerate(documents)
+        ]
+        results = self._reranker.rerank(
+            query=rerank_query,
+            candidates=candidates,
+            top_k=min(len(candidates), self._expansion_docs),
+        )
+        if not results:
+            raise RerankerUnavailableError("reranker_returned_no_expansion_results")
+        selected, _ = self._ordered_documents_from_rerank(documents, results)
+        return selected[: self._expansion_docs], getattr(self._reranker, "last_call_trace", None)
+
+    def _ordered_documents_from_rerank(
+        self,
+        documents: list[EvidenceDocument],
+        results,
+    ) -> tuple[list[EvidenceDocument], list[EvidenceDocument]]:
+        rank_by_id = {item.id: item.rank for item in results}
+        ordered_pairs = sorted(
+            (
+                (
+                    rank_by_id.get(str(index), len(documents) + index),
+                    document,
+                )
+                for index, document in enumerate(documents)
+            ),
+            key=lambda item: item[0],
+        )
+        ordered = [item for _, item in ordered_pairs]
+        selected_count = min(len(results), len(ordered))
+        return ordered[:selected_count], ordered[selected_count:]
+
+    def _assembly_urgent_field(self, state: EngineRuntimeState) -> str:
+        if state.current_dossier is not None:
+            prioritized = collect_prioritized_enrichment_needs(state.current_dossier, state.run.request)
+            if prioritized:
+                return prioritized[0].field_name
+        trace = state.current_source_trace
+        missing_fields = trace.missing_fields[:] if trace is not None else []
+        if (
+            "employee_estimate" in missing_fields
+            and trace is not None
+            and (trace.size_hint_value is None or trace.size_hint_type in {None, "unknown"})
+        ):
+            return "employee_estimate"
+        if any(field in missing_fields for field in {"person_name", "role_title"}):
+            if trace is None or trace.size_hint_value is not None:
+                return "person_name" if "person_name" in missing_fields else "role_title"
+        if "website" in missing_fields or (trace is not None and trace.website_probe_needed):
+            return "website"
+        if "employee_estimate" in missing_fields:
+            return "employee_estimate"
+        if "fit_signals" in missing_fields:
+            return "fit_signals"
+        if missing_fields:
+            return missing_fields[0]
+        return "multi"
+
+    def _should_expand_for_urgent_field(self, field_name: str, resolution: AssemblyResolution | None) -> bool:
+        if resolution is None:
+            return field_name != "multi"
+        if field_name == "person_name":
+            return not resolution.person_name
+        if field_name == "role_title":
+            return not resolution.role_title
+        if field_name == "employee_estimate":
+            return resolution.employee_estimate is None or resolution.employee_contradiction_class in {"moderate", "severe"}
+        if field_name == "website":
+            return not resolution.website
+        if field_name == "fit_signals":
+            return not resolution.fit_signals
+        if field_name == "country":
+            return not resolution.country_code
+        if field_name == "company_name":
+            return not resolution.subject_company_name
+        return bool(resolution.unresolved_fields)
+
+    def _trace_by_url(self, source_result: SourcePassResult) -> dict[str, object]:
+        trace_by_url: dict[str, object] = {}
+        for item in source_result.research_trace:
+            for url in item.selected_urls:
+                trace_by_url[url] = item
+        return trace_by_url
+
+    def _document_field_coverage(self, documents: list[EvidenceDocument], trace_by_url: dict[str, object]) -> dict[str, int]:
+        coverage: dict[str, int] = defaultdict(int)
+        for item in documents:
+            if item.selected_for_field:
+                coverage[item.selected_for_field] += 1
+                continue
+            trace = trace_by_url.get(item.url)
+            expected_field = getattr(trace, "expected_field", None)
+            if expected_field:
+                coverage[expected_field] += 1
+        return dict(coverage)
 
     def _prioritize_documents(self, documents: list[EvidenceDocument], focus_company: str | None) -> list[EvidenceDocument]:
         def rank(item: EvidenceDocument) -> tuple[int, int, int]:

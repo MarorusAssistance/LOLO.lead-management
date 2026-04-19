@@ -516,6 +516,7 @@ class SourceQueryTrace(StrictModel):
     backend_http_status: int | None = Field(default=None, ge=100, le=599)
     backend_error_message: str | None = None
     error: str | None = None
+    reranker_trace: dict[str, Any] | None = None
     notes: list[str] = Field(default_factory=list)
 
 
@@ -608,6 +609,7 @@ class SourceStageTrace(StrictModel):
     selected_documents: list[SourceDocumentSelectionTrace] = Field(default_factory=list)
     documents_passed_to_assembler: list[SourceTraceDocumentSnapshot] = Field(default_factory=list)
     excluded_terminal_company_documents: list[str] = Field(default_factory=list)
+    reranker_traces: list[dict[str, Any]] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
 

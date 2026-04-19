@@ -30,6 +30,16 @@ class Settings(BaseModel):
         "LOLO_LLM_MAX_COMPLETION_TOKENS": "llm_max_completion_tokens",
         "LOLO_LLM_REASONING_EFFORT": "llm_reasoning_effort",
         "LOLO_LLM_TIMEOUT_SECONDS": "llm_timeout_seconds",
+        "LOLO_RERANKER_ENABLED": "reranker_enabled",
+        "LOLO_RERANKER_MODEL_KEY": "reranker_model_key",
+        "LOLO_RERANKER_MODEL_PATH": "reranker_model_path",
+        "LOLO_RERANKER_LM_STUDIO_BASE_URL": "reranker_lm_studio_base_url",
+        "LOLO_RERANKER_ENGINE_BASE_URL": "reranker_engine_base_url",
+        "LOLO_RERANKER_BOOTSTRAP_ENABLED": "reranker_bootstrap_enabled",
+        "LOLO_RERANKER_RUNTIME_CACHE_DIR": "reranker_runtime_cache_dir",
+        "LOLO_RERANKER_TIMEOUT_SECONDS": "reranker_timeout_seconds",
+        "LOLO_RERANKER_TOP_K_INITIAL": "reranker_top_k_initial",
+        "LOLO_RERANKER_EXPANSION_DOCS": "reranker_expansion_docs",
         "LOLO_LLM_ENABLED": "llm_enabled",
         "LOLO_SEARCH_ENABLED": "search_enabled",
         "LOLO_SEARCH_MAX_RESULTS": "search_max_results",
@@ -52,6 +62,16 @@ class Settings(BaseModel):
     llm_max_completion_tokens: int | None = Field(default=None, ge=1, le=200000)
     llm_reasoning_effort: str | None = Field(default=None, min_length=1, max_length=32)
     llm_timeout_seconds: int = Field(default=90, ge=5, le=600)
+    reranker_enabled: bool = False
+    reranker_model_key: str = "text-embedding-bge-reranker-v2-m3"
+    reranker_model_path: str | None = None
+    reranker_lm_studio_base_url: str = "http://127.0.0.1:1234"
+    reranker_engine_base_url: str = "http://127.0.0.1:8081"
+    reranker_bootstrap_enabled: bool = True
+    reranker_runtime_cache_dir: str = "data/runtime/reranker"
+    reranker_timeout_seconds: int = Field(default=60, ge=5, le=600)
+    reranker_top_k_initial: int = Field(default=10, ge=1, le=30)
+    reranker_expansion_docs: int = Field(default=2, ge=0, le=10)
     llm_enabled: bool = False
     search_enabled: bool = False
     search_max_results: int = Field(default=5, ge=1, le=10)

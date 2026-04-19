@@ -25,6 +25,16 @@ LOLO_ENV_KEYS = [
     "LOLO_LM_STUDIO_BASE_URL",
     "LOLO_LM_STUDIO_MODEL",
     "LOLO_LLM_TIMEOUT_SECONDS",
+    "LOLO_RERANKER_ENABLED",
+    "LOLO_RERANKER_MODEL_KEY",
+    "LOLO_RERANKER_MODEL_PATH",
+    "LOLO_RERANKER_LM_STUDIO_BASE_URL",
+    "LOLO_RERANKER_ENGINE_BASE_URL",
+    "LOLO_RERANKER_BOOTSTRAP_ENABLED",
+    "LOLO_RERANKER_RUNTIME_CACHE_DIR",
+    "LOLO_RERANKER_TIMEOUT_SECONDS",
+    "LOLO_RERANKER_TOP_K_INITIAL",
+    "LOLO_RERANKER_EXPANSION_DOCS",
     "LOLO_LLM_ENABLED",
     "LOLO_SEARCH_ENABLED",
     "LOLO_SEARCH_MAX_RESULTS",
@@ -144,3 +154,31 @@ def test_settings_keep_backward_compatible_llm_aliases() -> None:
     assert parsed.llm_base_url == "http://127.0.0.1:1234/v1/chat/completions"
     assert parsed.llm_model == "qwen/test-model"
     assert parsed.llm_api_key == "sk-legacy"
+
+
+def test_settings_loads_reranker_configuration() -> None:
+    parsed = Settings.from_environ(
+        {
+            "LOLO_RERANKER_ENABLED": "true",
+            "LOLO_RERANKER_MODEL_KEY": "text-embedding-bge-reranker-v2-m3",
+            "LOLO_RERANKER_MODEL_PATH": "C:/models/bge-reranker-v2-m3-Q8_0.gguf",
+            "LOLO_RERANKER_LM_STUDIO_BASE_URL": "http://127.0.0.1:1234",
+            "LOLO_RERANKER_ENGINE_BASE_URL": "http://127.0.0.1:8081",
+            "LOLO_RERANKER_BOOTSTRAP_ENABLED": "true",
+            "LOLO_RERANKER_RUNTIME_CACHE_DIR": "data/runtime/reranker",
+            "LOLO_RERANKER_TIMEOUT_SECONDS": "77",
+            "LOLO_RERANKER_TOP_K_INITIAL": "10",
+            "LOLO_RERANKER_EXPANSION_DOCS": "2",
+        }
+    )
+
+    assert parsed.reranker_enabled is True
+    assert parsed.reranker_model_key == "text-embedding-bge-reranker-v2-m3"
+    assert parsed.reranker_model_path == "C:/models/bge-reranker-v2-m3-Q8_0.gguf"
+    assert parsed.reranker_lm_studio_base_url == "http://127.0.0.1:1234"
+    assert parsed.reranker_engine_base_url == "http://127.0.0.1:8081"
+    assert parsed.reranker_bootstrap_enabled is True
+    assert parsed.reranker_runtime_cache_dir == "data/runtime/reranker"
+    assert parsed.reranker_timeout_seconds == 77
+    assert parsed.reranker_top_k_initial == 10
+    assert parsed.reranker_expansion_docs == 2

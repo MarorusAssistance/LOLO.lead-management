@@ -223,6 +223,7 @@ def build_test_container(
     search_index: dict[str, list[EvidenceDocument]] | None = None,
     pages: dict[str, str] | None = None,
     llm_port=None,
+    reranker_port=None,
 ) -> ServiceContainer:
     settings = Settings(database_path=str(tmp_path / "lead_management.sqlite3"))
     database = SqliteDatabase(settings.database_path)
@@ -240,9 +241,9 @@ def build_test_container(
         plan_stage=PlanStage(agent_executor),
         source_stage=SourceStage(search_port=search_port, agent_executor=agent_executor, max_results=5),
         chunkerize_stage=ChunkerizeStage(archive_writer=archive_writer),
-        assemble_stage=AssembleStage(agent_executor),
+        assemble_stage=AssembleStage(agent_executor, reranker=reranker_port),
         qualify_stage=QualifyStage(agent_executor),
-        enrich_stage=EnrichStage(search_port=search_port, agent_executor=agent_executor, max_results=5),
+        enrich_stage=EnrichStage(search_port=search_port, agent_executor=agent_executor, max_results=5, reranker=reranker_port),
         draft_stage=DraftStage(agent_executor),
         crm_write_stage=CrmWriteStage(
             lead_store=lead_store,
@@ -272,6 +273,7 @@ def build_test_container(
         memory_store=memory_store,
         crm_writer=crm_writer,
         archive_writer=archive_writer,
+        reranker_port=reranker_port,
     )
 
 

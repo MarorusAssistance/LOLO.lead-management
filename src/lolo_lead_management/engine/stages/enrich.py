@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
+from lolo_lead_management.domain.errors import RerankerUnavailableError
 from lolo_lead_management.domain.enums import FieldEvidenceStatus
 from lolo_lead_management.domain.enums import StageName, SourcingStatus
 from lolo_lead_management.domain.models import (
@@ -15,6 +16,7 @@ from lolo_lead_management.domain.models import (
 )
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.agents.specs import STAGE_AGENT_SPECS
+from lolo_lead_management.engine.reranking import build_rerank_candidate_text, build_rerank_query_text
 from lolo_lead_management.engine.rules import (
     build_research_query_plan,
     choose_queries,
@@ -29,14 +31,23 @@ from lolo_lead_management.engine.rules import (
     sanitize_research_query_plan,
 )
 from lolo_lead_management.engine.state import EngineRuntimeState
+from lolo_lead_management.ports.reranker import RerankCandidate, RerankerPort
 from lolo_lead_management.ports.search import SearchPort
 
 
 class EnrichStage:
-    def __init__(self, *, search_port: SearchPort, agent_executor: StageAgentExecutor, max_results: int) -> None:
+    def __init__(
+        self,
+        *,
+        search_port: SearchPort,
+        agent_executor: StageAgentExecutor,
+        max_results: int,
+        reranker: RerankerPort | None = None,
+    ) -> None:
         self._search_port = search_port
         self._agent_executor = agent_executor
         self._max_results = max_results
+        self._reranker = reranker
         self.last_trace: SourceStageTrace | None = None
 
     def execute(self, state: EngineRuntimeState) -> SourcePassResult:
@@ -140,20 +151,32 @@ class EnrichStage:
                     anchor_company=dossier.company.name,
                     previously_visited=previously_visited,
                 )
-                enriched, fetched_urls, empty_fetch_urls = self._enrich_missing_content(filtered, query.query)
+                reranked_filtered, reranker_trace = self._rerank_filtered_results(
+                    filtered,
+                    query=query,
+                    state=state,
+                    dossier=dossier,
+                )
+                if reranker_trace is not None:
+                    stage_trace.reranker_traces.append(reranker_trace)
+                enriched, fetched_urls, empty_fetch_urls = self._enrich_missing_content(reranked_filtered, query.query)
                 selected = merge_documents(enriched[: self._max_results])
                 error = None
                 state.visited_urls_run_scoped = list(dict.fromkeys([*state.visited_urls_run_scoped, *[item.url for item in selected]]))
                 stage_trace.notes.extend(filter_notes)
+            except RerankerUnavailableError:
+                raise
             except Exception as exc:
                 results = []
                 filtered = []
+                reranked_filtered = []
                 enriched = []
                 selected = []
                 fetched_urls = []
                 empty_fetch_urls = []
                 result_rejections = {}
                 error = str(exc)
+                reranker_trace = None
                 stage_trace.notes.append(f"enrich_query_failed={query.query}: {exc}")
             research_trace.append(
                 ResearchTraceEntry(
@@ -189,6 +212,7 @@ class EnrichStage:
                     fetched_urls=fetched_urls,
                     empty_fetch_urls=empty_fetch_urls,
                     error=error,
+                    reranker_trace=reranker_trace,
                     results=[
                         SearchResultTrace(
                             url=item.url,
@@ -394,3 +418,45 @@ class EnrichStage:
         compact["snippet"] = (compact.get("snippet") or "")[:400]
         compact["raw_content"] = (compact.get("raw_content") or "")[:1800]
         return compact
+
+    def _rerank_filtered_results(self, documents, *, query, state: EngineRuntimeState, dossier) -> tuple[list, dict | None]:
+        if self._reranker is None or not documents:
+            return documents, None
+        field_name = query.expected_field or self._top_priority_need(state, dossier)
+        rerank_query = build_rerank_query_text(
+            request=state.run.request,
+            focus_company=dossier.company.name if dossier.company else None,
+            field_name=field_name,
+            query_hint=query.query,
+        )
+        candidates = [
+            RerankCandidate(
+                id=str(index),
+                url=item.url,
+                field_target=field_name,
+                text=build_rerank_candidate_text(item, field_name=field_name),
+                source_tier=item.source_tier,
+                is_company_controlled_source=item.is_company_controlled_source,
+            )
+            for index, item in enumerate(documents)
+        ]
+        results = self._reranker.rerank(query=rerank_query, candidates=candidates, top_k=len(candidates))
+        ranked_by_id = {item.id: item for item in results}
+        ordered = [
+            item
+            for _, item in sorted(
+                (
+                    (ranked_by_id.get(str(index)).rank if ranked_by_id.get(str(index)) else len(candidates) + index, item)
+                    for index, item in enumerate(documents)
+                ),
+                key=lambda entry: entry[0],
+            )
+        ]
+        reranker_trace = getattr(self._reranker, "last_call_trace", None)
+        return ordered, reranker_trace
+
+    def _top_priority_need(self, state: EngineRuntimeState, dossier) -> str:
+        prioritized = collect_prioritized_enrichment_needs(dossier, state.run.request)
+        if prioritized:
+            return prioritized[0].field_name
+        return "multi"

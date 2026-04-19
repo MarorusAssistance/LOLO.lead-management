@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from lolo_lead_management.adapters.crm.sqlite import SqliteCrmWriter
 from lolo_lead_management.adapters.llm.lm_studio import LmStudioLlmPort
+from lolo_lead_management.adapters.reranker.lm_studio import LmStudioAwareRerankerPort
 from lolo_lead_management.adapters.search.fake import FakeSearchPort
 from lolo_lead_management.adapters.search.tavily import TavilySearchPort
 from lolo_lead_management.adapters.stores.sqlite import (
@@ -29,6 +30,7 @@ from lolo_lead_management.engine.stages.source import SourceStage
 from lolo_lead_management.infrastructure.run_archive import ExecutionArchiveWriter
 from lolo_lead_management.infrastructure.sqlite import SqliteDatabase
 from lolo_lead_management.ports.llm import LlmPort
+from lolo_lead_management.ports.reranker import RerankerPort
 from lolo_lead_management.ports.search import SearchPort
 
 
@@ -45,6 +47,7 @@ class ServiceContainer:
     memory_store: SqliteExplorationMemoryStore
     crm_writer: SqliteCrmWriter
     archive_writer: ExecutionArchiveWriter
+    reranker_port: RerankerPort | None
 
 
 def build_container(settings: Settings) -> ServiceContainer:
@@ -67,6 +70,18 @@ def build_container(settings: Settings) -> ServiceContainer:
             timeout_seconds=settings.llm_timeout_seconds,
         )
 
+    reranker_port = None
+    if settings.reranker_enabled:
+        reranker_port = LmStudioAwareRerankerPort(
+            model_key=settings.reranker_model_key,
+            model_path=settings.reranker_model_path,
+            lm_studio_base_url=settings.reranker_lm_studio_base_url,
+            engine_base_url=settings.reranker_engine_base_url,
+            bootstrap_enabled=settings.reranker_bootstrap_enabled,
+            runtime_cache_dir=settings.reranker_runtime_cache_dir,
+            timeout_seconds=settings.reranker_timeout_seconds,
+        )
+
     if settings.search_enabled and settings.tavily_api_key:
         search_port = TavilySearchPort(api_key=settings.tavily_api_key, base_url=settings.tavily_base_url)
     else:
@@ -79,9 +94,19 @@ def build_container(settings: Settings) -> ServiceContainer:
         plan_stage=PlanStage(agent_executor),
         source_stage=SourceStage(search_port=search_port, agent_executor=agent_executor, max_results=settings.search_max_results),
         chunkerize_stage=ChunkerizeStage(archive_writer=archive_writer),
-        assemble_stage=AssembleStage(agent_executor),
+        assemble_stage=AssembleStage(
+            agent_executor,
+            reranker=reranker_port,
+            top_k_initial=settings.reranker_top_k_initial,
+            expansion_docs=settings.reranker_expansion_docs,
+        ),
         qualify_stage=QualifyStage(agent_executor),
-        enrich_stage=EnrichStage(search_port=search_port, agent_executor=agent_executor, max_results=settings.search_max_results),
+        enrich_stage=EnrichStage(
+            search_port=search_port,
+            agent_executor=agent_executor,
+            max_results=settings.search_max_results,
+            reranker=reranker_port,
+        ),
         draft_stage=DraftStage(agent_executor),
         crm_write_stage=CrmWriteStage(
             lead_store=lead_store,
@@ -111,4 +136,5 @@ def build_container(settings: Settings) -> ServiceContainer:
         memory_store=memory_store,
         crm_writer=crm_writer,
         archive_writer=archive_writer,
+        reranker_port=reranker_port,
     )

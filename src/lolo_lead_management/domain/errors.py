@@ -11,3 +11,7 @@ class InvalidAgentOutputError(LeadManagementError):
 
 class PersistenceError(LeadManagementError):
     """Raised when persistence fails."""
+
+
+class RerankerUnavailableError(LeadManagementError):
+    """Raised when the mandatory reranker cannot be reached or started."""
