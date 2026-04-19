@@ -169,8 +169,9 @@ def test_assemble_uses_logical_segments_before_raw_content() -> None:
     stage.execute(state)
 
     assert llm.payloads
-    chunk_payload = llm.payloads[0]["chunk"]
-    assert chunk_payload["segment_type"] == "identity"
-    assert chunk_payload["heading_path"] == ["Informacion general"]
-    assert "Segment type: identity" in chunk_payload["text"]
-    assert "Razon social" in chunk_payload["text"]
+    payload = llm.payloads[0]
+    assert payload["mode"] == "focus_locked_document_mode"
+    assert payload["section_map"][0]["segment_type"] == "identity"
+    assert payload["section_map"][0]["heading_path"] == ["Informacion general"]
+    assert "Segment type: identity" in payload["document_text"]
+    assert "Razon social" in payload["document_text"]

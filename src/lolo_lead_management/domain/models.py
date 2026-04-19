@@ -157,6 +157,25 @@ class ResearchQueryPlan(StrictModel):
     stop_conditions: list[str] = Field(default_factory=list)
 
 
+class EmployeeEvidenceSignal(StrictModel):
+    kind: Literal["exact", "range", "lower_bound", "upper_bound", "estimate", "aggregate", "invalid"] = "invalid"
+    min_value: int | None = Field(default=None, ge=0)
+    max_value: int | None = Field(default=None, ge=0)
+    company_specific: bool = True
+    strength: Literal["strong", "medium", "weak"] = "weak"
+    source_url: str | None = None
+    evidence_excerpt: str = ""
+
+
+class EnrichmentNeed(StrictModel):
+    field_name: Literal["country", "website", "employee_estimate", "person_name", "role_title", "fit_signals"]
+    current_status: FieldEvidenceStatus
+    priority_class: Literal["critical", "high", "medium", "low"]
+    reason: str
+    max_queries_for_this_pass: int = Field(default=1, ge=1, le=3)
+    contradiction_class: Literal["none", "mild", "moderate", "severe"] | None = None
+
+
 class ResearchTraceEntry(StrictModel):
     query_planned: str
     query_executed: str
@@ -186,6 +205,7 @@ class AssembledFieldEvidence(StrictModel):
     contradicting_evidence: list[EvidenceItem] = Field(default_factory=list)
     supporting_spans: list[FieldEvidenceSpan] = Field(default_factory=list)
     contradicting_spans: list[FieldEvidenceSpan] = Field(default_factory=list)
+    employee_signals: list[EmployeeEvidenceSignal] = Field(default_factory=list)
     source_quality: SourceQuality = SourceQuality.UNKNOWN
     source_tier: Literal["tier_a", "tier_b", "tier_c", "mixed", "unknown"] = "unknown"
     support_type: Literal["explicit", "corroborated", "weak_inference"] = "explicit"
@@ -292,6 +312,7 @@ class ChunkFieldAssertion(StrictModel):
     evidence_excerpt: str = ""
     heading_path: list[str] = Field(default_factory=list)
     employee_count_type: Literal["exact", "range", "estimate", "unknown"] = "unknown"
+    employee_signal: EmployeeEvidenceSignal | None = None
 
 
 class ChunkContactAssertion(StrictModel):
@@ -324,6 +345,7 @@ class AssemblyFieldAssertion(StrictModel):
     status: FieldEvidenceStatus
     evidence_urls: list[str] = Field(default_factory=list)
     contradicting_urls: list[str] = Field(default_factory=list)
+    employee_signals: list[EmployeeEvidenceSignal] = Field(default_factory=list)
     source_tier: Literal["tier_a", "tier_b", "tier_c", "mixed", "unknown"] = "unknown"
     support_type: Literal["explicit", "corroborated", "weak_inference"] = "explicit"
     reasoning_note: str = ""
@@ -340,6 +362,9 @@ class AssemblyResolution(StrictModel):
     website_risks: list[str] = Field(default_factory=list)
     country_code: str | None = None
     employee_estimate: int | None = None
+    employee_signals: list[EmployeeEvidenceSignal] = Field(default_factory=list)
+    employee_contradiction_class: Literal["none", "mild", "moderate", "severe"] | None = None
+    employee_contradiction_reason: str | None = None
     person_name: str | None = None
     person_name_raw: str | None = None
     person_name_normalization_status: Literal["preserved", "reordered", "rejected_ambiguous"] | None = None
@@ -369,6 +394,8 @@ class QualificationRubric(StrictModel):
     contradictions: list[str] = Field(default_factory=list)
     meddicc_signals: list[str] = Field(default_factory=list)
     overall_confidence: int = Field(default=0, ge=0, le=100)
+    employee_contradiction_class: Literal["none", "mild", "moderate", "severe"] | None = None
+    employee_contradiction_reason: str | None = None
 
 
 class AssembledLeadDossier(StrictModel):
@@ -548,6 +575,9 @@ class SourceStageTrace(StrictModel):
     selected_query_count: int = Field(default=0, ge=0)
     query_selection_policy: str | None = None
     query_history: list[str] = Field(default_factory=list)
+    prioritized_needs: list[EnrichmentNeed] = Field(default_factory=list)
+    selected_field_coverage: dict[str, int] = Field(default_factory=dict)
+    skipped_queries_by_priority_reason: dict[str, str] = Field(default_factory=dict)
     excluded_companies: list[str] = Field(default_factory=list)
     request_scoped_company_exclusions: list[str] = Field(default_factory=list)
     resolved_fields: list[str] = Field(default_factory=list)
@@ -587,6 +617,8 @@ class QualificationTrace(StrictModel):
     llm_raw_output: dict[str, Any] | None = None
     llm_error: str | None = None
     merged_decision: QualificationDecision
+    employee_contradiction_class: Literal["none", "mild", "moderate", "severe"] | None = None
+    employee_contradiction_reason: str | None = None
     notes: list[str] = Field(default_factory=list)
 
 

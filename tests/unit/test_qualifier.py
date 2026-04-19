@@ -3,15 +3,24 @@ from lolo_lead_management.domain.enums import FieldEvidenceStatus, SourceQuality
 from lolo_lead_management.domain.models import (
     AssembledFieldEvidence,
     CompanyCandidate,
+    EmployeeEvidenceSignal,
     EvidenceItem,
     LeadSearchStartRequest,
     PersonCandidate,
     QualificationDecision,
+    ResearchQuery,
+    ResearchQueryPlan,
     SourcingDossier,
     WebsiteResolution,
 )
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
-from lolo_lead_management.engine.rules import collect_missing_fields_for_enrichment, downgrade_enrich_to_close_match
+from lolo_lead_management.engine.rules import (
+    choose_queries,
+    classify_employee_contradiction,
+    collect_missing_fields_for_enrichment,
+    collect_prioritized_enrichment_needs,
+    downgrade_enrich_to_close_match,
+)
 from lolo_lead_management.engine.stages.normalize import NormalizeStage
 from lolo_lead_management.engine.stages.qualify import QualifyStage
 
@@ -527,10 +536,192 @@ def test_collect_missing_fields_for_enrichment_skips_optional_website() -> None:
 
     missing = collect_missing_fields_for_enrichment(dossier, request)
 
-    assert "website" not in missing
+    assert "website" in missing
     assert "person_name" in missing
     assert "role_title" in missing
     assert "fit_signals" in missing
+
+
+def test_collect_prioritized_enrichment_needs_demotes_size_when_in_range_but_weak() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai"))
+    evidence = [
+        EvidenceItem(
+            url="https://acme.ai/about",
+            title="about",
+            snippet="Acme AI Spain",
+            source_type="fixture",
+            raw_content="Company: Acme AI\nCountry: Spain\nEmployees: 9\n",
+            source_tier="tier_a",
+        )
+    ]
+    dossier = SourcingDossier(
+        sourcing_status=SourcingStatus.FOUND,
+        person=PersonCandidate(full_name=None, role_title=None),
+        company=CompanyCandidate(name="Acme AI", website=None, country_code="es", employee_estimate=9),
+        fit_signals=[],
+        evidence=evidence,
+        field_evidence=[
+            AssembledFieldEvidence(field_name="company_name", value="Acme AI", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="website", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="country", value="es", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, reasoning_note="ok"),
+            AssembledFieldEvidence(
+                field_name="employee_estimate",
+                value=9,
+                status=FieldEvidenceStatus.WEAKLY_SUPPORTED,
+                supporting_evidence=evidence,
+                contradicting_evidence=[],
+                employee_signals=[
+                    EmployeeEvidenceSignal(kind="exact", min_value=9, max_value=9, company_specific=True, strength="weak", source_url=evidence[0].url, evidence_excerpt="Employees: 9"),
+                ],
+                source_quality=SourceQuality.MEDIUM,
+                reasoning_note="weak size hint",
+            ),
+            AssembledFieldEvidence(field_name="person_name", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="role_title", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="fit_signals", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+        ],
+        notes=[],
+    )
+
+    needs = collect_prioritized_enrichment_needs(dossier, request)
+
+    assert [item.field_name for item in needs[:2]] == ["person_name", "role_title"]
+    size_need = next(item for item in needs if item.field_name == "employee_estimate")
+    assert size_need.priority_class == "medium"
+    assert size_need.max_queries_for_this_pass == 1
+
+
+def test_choose_queries_respects_enrichment_field_caps() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai"))
+    needs = collect_prioritized_enrichment_needs(
+        SourcingDossier(
+            sourcing_status=SourcingStatus.FOUND,
+            company=CompanyCandidate(name="Tauniqo Ai S.L", country_code="es", employee_estimate=9),
+            person=PersonCandidate(full_name=None, role_title=None),
+            fit_signals=[],
+            evidence=[],
+            field_evidence=[
+                AssembledFieldEvidence(field_name="company_name", value="Tauniqo Ai S.L", status=FieldEvidenceStatus.SATISFIED, reasoning_note="ok"),
+                AssembledFieldEvidence(field_name="website", value=None, status=FieldEvidenceStatus.UNKNOWN, reasoning_note="missing"),
+                AssembledFieldEvidence(field_name="country", value="es", status=FieldEvidenceStatus.SATISFIED, reasoning_note="ok"),
+                AssembledFieldEvidence(
+                    field_name="employee_estimate",
+                    value=9,
+                    status=FieldEvidenceStatus.WEAKLY_SUPPORTED,
+                    employee_signals=[EmployeeEvidenceSignal(kind="exact", min_value=9, max_value=9, company_specific=True, strength="weak")],
+                    reasoning_note="weak size hint",
+                ),
+                AssembledFieldEvidence(field_name="person_name", value=None, status=FieldEvidenceStatus.UNKNOWN, reasoning_note="missing"),
+                AssembledFieldEvidence(field_name="role_title", value=None, status=FieldEvidenceStatus.UNKNOWN, reasoning_note="missing"),
+                AssembledFieldEvidence(field_name="fit_signals", value=None, status=FieldEvidenceStatus.UNKNOWN, reasoning_note="missing"),
+            ],
+        ),
+        request,
+    )
+    plan = ResearchQueryPlan(
+        planned_queries=[
+            ResearchQuery(query='infoempresa "Tauniqo Ai S.L" empleados plantilla', objective="size", research_phase="evidence_closing", source_role="employee_count_resolution", candidate_company_name="Tauniqo Ai S.L", expected_field="employee_estimate"),
+            ResearchQuery(query='einforma "Tauniqo Ai S.L" empleados', objective="size corroboration", research_phase="evidence_closing", source_role="employee_count_resolution", candidate_company_name="Tauniqo Ai S.L", expected_field="employee_estimate"),
+            ResearchQuery(query='"Tauniqo Ai S.L" administradores cargos directivos', objective="person", research_phase="evidence_closing", source_role="governance_resolution", candidate_company_name="Tauniqo Ai S.L", expected_field="person_name"),
+            ResearchQuery(query='"Tauniqo Ai S.L" CTO', objective="role", research_phase="evidence_closing", source_role="governance_resolution", candidate_company_name="Tauniqo Ai S.L", expected_field="role_title"),
+        ]
+    )
+    selected, diagnostics = choose_queries(
+        plan,
+        [],
+        limit=3,
+        prioritized_needs=needs,
+        return_diagnostics=True,
+    )
+
+    selected_fields = [item.expected_field for item in selected]
+    assert selected_fields.count("employee_estimate") == 1
+    assert "person_name" in selected_fields
+    assert "role_title" in selected_fields
+    assert diagnostics["selected_field_coverage"]["employee_estimate"] == 1
+
+
+def test_classify_employee_contradiction_marks_in_range_non_overlap_as_moderate() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai"))
+    field = AssembledFieldEvidence(
+        field_name="employee_estimate",
+        value=9,
+        status=FieldEvidenceStatus.CONTRADICTED,
+        employee_signals=[
+            EmployeeEvidenceSignal(kind="exact", min_value=9, max_value=9, company_specific=True, strength="medium", source_url="https://a.test"),
+            EmployeeEvidenceSignal(kind="range", min_value=25, max_value=50, company_specific=True, strength="weak", source_url="https://b.test"),
+        ],
+        reasoning_note="contradiction",
+    )
+
+    contradiction_class, contradiction_reason = classify_employee_contradiction(field, request)
+
+    assert contradiction_class == "moderate"
+    assert contradiction_reason is not None
+
+
+def test_qualifier_keeps_size_contradiction_in_enrich_when_all_signals_stay_in_band() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai"))
+    evidence = [
+        EvidenceItem(
+            url="https://a.test/acme",
+            title="Acme directory",
+            snippet="Employees 9",
+            source_type="fixture",
+            raw_content="Employees: 9",
+            source_tier="tier_b",
+        ),
+        EvidenceItem(
+            url="https://b.test/acme",
+            title="Acme profile",
+            snippet="Employees 25-50",
+            source_type="fixture",
+            raw_content="Plantilla: Entre 25 y 50 empleados",
+            source_tier="tier_b",
+        ),
+    ]
+    dossier = SourcingDossier(
+        sourcing_status=SourcingStatus.FOUND,
+        person=PersonCandidate(full_name=None, role_title=None),
+        company=CompanyCandidate(name="Acme AI", country_code="es", employee_estimate=9),
+        fit_signals=["genai"],
+        evidence=evidence,
+        field_evidence=[
+            AssembledFieldEvidence(field_name="company_name", value="Acme AI", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="website", value="https://acme.ai", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence[:1], contradicting_evidence=[], source_quality=SourceQuality.HIGH, reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="country", value="es", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence, contradicting_evidence=[], source_quality=SourceQuality.HIGH, reasoning_note="ok"),
+            AssembledFieldEvidence(
+                field_name="employee_estimate",
+                value=9,
+                status=FieldEvidenceStatus.CONTRADICTED,
+                supporting_evidence=evidence[:1],
+                contradicting_evidence=evidence[1:],
+                employee_signals=[
+                    EmployeeEvidenceSignal(kind="exact", min_value=9, max_value=9, company_specific=True, strength="medium", source_url=evidence[0].url),
+                    EmployeeEvidenceSignal(kind="range", min_value=25, max_value=50, company_specific=True, strength="weak", source_url=evidence[1].url),
+                ],
+                source_quality=SourceQuality.MEDIUM,
+                reasoning_note="conflicting size sources",
+            ),
+            AssembledFieldEvidence(field_name="person_name", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="role_title", value=None, status=FieldEvidenceStatus.UNKNOWN, supporting_evidence=[], contradicting_evidence=[], source_quality=SourceQuality.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="fit_signals", value="genai", status=FieldEvidenceStatus.SATISFIED, supporting_evidence=evidence[:1], contradicting_evidence=[], source_quality=SourceQuality.MEDIUM, reasoning_note="ok"),
+        ],
+        notes=[],
+    )
+
+    decision = QualifyStage(StageAgentExecutor(None)).execute(
+        request_payload=request.model_dump(mode="json"),
+        dossier_payload=dossier.model_dump(mode="json"),
+    )
+
+    assert decision.outcome == QualificationOutcome.ENRICH
+    assert decision.qualification_rubric is not None
+    assert decision.qualification_rubric.employee_contradiction_class == "moderate"
 
 
 def test_downgrade_enrich_to_close_match_after_budget_exhaustion() -> None:

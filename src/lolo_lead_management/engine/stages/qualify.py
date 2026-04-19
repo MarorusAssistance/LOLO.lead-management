@@ -38,6 +38,16 @@ class QualifyStage:
             llm_raw_output=attempt.raw if isinstance(attempt.raw, dict) else None,
             llm_error=attempt.error,
             merged_decision=merged,
+            employee_contradiction_class=(
+                merged.qualification_rubric.employee_contradiction_class
+                if merged.qualification_rubric is not None
+                else None
+            ),
+            employee_contradiction_reason=(
+                merged.qualification_rubric.employee_contradiction_reason
+                if merged.qualification_rubric is not None
+                else None
+            ),
             notes=notes,
         )
         return merged

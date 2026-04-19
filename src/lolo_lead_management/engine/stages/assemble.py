@@ -19,6 +19,7 @@ from lolo_lead_management.domain.models import (
     CompanyFocusResolution,
     DiscoveryCandidateExtractionResolution,
     DiscoveryCompanyCandidate,
+    EmployeeEvidenceSignal,
     EvidenceDocument,
     FieldEvidenceSpan,
     PersonCandidate,
@@ -39,6 +40,7 @@ from lolo_lead_management.engine.rules import (
     clean_role_title,
     company_name_matches_anchor,
     company_name_matches_anchor_strict,
+    classify_employee_contradiction,
     dedupe_preserve_order,
     document_can_seed_website_candidate,
     document_matches_anchor_strong,
@@ -46,6 +48,10 @@ from lolo_lead_management.engine.rules import (
     domain_is_directory,
     domain_is_publisher_like,
     employee_excerpt_is_aggregate_signal,
+    employee_signal_is_comparable,
+    employee_signal_ranges_overlap,
+    employee_signal_summary_value,
+    extract_employee_signal,
     extracted_official_website_from_document,
     is_plausible_company_name,
     merge_documents,
@@ -761,9 +767,36 @@ class AssembleStage:
             country_assertions,
             allowed_docs,
         )
-        employee_value, employee_status, employee_support, employee_contradict, employee_note = self._resolve_employee(
+        (
+            employee_value,
+            employee_status,
+            employee_support,
+            employee_contradict,
+            employee_note,
+            employee_signals,
+        ) = self._resolve_employee(
             employee_assertions,
             allowed_docs,
+        )
+        employee_field_stub = AssembledFieldEvidence(
+            field_name="employee_estimate",
+            value=employee_value,
+            status=employee_status,
+            supporting_evidence=[allowed_docs[url] for url in employee_support if url in allowed_docs],
+            contradicting_evidence=[allowed_docs[url] for url in employee_contradict if url in allowed_docs],
+            employee_signals=employee_signals,
+            source_quality=self._source_quality_from_docs(
+                [allowed_docs[url] for url in [*employee_support, *employee_contradict] if url in allowed_docs]
+            ),
+            source_tier=self._source_tier_from_docs(
+                [allowed_docs[url] for url in [*employee_support, *employee_contradict] if url in allowed_docs]
+            ),
+            support_type="corroborated" if len(employee_support) >= 2 else "explicit",
+            reasoning_note=employee_note,
+        )
+        employee_contradiction_class, employee_contradiction_reason = classify_employee_contradiction(
+            employee_field_stub,
+            state.run.request,
         )
         website_resolution, website_support, website_contradict = self._resolve_subject_website(
             subject_company=subject_company,
@@ -826,6 +859,7 @@ class AssembleStage:
                 support_type="corroborated" if len(employee_support) >= 2 else "explicit",
                 allowed_docs=allowed_docs,
                 reasoning_note=employee_note,
+                employee_signals=employee_signals,
             ),
             self._final_assertion(
                 field_name="person_name",
@@ -860,6 +894,9 @@ class AssembleStage:
             website_risks=website_resolution.risks,
             country_code=country_value,
             employee_estimate=employee_value,
+            employee_signals=employee_signals,
+            employee_contradiction_class=employee_contradiction_class,
+            employee_contradiction_reason=employee_contradiction_reason,
             person_name=contact["person_name"],
             person_name_raw=contact["person_name_raw"],
             person_name_normalization_status=contact["person_name_normalization_status"],
@@ -867,7 +904,12 @@ class AssembleStage:
             fit_signals=fit_signals,
             selected_evidence_urls=selected_urls,
             field_assertions=field_assertions,
-            contradictions=dedupe_preserve_order([*cross_company_notes, *([employee_note] if employee_status == FieldEvidenceStatus.CONTRADICTED else [])]),
+            contradictions=dedupe_preserve_order(
+                [
+                    *cross_company_notes,
+                    *([employee_contradiction_reason or employee_note] if employee_status == FieldEvidenceStatus.CONTRADICTED else []),
+                ]
+            ),
             unresolved_fields=[item.field_name for item in field_assertions if item.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}],
             confidence_notes=dedupe_preserve_order(
                 [
@@ -988,6 +1030,7 @@ class AssembleStage:
                 status=assertion.status,
                 supporting_evidence=supporting,
                 contradicting_evidence=contradicting,
+                employee_signals=assertion.employee_signals if field_name == "employee_estimate" else [],
                 source_quality=self._source_quality_from_docs(supporting or contradicting),
                 source_tier=assertion.source_tier,
                 support_type=assertion.support_type,
@@ -999,6 +1042,7 @@ class AssembleStage:
             status=FieldEvidenceStatus.UNKNOWN if value is None else FieldEvidenceStatus.WEAKLY_SUPPORTED,
             supporting_evidence=supporting[:2],
             contradicting_evidence=[],
+            employee_signals=[],
             source_quality=self._source_quality_from_docs(supporting[:2]),
             source_tier=self._source_tier_from_docs(supporting[:2]),
             support_type="weak_inference" if value is not None else "explicit",
@@ -1219,6 +1263,7 @@ class AssembleStage:
         support_type: str,
         allowed_docs: dict[str, EvidenceDocument],
         reasoning_note: str,
+        employee_signals: list[EmployeeEvidenceSignal] | None = None,
     ) -> AssemblyFieldAssertion:
         supporting_docs = [allowed_docs[url] for url in supporting_urls if url in allowed_docs]
         contradicting_docs = [allowed_docs[url] for url in contradicting_urls if url in allowed_docs]
@@ -1228,6 +1273,7 @@ class AssembleStage:
             status=status,
             evidence_urls=dedupe_preserve_order([item.url for item in supporting_docs]),
             contradicting_urls=dedupe_preserve_order([item.url for item in contradicting_docs]),
+            employee_signals=employee_signals or [],
             source_tier=self._source_tier_from_docs(supporting_docs or contradicting_docs),
             support_type=support_type,
             reasoning_note=reasoning_note,
@@ -1382,9 +1428,9 @@ class AssembleStage:
         self,
         assertions: list[ChunkFieldAssertion],
         allowed_docs: dict[str, EvidenceDocument],
-    ) -> tuple[int | None, FieldEvidenceStatus, list[str], list[str], str]:
-        priority = {"exact": 3, "range": 2, "estimate": 1, "unknown": 0}
-        candidates: dict[tuple[int, str], list[str]] = defaultdict(list)
+    ) -> tuple[int | None, FieldEvidenceStatus, list[str], list[str], str, list[EmployeeEvidenceSignal]]:
+        signal_groups: dict[tuple[str, int | None, int | None], dict[str, object]] = {}
+        comparable_groups: list[dict[str, object]] = []
         for assertion in assertions:
             if not isinstance(assertion.value, int):
                 continue
@@ -1397,94 +1443,107 @@ class AssembleStage:
                     }
                 )
                 continue
-            candidates[(assertion.value, assertion.employee_count_type)].append(assertion.source_url)
-        if not candidates:
-            return None, FieldEvidenceStatus.UNKNOWN, [], [], "Employee estimate is still missing from grounded segment assertions."
-
-        exact_values = {value for (value, count_type) in candidates if count_type == "exact"}
-        if len(exact_values) > 1:
-            contradicting = dedupe_preserve_order(
-                [
-                    url
-                    for (value, count_type), urls in candidates.items()
-                    if count_type == "exact"
-                    for url in urls
-                    if url in allowed_docs
-                ]
+            signal = assertion.employee_signal or extract_employee_signal(
+                assertion.evidence_excerpt or assertion.reasoning_note,
+                default_value=assertion.value,
+                employee_count_type=assertion.employee_count_type,
+                support_type=assertion.support_type,
+                source_tier=allowed_docs.get(assertion.source_url).source_tier if assertion.source_url in allowed_docs else "unknown",
+                source_url=assertion.source_url,
             )
-            chosen_value = max(exact_values)
+            if signal is None:
+                continue
+            key = (signal.kind, signal.min_value, signal.max_value)
+            bucket = signal_groups.setdefault(
+                key,
+                {
+                    "signal": signal,
+                    "urls": [],
+                },
+            )
+            bucket["urls"] = dedupe_preserve_order([*bucket["urls"], assertion.source_url])  # type: ignore[index]
+
+        grouped_signals = [
+            {"signal": item["signal"], "urls": [url for url in item["urls"] if url in allowed_docs]}
+            for item in signal_groups.values()
+        ]
+        all_signals = [item["signal"] for item in grouped_signals]
+        comparable_groups = [item for item in grouped_signals if employee_signal_is_comparable(item["signal"])]
+        if not comparable_groups:
+            return None, FieldEvidenceStatus.UNKNOWN, [], [], "Employee estimate is still missing from grounded segment assertions.", all_signals
+
+        def _signals_materially_conflict(left: EmployeeEvidenceSignal, right: EmployeeEvidenceSignal) -> bool:
+            if employee_signal_ranges_overlap(left, right):
+                return False
+            if "estimate" in {left.kind, right.kind}:
+                left_value = employee_signal_summary_value(left)
+                right_value = employee_signal_summary_value(right)
+                if left_value is not None and right_value is not None:
+                    highest = max(left_value, right_value)
+                    lowest = min(left_value, right_value)
+                    return highest > max(lowest * 2, lowest + 25)
+            return True
+
+        def _group_priority(group: dict[str, object]) -> tuple[int, int, int, int]:
+            signal = group["signal"]  # type: ignore[assignment]
+            urls = group["urls"]  # type: ignore[assignment]
+            assert isinstance(signal, EmployeeEvidenceSignal)
             return (
-                chosen_value,
-                FieldEvidenceStatus.CONTRADICTED,
-                [],
-                contradicting,
-                "Employee estimate has incompatible exact values for the selected company.",
-            )
-
-        range_values = [value for (value, count_type) in candidates if count_type == "range"]
-        if not exact_values and len(range_values) >= 2 and max(range_values) > max(1, min(range_values) * 2):
-            contradicting = dedupe_preserve_order(
-                [
-                    url
-                    for (value, count_type), urls in candidates.items()
-                    if count_type == "range"
-                    for url in urls
-                    if url in allowed_docs
-                ]
-            )
-            return (
-                min(range_values),
-                FieldEvidenceStatus.CONTRADICTED,
-                [],
-                contradicting,
-                "Employee estimate ranges conflict across grounded assertions for the selected company.",
-            )
-
-        estimate_values = [value for (value, count_type) in candidates if count_type == "estimate"]
-        if not exact_values and not range_values and len(estimate_values) >= 2:
-            highest = max(estimate_values)
-            lowest = min(estimate_values)
-            if highest > max(lowest * 2, lowest + 25):
-                contradicting = dedupe_preserve_order(
-                    [
-                        url
-                        for (value, count_type), urls in candidates.items()
-                        if count_type == "estimate"
-                        for url in urls
-                        if url in allowed_docs
-                    ]
-                )
-                return (
-                    lowest,
-                    FieldEvidenceStatus.CONTRADICTED,
-                    [],
-                    contradicting,
-                    "Employee estimate hints vary too much to reconcile for the selected company.",
-                )
-        ranked = sorted(
-            candidates.items(),
-            key=lambda item: (
-                priority.get(item[0][1], 0),
-                len(set(item[1])),
+                {"exact": 5, "range": 4, "upper_bound": 3, "lower_bound": 3, "estimate": 2}.get(signal.kind, 0),
+                {"strong": 3, "medium": 2, "weak": 1}.get(signal.strength, 1),
+                len(urls),
                 max(
-                    {"tier_a": 3, "tier_b": 2, "tier_c": 1, "unknown": 0}.get(allowed_docs[url].source_tier, 0)
-                    for url in item[1]
-                    if url in allowed_docs
+                    ({"tier_a": 3, "tier_b": 2, "tier_c": 1, "unknown": 0}.get(allowed_docs[url].source_tier, 0) for url in urls),
+                    default=0,
                 ),
-            ),
-            reverse=True,
+            )
+
+        chosen_group = max(comparable_groups, key=_group_priority)
+        chosen_signal = chosen_group["signal"]  # type: ignore[assignment]
+        chosen_urls = dedupe_preserve_order(chosen_group["urls"])  # type: ignore[arg-type]
+        contradicting_urls = dedupe_preserve_order(
+            [
+                url
+                for group in comparable_groups
+                if group is not chosen_group and _signals_materially_conflict(chosen_signal, group["signal"])  # type: ignore[arg-type]
+                for url in group["urls"]  # type: ignore[index]
+                if url in allowed_docs
+            ]
         )
-        (value, count_type), urls = ranked[0]
-        support = dedupe_preserve_order([url for url in urls if url in allowed_docs])
+        corroborating_urls = dedupe_preserve_order(
+            [
+                *chosen_urls,
+                *[
+                    url
+                    for group in comparable_groups
+                    if group is not chosen_group and not _signals_materially_conflict(chosen_signal, group["signal"])  # type: ignore[arg-type]
+                    for url in group["urls"]  # type: ignore[index]
+                    if url in allowed_docs
+                ],
+            ]
+        )
+        value = employee_signal_summary_value(chosen_signal)
+        if contradicting_urls:
+            return (
+                value,
+                FieldEvidenceStatus.CONTRADICTED,
+                corroborating_urls,
+                contradicting_urls,
+                "Employee estimate signals conflict across grounded assertions for the selected company.",
+                all_signals,
+            )
         status = (
             FieldEvidenceStatus.SATISFIED
-            if support and count_type in {"exact", "range"}
+            if chosen_signal.kind in {"exact", "range"}
             else FieldEvidenceStatus.WEAKLY_SUPPORTED
-            if support and count_type == "estimate"
-            else FieldEvidenceStatus.UNKNOWN
         )
-        note = f"Employee estimate selected from grounded segment assertions using {count_type} priority."
-        return value, status, support, [], note
+        support_type = "corroborated" if len(corroborating_urls) >= 2 else "explicit"
+        note = (
+            f"Employee estimate selected from grounded {chosen_signal.kind} evidence."
+            if support_type == "explicit"
+            else f"Employee estimate corroborated by compatible grounded {chosen_signal.kind} evidence."
+        )
+        return value, status, corroborating_urls, [], note, all_signals
 
     def _resolve_subject_website(
         self,
@@ -2402,6 +2461,7 @@ class AssembleStage:
             company_name = clean_company_name(focus_company)
 
         value = assertion.value
+        employee_signal = assertion.employee_signal
         if assertion.field_name == "website":
             value = canonicalize_website(str(assertion.value)) if assertion.value is not None else None
             if value is None:
@@ -2438,7 +2498,19 @@ class AssembleStage:
                 )
                 return None
             excerpt_candidate = self._excerpt_for_value(chunk["text"], assertion.value)
-            if employee_excerpt_is_aggregate_signal(excerpt_candidate) or employee_excerpt_is_aggregate_signal(assertion.reasoning_note):
+            employee_signal = extract_employee_signal(
+                chunk["text"],
+                default_value=assertion.value,
+                employee_count_type=assertion.employee_count_type,
+                support_type=assertion.support_type,
+                source_tier=document.source_tier,
+                source_url=document.url,
+            )
+            if (
+                employee_excerpt_is_aggregate_signal(excerpt_candidate)
+                or employee_excerpt_is_aggregate_signal(assertion.reasoning_note)
+                or (employee_signal is not None and employee_signal.kind == "aggregate")
+            ):
                 self._employee_filter_events.append(
                     {
                         "source_url": document.url,
@@ -2486,6 +2558,7 @@ class AssembleStage:
                 "source_url": document.url,
                 "evidence_excerpt": self._excerpt_for_value(chunk["text"], value or company_name),
                 "heading_path": list(chunk.get("heading_path") or []),
+                "employee_signal": employee_signal if assertion.field_name == "employee_estimate" else assertion.employee_signal,
             }
         )
 

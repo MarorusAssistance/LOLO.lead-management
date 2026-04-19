@@ -19,6 +19,7 @@ from lolo_lead_management.engine.rules import (
     build_research_query_plan,
     choose_queries,
     company_name_matches_anchor_strict,
+    collect_prioritized_enrichment_needs,
     collect_missing_fields_for_enrichment,
     document_matches_anchor_strong,
     enrich_document_metadata,
@@ -45,6 +46,7 @@ class EnrichStage:
             return SourcePassResult(sourcing_status=SourcingStatus.NO_CANDIDATE, notes=["no_dossier_to_enrich"], source_trace=self.last_trace)
 
         missing_fields = collect_missing_fields_for_enrichment(dossier, state.run.request)
+        prioritized_needs = collect_prioritized_enrichment_needs(dossier, state.run.request)
         field_map = {item.field_name: item for item in dossier.field_evidence}
         resolved_fields = [
             field_name
@@ -85,7 +87,13 @@ class EnrichStage:
             anchor_company=dossier.company.name,
         )
         plan = merge_research_query_plans(sanitized_plan, fallback_plan)
-        selected_queries = choose_queries(plan, state.memory.query_history + ([state.current_query] if state.current_query else []), limit=3)
+        selected_queries, selection_diagnostics = choose_queries(
+            plan,
+            state.memory.query_history + ([state.current_query] if state.current_query else []),
+            limit=3,
+            prioritized_needs=prioritized_needs,
+            return_diagnostics=True,
+        )
         stage_trace = SourceStageTrace(
             mode="enrich",
             llm_plan_status="llm_disabled" if plan_attempt.error == "llm_disabled" else "llm_error" if plan_attempt.error else "ok" if generated_plan is not None else "fallback_only",
@@ -97,6 +105,9 @@ class EnrichStage:
             selected_query_count=len(selected_queries),
             query_selection_policy="structured_state_only",
             query_history=state.memory.query_history[-20:],
+            prioritized_needs=prioritized_needs,
+            selected_field_coverage=selection_diagnostics.get("selected_field_coverage", {}),
+            skipped_queries_by_priority_reason=selection_diagnostics.get("skipped_queries_by_priority_reason", {}),
             resolved_fields=resolved_fields,
             missing_fields=missing_fields,
             selected_queries=[item.query for item in selected_queries],

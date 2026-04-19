@@ -1,8 +1,9 @@
 from lolo_lead_management.adapters.search.fake import FakeSearchPort
 from lolo_lead_management.adapters.search.tavily import TavilySearchPort
 from lolo_lead_management.adapters.stores.sqlite import SqliteExplorationMemoryStore
+from lolo_lead_management.domain.enums import FieldEvidenceStatus
 from lolo_lead_management.domain.enums import SourcingStatus
-from lolo_lead_management.domain.models import CompanyFocusResolution, CompanyObservation, EvidenceDocument, ExplorationMemoryState, LeadSearchStartRequest, ResearchQuery, ResearchQueryPlan, ResearchTraceEntry, SearchBudget, SearchRunSnapshot, SourcePassResult
+from lolo_lead_management.domain.models import AssembledFieldEvidence, CompanyCandidate, CompanyFocusResolution, CompanyObservation, EmployeeEvidenceSignal, EvidenceDocument, ExplorationMemoryState, LeadSearchStartRequest, PersonCandidate, ResearchQuery, ResearchQueryPlan, ResearchTraceEntry, SearchBudget, SearchRunSnapshot, SourcePassResult, SourcingDossier
 from lolo_lead_management.engine.agents.executor import StageAgentExecutor
 from lolo_lead_management.engine.rules import (
     collect_missing_fields_for_enrichment,
@@ -764,6 +765,48 @@ def test_enrich_does_not_fall_through_to_wrong_company_when_exact_anchor_url_was
     assert rejection_map[exact.url] == ["already_covered_by_prior_pass"]
     assert rejection_map[wrong.url] == ["rejected_wrong_company_for_anchor"]
     assert "already_covered_by_prior_pass" in notes
+
+
+def test_enrich_trace_records_prioritized_needs_and_limits_extra_size_queries() -> None:
+    normalizer = NormalizeStage(StageAgentExecutor(None))
+    request = normalizer.execute(LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai"))
+    dossier = SourcingDossier(
+        sourcing_status=SourcingStatus.FOUND,
+        company=CompanyCandidate(name="Tauniqo Ai S.L", country_code="es", employee_estimate=9),
+        person=PersonCandidate(full_name=None, role_title=None),
+        fit_signals=[],
+        evidence=[],
+        field_evidence=[
+            AssembledFieldEvidence(field_name="company_name", value="Tauniqo Ai S.L", status=FieldEvidenceStatus.SATISFIED, reasoning_note="ok"),
+            AssembledFieldEvidence(field_name="website", value=None, status=FieldEvidenceStatus.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="country", value="es", status=FieldEvidenceStatus.SATISFIED, reasoning_note="ok"),
+            AssembledFieldEvidence(
+                field_name="employee_estimate",
+                value=9,
+                status=FieldEvidenceStatus.WEAKLY_SUPPORTED,
+                employee_signals=[EmployeeEvidenceSignal(kind="exact", min_value=9, max_value=9, company_specific=True, strength="weak")],
+                reasoning_note="weak size hint",
+            ),
+            AssembledFieldEvidence(field_name="person_name", value=None, status=FieldEvidenceStatus.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="role_title", value=None, status=FieldEvidenceStatus.UNKNOWN, reasoning_note="missing"),
+            AssembledFieldEvidence(field_name="fit_signals", value=None, status=FieldEvidenceStatus.UNKNOWN, reasoning_note="missing"),
+        ],
+        notes=[],
+    )
+    state = EngineRuntimeState(
+        run=SearchRunSnapshot(request=request),
+        memory=ExplorationMemoryState(),
+        current_dossier=dossier,
+    )
+    stage = EnrichStage(search_port=FakeSearchPort(search_index={}, pages={}), agent_executor=StageAgentExecutor(None), max_results=5)
+
+    result = stage.execute(state)
+
+    assert result.source_trace is not None
+    assert [item.field_name for item in result.source_trace.prioritized_needs[:2]] == ["person_name", "role_title"]
+    assert result.source_trace.selected_field_coverage.get("employee_estimate", 0) <= 1
+    assert len([item for item in result.executed_queries if item.expected_field == "employee_estimate"]) <= 1
+    assert any(item.expected_field == "person_name" for item in result.executed_queries)
 
 
 def test_focus_locked_website_branch_tries_second_candidate_query_before_abort() -> None:

@@ -2004,8 +2004,8 @@ def test_assembler_marks_country_contradicted_only_for_incompatible_focus_values
         sourcing_status=SourcingStatus.FOUND,
         anchored_company_name="Acme AI",
         documents=[
-            EvidenceDocument(url="https://source-a.test/acme", title="a", snippet="a", source_type="fixture", raw_content="A"),
-            EvidenceDocument(url="https://source-b.test/acme", title="b", snippet="b", source_type="fixture", raw_content="B"),
+            EvidenceDocument(url="https://source-a.test/acme", title="a", snippet="a", source_type="fixture", raw_content="Acme AI tiene 9 empleados."),
+            EvidenceDocument(url="https://source-b.test/acme", title="b", snippet="b", source_type="fixture", raw_content="Acme AI tiene entre 25 y 50 empleados."),
         ],
     )
     state = EngineRuntimeState(
@@ -2098,3 +2098,58 @@ def test_assembler_prefers_exact_employee_count_over_estimate_without_contradict
     assert dossier.company is not None
     assert dossier.company.employee_estimate == 25
     assert employee_field.status == FieldEvidenceStatus.SATISFIED
+    assert {item.kind for item in employee_field.employee_signals} == {"exact", "estimate"}
+
+
+def test_assembler_marks_employee_contradiction_when_exact_and_range_do_not_overlap() -> None:
+    request = NormalizeStage(StageAgentExecutor(None)).execute(
+        LeadSearchStartRequest(user_text="busca 1 lead CTO en espana entre 5 y 50 empleados con genai")
+    )
+    source_result = SourcePassResult(
+        sourcing_status=SourcingStatus.FOUND,
+        anchored_company_name="Acme AI",
+        documents=[
+            EvidenceDocument(url="https://source-a.test/acme", title="a", snippet="a", source_type="fixture", raw_content="Acme AI tiene 9 empleados."),
+            EvidenceDocument(url="https://source-b.test/acme", title="b", snippet="b", source_type="fixture", raw_content="Acme AI tiene entre 25 y 50 empleados."),
+        ],
+    )
+    state = EngineRuntimeState(
+        run=SearchRunSnapshot(request=request),
+        memory=ExplorationMemoryState(),
+        current_source_result=source_result,
+        current_focus_company_resolution=CompanyFocusResolution(selected_company="Acme AI", query_name="Acme AI"),
+    )
+    llm = SequentialAssemblerLlmPort(
+        [
+            {
+                "segment_company_name": "Acme AI",
+                "field_assertions": [
+                    {"field_name": "company_name", "company_name": "Acme AI", "value": "Acme AI", "status": "satisfied", "support_type": "explicit"},
+                    {"field_name": "employee_estimate", "company_name": "Acme AI", "value": 9, "status": "satisfied", "support_type": "explicit", "employee_count_type": "exact"},
+                ],
+                "contact_assertions": [],
+                "fit_signals": [],
+                "contradictions": [],
+                "notes": [],
+            },
+            {
+                "segment_company_name": "Acme AI",
+                "field_assertions": [
+                    {"field_name": "company_name", "company_name": "Acme AI", "value": "Acme AI", "status": "satisfied", "support_type": "explicit"},
+                    {"field_name": "employee_estimate", "company_name": "Acme AI", "value": 50, "status": "satisfied", "support_type": "explicit", "employee_count_type": "range"},
+                ],
+                "contact_assertions": [],
+                "fit_signals": [],
+                "contradictions": [],
+                "notes": [],
+            },
+        ]
+    )
+
+    dossier = AssembleStage(StageAgentExecutor(llm)).execute(state)
+
+    employee_field = next(item for item in dossier.field_evidence if item.field_name == "employee_estimate")
+    assert employee_field.status == FieldEvidenceStatus.CONTRADICTED
+    assert dossier.company is not None
+    assert dossier.company.employee_estimate == 9
+    assert {item.kind for item in employee_field.employee_signals} == {"exact", "range"}

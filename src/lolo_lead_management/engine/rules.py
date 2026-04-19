@@ -25,6 +25,8 @@ from lolo_lead_management.domain.models import (
     CommercialBundle,
     CompanyCandidate,
     CompanyObservation,
+    EmployeeEvidenceSignal,
+    EnrichmentNeed,
     EvidenceItem,
     EvidenceDocument,
     LeadSearchConstraints,
@@ -1514,16 +1516,95 @@ def sanitize_research_query_plan(
     return ResearchQueryPlan(planned_queries=dedupe_queries(sorted(sanitized, key=query_selection_score, reverse=True))[:6], notes=dedupe_preserve_order(candidate.notes or fallback.notes), stop_conditions=dedupe_preserve_order(candidate.stop_conditions or fallback.stop_conditions))
 
 
-def choose_queries(plan: ResearchQueryPlan, query_history: list[str], *, limit: int) -> list[ResearchQuery]:
+def _effective_query_field(query: ResearchQuery) -> str:
+    if query.expected_field and query.expected_field != "multi":
+        return query.expected_field
+    if query.source_role == "website_resolution":
+        return "website"
+    if query.source_role == "governance_resolution":
+        return "person_name"
+    if query.source_role == "employee_count_resolution":
+        return "employee_estimate"
+    if query.source_role == "signal_detection":
+        return "fit_signals"
+    return query.expected_field or "multi"
+
+
+def choose_queries(
+    plan: ResearchQueryPlan,
+    query_history: list[str],
+    *,
+    limit: int,
+    prioritized_needs: list[EnrichmentNeed] | None = None,
+    return_diagnostics: bool = False,
+) -> list[ResearchQuery] | tuple[list[ResearchQuery], dict[str, Any]]:
     used = {normalize_text(item) for item in query_history}
     selected: list[ResearchQuery] = []
     ranked = sorted(plan.planned_queries, key=query_selection_score, reverse=True)
-    for query in ranked:
-        if normalize_text(query.query) in used:
-            continue
-        selected.append(query)
+    if not prioritized_needs:
+        for query in ranked:
+            if normalize_text(query.query) in used:
+                continue
+            selected.append(query)
+            if len(selected) >= limit:
+                break
+        if return_diagnostics:
+            return selected, {"selected_field_coverage": {}, "skipped_queries_by_priority_reason": {}}
+        return selected
+
+    priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    ordered_needs = sorted(
+        prioritized_needs,
+        key=lambda item: (priority_order.get(item.priority_class, 99), prioritized_needs.index(item)),
+    )
+    caps = {item.field_name: item.max_queries_for_this_pass for item in ordered_needs}
+    need_order = {item.field_name: index for index, item in enumerate(ordered_needs)}
+    remaining = [query for query in ranked if normalize_text(query.query) not in used]
+    coverage: dict[str, int] = {}
+    skipped: dict[str, str] = {}
+
+    for need in ordered_needs:
         if len(selected) >= limit:
             break
+        field_name = need.field_name
+        matching = [query for query in remaining if _effective_query_field(query) == field_name]
+        for query in matching:
+            if len(selected) >= limit:
+                break
+            if coverage.get(field_name, 0) >= caps.get(field_name, 1):
+                skipped.setdefault(query.query, f"field_cap_reached:{field_name}")
+                continue
+            selected.append(query)
+            coverage[field_name] = coverage.get(field_name, 0) + 1
+        remaining = [query for query in remaining if query not in selected]
+
+    for query in remaining:
+        if len(selected) >= limit:
+            break
+        field_name = _effective_query_field(query)
+        if field_name in caps:
+            if coverage.get(field_name, 0) >= caps[field_name]:
+                skipped.setdefault(query.query, f"field_cap_reached:{field_name}")
+                continue
+            selected.append(query)
+            coverage[field_name] = coverage.get(field_name, 0) + 1
+            continue
+        skipped.setdefault(
+            query.query,
+            "lower_priority_field_not_selected"
+            if field_name == "multi" or field_name not in need_order
+            else f"deprioritized:{field_name}",
+        )
+
+    for query in ranked:
+        if query not in selected and query.query not in skipped:
+            skipped[query.query] = f"deprioritized:{_effective_query_field(query)}"
+
+    if return_diagnostics:
+        return selected, {
+            "selected_field_coverage": coverage,
+            "skipped_queries_by_priority_reason": skipped,
+        }
     return selected
 
 
@@ -2078,6 +2159,231 @@ def extract_employee_size_hint(text: str) -> tuple[int | None, Literal["exact", 
         return 49, "estimate"
     return None, "unknown"
 
+
+def employee_signal_strength(
+    *,
+    support_type: str = "explicit",
+    source_tier: str = "unknown",
+) -> Literal["strong", "medium", "weak"]:
+    if support_type == "corroborated":
+        return "strong"
+    if support_type == "explicit" and source_tier == "tier_a":
+        return "strong"
+    if support_type == "explicit":
+        return "medium"
+    return "weak"
+
+
+def extract_employee_signal(
+    text: str | None,
+    *,
+    default_value: int | None = None,
+    employee_count_type: Literal["exact", "range", "estimate", "unknown"] = "unknown",
+    support_type: str = "explicit",
+    source_tier: str = "unknown",
+    source_url: str | None = None,
+) -> EmployeeEvidenceSignal | None:
+    raw_text = text or ""
+    normalized = normalize_text(raw_text)
+    if not normalized and default_value is None:
+        return None
+    if employee_excerpt_is_aggregate_signal(raw_text):
+        return EmployeeEvidenceSignal(
+            kind="aggregate",
+            min_value=default_value,
+            max_value=default_value,
+            company_specific=False,
+            strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+            source_url=source_url,
+            evidence_excerpt=raw_text[:240],
+        )
+    if range_match := EMPLOYEE_RANGE_TEXT_PATTERN.search(normalized):
+        return EmployeeEvidenceSignal(
+            kind="range",
+            min_value=int(range_match.group(1)),
+            max_value=int(range_match.group(2)),
+            company_specific=True,
+            strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+            source_url=source_url,
+            evidence_excerpt=raw_text[:240],
+        )
+    if range_match := EMPLOYEE_RANGE_VALUE_PATTERN.search(normalized):
+        return EmployeeEvidenceSignal(
+            kind="range",
+            min_value=int(range_match.group(1)),
+            max_value=int(range_match.group(2)),
+            company_specific=True,
+            strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+            source_url=source_url,
+            evidence_excerpt=raw_text[:240],
+        )
+    if lower_match := SIZE_MIN_PATTERN.search(normalized):
+        lower_bound = int(lower_match.group(1))
+        return EmployeeEvidenceSignal(
+            kind="lower_bound",
+            min_value=lower_bound + 1,
+            max_value=None,
+            company_specific=True,
+            strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+            source_url=source_url,
+            evidence_excerpt=raw_text[:240],
+        )
+    if upper_match := SIZE_MAX_PATTERN.search(normalized):
+        upper_bound = int(upper_match.group(1))
+        return EmployeeEvidenceSignal(
+            kind="upper_bound",
+            min_value=None,
+            max_value=max(0, upper_bound - 1),
+            company_specific=True,
+            strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+            source_url=source_url,
+            evidence_excerpt=raw_text[:240],
+        )
+    if total_match := EMPLOYEE_TOTAL_TEXT_PATTERN.search(normalized):
+        value = int(total_match.group(1))
+        return EmployeeEvidenceSignal(
+            kind="exact",
+            min_value=value,
+            max_value=value,
+            company_specific=True,
+            strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+            source_url=source_url,
+            evidence_excerpt=raw_text[:240],
+        )
+    if match := EMPLOYEE_VALUE_PATTERN.search(normalized):
+        value = int(match.group(1))
+        return EmployeeEvidenceSignal(
+            kind="exact",
+            min_value=value,
+            max_value=value,
+            company_specific=True,
+            strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+            source_url=source_url,
+            evidence_excerpt=raw_text[:240],
+        )
+    if "pyme" in normalized and default_value is not None:
+        return EmployeeEvidenceSignal(
+            kind="estimate",
+            min_value=1,
+            max_value=default_value,
+            company_specific=True,
+            strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+            source_url=source_url,
+            evidence_excerpt=raw_text[:240],
+        )
+    if default_value is None:
+        return None
+    if employee_count_type == "range":
+        return EmployeeEvidenceSignal(
+            kind="range",
+            min_value=None,
+            max_value=default_value,
+            company_specific=True,
+            strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+            source_url=source_url,
+            evidence_excerpt=raw_text[:240],
+        )
+    if employee_count_type == "estimate":
+        return EmployeeEvidenceSignal(
+            kind="estimate",
+            min_value=None,
+            max_value=default_value,
+            company_specific=True,
+            strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+            source_url=source_url,
+            evidence_excerpt=raw_text[:240],
+        )
+    return EmployeeEvidenceSignal(
+        kind="exact",
+        min_value=default_value,
+        max_value=default_value,
+        company_specific=True,
+        strength=employee_signal_strength(support_type=support_type, source_tier=source_tier),
+        source_url=source_url,
+        evidence_excerpt=raw_text[:240],
+    )
+
+
+def employee_signal_summary_value(signal: EmployeeEvidenceSignal | None) -> int | None:
+    if signal is None:
+        return None
+    return signal.max_value if signal.max_value is not None else signal.min_value
+
+
+def employee_signal_interval(signal: EmployeeEvidenceSignal) -> tuple[int | None, int | None]:
+    return signal.min_value, signal.max_value
+
+
+def employee_signal_is_comparable(signal: EmployeeEvidenceSignal | None) -> bool:
+    return bool(
+        signal is not None
+        and signal.kind not in {"aggregate", "invalid"}
+        and signal.company_specific
+        and (signal.min_value is not None or signal.max_value is not None)
+    )
+
+
+def employee_signal_ranges_overlap(left: EmployeeEvidenceSignal, right: EmployeeEvidenceSignal) -> bool:
+    left_min, left_max = employee_signal_interval(left)
+    right_min, right_max = employee_signal_interval(right)
+    left_min = 0 if left_min is None else left_min
+    right_min = 0 if right_min is None else right_min
+    left_max = 100000 if left_max is None else left_max
+    right_max = 100000 if right_max is None else right_max
+    return not (left_max < right_min or right_max < left_min)
+
+
+def employee_signal_intersects_requested_range(
+    signal: EmployeeEvidenceSignal,
+    request: NormalizedLeadSearchRequest,
+) -> bool:
+    minimum = request.constraints.min_company_size
+    maximum = request.constraints.max_company_size
+    if minimum is None and maximum is None:
+        return True
+    min_value, max_value = employee_signal_interval(signal)
+    effective_min = 0 if min_value is None else min_value
+    effective_max = 100000 if max_value is None else max_value
+    request_min = 0 if minimum is None else minimum
+    request_max = 100000 if maximum is None else maximum
+    return not (effective_max < request_min or request_max < effective_min)
+
+
+def employee_signals_from_documents(
+    documents: list[EvidenceDocument],
+    *,
+    support_type: str = "explicit",
+) -> list[EmployeeEvidenceSignal]:
+    signals: list[EmployeeEvidenceSignal] = []
+    for document in documents:
+        signal = extract_employee_signal(
+            _document_text(document),
+            support_type=support_type,
+            source_tier=document.source_tier,
+            source_url=document.url,
+        )
+        if signal is not None:
+            signals.append(signal)
+    return signals
+
+
+def summarize_employee_signals(signals: list[EmployeeEvidenceSignal]) -> list[EmployeeEvidenceSignal]:
+    unique: list[EmployeeEvidenceSignal] = []
+    seen: set[tuple[object, ...]] = set()
+    for signal in signals:
+        key = (
+            signal.kind,
+            signal.min_value,
+            signal.max_value,
+            signal.company_specific,
+            signal.strength,
+            signal.source_url,
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(signal)
+    return unique
 
 def employee_excerpt_is_aggregate_signal(text: str | None) -> bool:
     normalized = normalize_text(text or "")
@@ -3177,6 +3483,7 @@ def _build_field_evidence(
         source_quality=_source_quality_from_docs(supporting or contradicting),
         source_tier=_source_tier_from_docs(supporting or contradicting),
         support_type="corroborated" if len(supporting) >= 2 else "explicit",
+        employee_signals=employee_signals_from_documents(supporting or contradicting) if field_name == "employee_estimate" else [],
         reasoning_note=note,
     )
 
@@ -3342,6 +3649,7 @@ def build_fallback_assembled_dossier(
             status=size_profile_status,
             supporting_evidence=size_docs,
             contradicting_evidence=[],
+            employee_signals=employee_signals_from_documents(size_docs, support_type=size_profile_support_type),
             source_quality=_source_quality_from_docs(size_docs),
             source_tier=_source_tier_from_docs(size_docs),
             support_type=size_profile_support_type,
@@ -3430,6 +3738,7 @@ def _build_resolution_field_evidence(
                 status=FieldEvidenceStatus.UNKNOWN,
                 supporting_evidence=[],
                 contradicting_evidence=contradicting,
+                employee_signals=assertion.employee_signals if field_name == "employee_estimate" else [],
                 source_quality=_source_quality_from_docs(contradicting),
                 source_tier=derived_tier,
                 support_type=assertion.support_type,
@@ -3441,6 +3750,7 @@ def _build_resolution_field_evidence(
             status=assertion.status,
             supporting_evidence=supporting,
             contradicting_evidence=contradicting,
+            employee_signals=assertion.employee_signals if field_name == "employee_estimate" else [],
             source_quality=_source_quality_from_docs(supporting or contradicting),
             source_tier=derived_tier,
             support_type=assertion.support_type,
@@ -3454,6 +3764,7 @@ def _build_resolution_field_evidence(
             status=FieldEvidenceStatus.SATISFIED if len(supporting) >= 2 else FieldEvidenceStatus.WEAKLY_SUPPORTED,
             supporting_evidence=supporting,
             contradicting_evidence=[],
+            employee_signals=employee_signals_from_documents(supporting, support_type="corroborated" if len(supporting) >= 2 else "explicit") if field_name == "employee_estimate" else [],
             source_quality=_source_quality_from_docs(supporting),
             source_tier=_source_tier_from_docs(supporting),
             support_type="corroborated" if len(supporting) >= 2 else "explicit",
@@ -3467,6 +3778,7 @@ def _build_resolution_field_evidence(
         status=FieldEvidenceStatus.UNKNOWN if value is None else FieldEvidenceStatus.WEAKLY_SUPPORTED,
         supporting_evidence=selected_docs[:2] if value is not None else [],
         contradicting_evidence=[],
+        employee_signals=employee_signals_from_documents(selected_docs[:2], support_type="weak_inference") if field_name == "employee_estimate" and value is not None else [],
         source_quality=_source_quality_from_docs(selected_docs[:2] if value is not None else []),
         source_tier=_source_tier_from_docs(selected_docs[:2] if value is not None else []),
         support_type="weak_inference" if value is not None else "explicit",
@@ -3801,7 +4113,7 @@ def overlay_explicit_dossier_fields(
         current_size = field_map.get("employee_estimate")
         if original.company.employee_estimate is not None and (current_size is None or current_size.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}):
             company.employee_estimate = original.company.employee_estimate
-            field_map["employee_estimate"] = AssembledFieldEvidence(field_name="employee_estimate", value=original.company.employee_estimate, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], source_quality=_source_quality_from_docs(support), source_tier=_source_tier_from_docs(support), support_type="corroborated" if len(support) >= 2 else "explicit", reasoning_note="Employee estimate provided explicitly in the dossier and accepted as legacy support.")
+            field_map["employee_estimate"] = AssembledFieldEvidence(field_name="employee_estimate", value=original.company.employee_estimate, status=FieldEvidenceStatus.SATISFIED if len(support) >= 1 else FieldEvidenceStatus.WEAKLY_SUPPORTED, supporting_evidence=support, contradicting_evidence=[], employee_signals=employee_signals_from_documents(support, support_type="corroborated" if len(support) >= 2 else "explicit"), source_quality=_source_quality_from_docs(support), source_tier=_source_tier_from_docs(support), support_type="corroborated" if len(support) >= 2 else "explicit", reasoning_note="Employee estimate provided explicitly in the dossier and accepted as legacy support.")
         if original.company.website and not company.website:
             company.website = original.company.website
 
@@ -4011,45 +4323,58 @@ def _documents_explicitly_support_employee_size(documents: list[EvidenceDocument
 def _employee_size_support_profile(
     documents: list[EvidenceDocument],
 ) -> tuple[int | None, FieldEvidenceStatus, Literal["explicit", "corroborated", "weak_inference"], str]:
-    hints: list[tuple[EvidenceDocument, int, Literal["exact", "range", "estimate", "unknown"]]] = []
-    for document in documents:
-        value, hint_type = extract_employee_size_hint(_document_text(document))
-        if value is None or hint_type == "unknown":
-            continue
-        hints.append((document, value, hint_type))
-    if not hints:
+    signals = [signal for signal in employee_signals_from_documents(documents) if employee_signal_is_comparable(signal)]
+    if not signals:
         return None, FieldEvidenceStatus.UNKNOWN, "weak_inference", "Company size is not yet proven."
 
-    exact_hints = [(document, value) for document, value, hint_type in hints if hint_type == "exact"]
-    range_hints = [(document, value) for document, value, hint_type in hints if hint_type == "range"]
-    estimate_hints = [(document, value) for document, value, hint_type in hints if hint_type == "estimate"]
+    exact_signals = [signal for signal in signals if signal.kind == "exact"]
+    range_signals = [signal for signal in signals if signal.kind == "range"]
+    estimate_signals = [signal for signal in signals if signal.kind == "estimate"]
+    bounded_signals = [signal for signal in signals if signal.kind in {"lower_bound", "upper_bound"}]
 
-    if exact_hints:
-        exact_values = {value for _, value in exact_hints}
+    if exact_signals:
+        exact_values = {employee_signal_summary_value(signal) for signal in exact_signals if employee_signal_summary_value(signal) is not None}
         if len(exact_values) > 1:
             return min(exact_values), FieldEvidenceStatus.CONTRADICTED, "corroborated", "Employee size has conflicting exact public statements."
         exact_value = next(iter(exact_values))
-        support_type: Literal["explicit", "corroborated", "weak_inference"] = "corroborated" if len(exact_hints) >= 2 else "explicit"
+        support_type: Literal["explicit", "corroborated", "weak_inference"] = "corroborated" if len(exact_signals) >= 2 else "explicit"
         note = (
             "Employee size exact and corroborated by multiple explicit public statements."
-            if len(exact_hints) >= 2
+            if len(exact_signals) >= 2
             else "Employee size exact from one explicit public statement."
         )
         return exact_value, FieldEvidenceStatus.SATISFIED, support_type, note
 
-    if range_hints:
-        range_values = [value for _, value in range_hints]
-        if len(range_values) >= 2 and max(range_values) > min(range_values) * 2:
+    if range_signals:
+        range_values = [employee_signal_summary_value(signal) for signal in range_signals if employee_signal_summary_value(signal) is not None]
+        if len(range_signals) >= 2 and not all(
+            employee_signal_ranges_overlap(left, right)
+            for index, left in enumerate(range_signals)
+            for right in range_signals[index + 1 :]
+        ):
             return min(range_values), FieldEvidenceStatus.CONTRADICTED, "corroborated", "Employee size ranges conflict across public sources."
-        support_type = "corroborated" if len(range_hints) >= 2 else "explicit"
+        support_type = "corroborated" if len(range_signals) >= 2 else "explicit"
         note = (
             "Employee size range is corroborated by multiple compatible public sources."
-            if len(range_hints) >= 2
+            if len(range_signals) >= 2
             else "Employee size range comes from one explicit public source."
         )
         return min(range_values), FieldEvidenceStatus.SATISFIED, support_type, note
 
-    estimate_values = [value for _, value in estimate_hints]
+    if bounded_signals:
+        chosen = sorted(
+            bounded_signals,
+            key=lambda signal: (
+                {"lower_bound": 2, "upper_bound": 1}.get(signal.kind, 0),
+                {"strong": 3, "medium": 2, "weak": 1}.get(signal.strength, 1),
+                employee_signal_summary_value(signal) or 0,
+            ),
+            reverse=True,
+        )[0]
+        value = employee_signal_summary_value(chosen)
+        return value, FieldEvidenceStatus.WEAKLY_SUPPORTED, "weak_inference", "Company size is only bounded by one directional public statement."
+
+    estimate_values = [employee_signal_summary_value(signal) for signal in estimate_signals if employee_signal_summary_value(signal) is not None]
     if len(estimate_values) >= 2:
         highest = max(estimate_values)
         lowest = min(estimate_values)
@@ -4188,40 +4513,60 @@ def downgrade_enrich_to_close_match(
     )
 
 
-def _employee_values_from_field_evidence(item: AssembledFieldEvidence | None) -> list[int]:
+def _employee_signals_from_field_evidence(item: AssembledFieldEvidence | None) -> list[EmployeeEvidenceSignal]:
     if item is None:
         return []
-    values: list[int] = []
-    for document in [*item.supporting_evidence, *item.contradicting_evidence]:
-        value, _ = extract_employee_size_hint(_document_text(document))
-        if value is not None:
-            values.append(value)
-    if isinstance(item.value, int):
-        values.append(item.value)
-    return list(dict.fromkeys(values))
+    if item.employee_signals:
+        return summarize_employee_signals(item.employee_signals)
+    signals = employee_signals_from_documents(
+        [*item.supporting_evidence, *item.contradicting_evidence],
+        support_type=item.support_type,
+    )
+    if not signals and isinstance(item.value, int):
+        fallback_signal = extract_employee_signal(
+            item.reasoning_note,
+            default_value=item.value,
+            employee_count_type="estimate" if item.status == FieldEvidenceStatus.WEAKLY_SUPPORTED else "exact",
+            support_type=item.support_type,
+            source_tier=item.source_tier,
+        )
+        if fallback_signal is not None:
+            signals.append(fallback_signal)
+    return summarize_employee_signals(signals)
 
 
-def _employee_contradiction_still_within_requested_range(
-    field: QualificationRubricField,
-    dossier: AssembledLeadDossier,
+def classify_employee_contradiction(
+    item: AssembledFieldEvidence | None,
     request: NormalizedLeadSearchRequest,
-) -> bool:
-    if field.status != FieldEvidenceStatus.CONTRADICTED:
-        return False
-    minimum = request.constraints.min_company_size
-    maximum = request.constraints.max_company_size
-    if minimum is None and maximum is None:
-        return False
-    evidence_item = next((item for item in dossier.field_evidence if item.field_name == "employee_estimate"), None)
-    values = _employee_values_from_field_evidence(evidence_item)
-    if not values:
-        return False
-    for value in values:
-        if minimum is not None and value < minimum:
-            return False
-        if maximum is not None and value > maximum:
-            return False
-    return True
+) -> tuple[Literal["none", "mild", "moderate", "severe"], str | None]:
+    signals = [signal for signal in _employee_signals_from_field_evidence(item) if employee_signal_is_comparable(signal)]
+    if len(signals) <= 1:
+        return "none", None
+
+    overlap = all(
+        employee_signal_ranges_overlap(left, right)
+        for index, left in enumerate(signals)
+        for right in signals[index + 1 :]
+    )
+    if overlap:
+        return "mild", "Employee size evidence varies slightly, but the public ranges still overlap."
+
+    strength_rank = max({"weak": 1, "medium": 2, "strong": 3}.get(signal.strength, 1) for signal in signals)
+    all_intersect_requested = all(employee_signal_intersects_requested_range(signal, request) for signal in signals)
+    if all_intersect_requested:
+        return (
+            "moderate",
+            "Employee size evidence is inconsistent, but every comparable public signal still intersects the requested size range.",
+        )
+    if strength_rank <= 1:
+        return (
+            "moderate",
+            "Employee size evidence conflicts and some weak public signals fall outside the requested range.",
+        )
+    return (
+        "severe",
+        "Employee size evidence conflicts and at least one stronger public signal falls outside the requested range.",
+    )
 
 
 def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> QualificationDecision:
@@ -4238,6 +4583,14 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
         return QualificationDecision(outcome=QualificationOutcome.REJECT, score=0, summary="No candidate dossier was assembled.", reasons=["sourcing and assembly did not produce a valid candidate"], qualification_rubric=QualificationRubric())
 
     rubric = build_qualification_rubric(dossier, request)
+    employee_field_evidence = next((item for item in dossier.field_evidence if item.field_name == "employee_estimate"), None)
+    employee_contradiction_class, employee_contradiction_reason = classify_employee_contradiction(employee_field_evidence, request)
+    rubric = rubric.model_copy(
+        update={
+            "employee_contradiction_class": employee_contradiction_class,
+            "employee_contradiction_reason": employee_contradiction_reason,
+        }
+    )
     field_map = {item.field_name: item for item in rubric.fields}
     reasons: list[str] = []
     missed_filters: list[str] = []
@@ -4311,6 +4664,18 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
             reasoning_note="Employee size was inferred without an explicit public size statement, so it is not yet proven.",
         )
         size_field = field_map["employee_estimate"]
+    elif employee_contradiction_class in {"moderate", "severe"} and size_field.status in {
+        FieldEvidenceStatus.SATISFIED,
+        FieldEvidenceStatus.WEAKLY_SUPPORTED,
+    }:
+        _update_rubric_field(
+            rubric,
+            field_map,
+            field_name="employee_estimate",
+            status=FieldEvidenceStatus.CONTRADICTED,
+            reasoning_note=employee_contradiction_reason or "Employee size evidence is internally inconsistent.",
+        )
+        size_field = field_map["employee_estimate"]
 
     if person_field.status in {FieldEvidenceStatus.SATISFIED, FieldEvidenceStatus.WEAKLY_SUPPORTED} and (
         (person_field.support_type == "weak_inference" or person_field.source_tier == "tier_c")
@@ -4375,11 +4740,13 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
     if request.constraints.min_company_size is not None or request.constraints.max_company_size is not None:
         size = dossier.company.employee_estimate
         if size_field.status == FieldEvidenceStatus.CONTRADICTED:
-            if _employee_contradiction_still_within_requested_range(size_field, dossier, request):
+            if employee_contradiction_class == "mild":
                 reasons.append("public evidence for company size is contradictory but all explicit values still fit the requested range")
+            elif employee_contradiction_class == "moderate":
+                reasons.append(employee_contradiction_reason or "public evidence for company size is contradictory and still needs one more corroborating source")
             else:
                 hard_failure = True
-                reasons.append("public evidence for company size is contradictory")
+                reasons.append(employee_contradiction_reason or "public evidence for company size is contradictory")
         elif size is None or size_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
             reasons.append("company size is not yet proven")
         else:
@@ -4412,6 +4779,8 @@ def evaluate_dossier(dossier: AssembledLeadDossier, request: NormalizedLeadSearc
     if request.constraints.preferred_country and country_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
         hard_unknown = True
     if (request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and size_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        hard_unknown = True
+    if size_field.status == FieldEvidenceStatus.CONTRADICTED and employee_contradiction_class in {"mild", "moderate"}:
         hard_unknown = True
     if request.constraints.prefer_named_person and (
         person_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}
@@ -4449,20 +4818,141 @@ def merge_qualification_decisions(deterministic: QualificationDecision, llm_revi
     return deterministic.model_copy(deep=True)
 
 
-def collect_missing_fields_for_enrichment(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> list[str]:
+def collect_prioritized_enrichment_needs(
+    dossier: AssembledLeadDossier,
+    request: NormalizedLeadSearchRequest,
+) -> list[EnrichmentNeed]:
     field_map = field_evidence_map(dossier)
-    missing: list[str] = []
-    if request.constraints.preferred_country and field_map.get("country", AssembledFieldEvidence(field_name="country", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="country missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
-        missing.append("country")
-    if (request.constraints.min_company_size is not None or request.constraints.max_company_size is not None) and field_map.get("employee_estimate", AssembledFieldEvidence(field_name="employee_estimate", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="size missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED, FieldEvidenceStatus.CONTRADICTED}:
-        missing.append("employee_estimate")
-    if field_map.get("person_name", AssembledFieldEvidence(field_name="person_name", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="person missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
-        missing.append("person_name")
-    if field_map.get("role_title", AssembledFieldEvidence(field_name="role_title", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="role missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
-        missing.append("role_title")
-    if request.search_themes and field_map.get("fit_signals", AssembledFieldEvidence(field_name="fit_signals", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="fit missing")).status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
-        missing.append("fit_signals")
-    return dedupe_preserve_order(missing)
+    needs: list[EnrichmentNeed] = []
+    country_field = field_map.get("country", AssembledFieldEvidence(field_name="country", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="country missing"))
+    size_field = field_map.get("employee_estimate", AssembledFieldEvidence(field_name="employee_estimate", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="size missing"))
+    person_field = field_map.get("person_name", AssembledFieldEvidence(field_name="person_name", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="person missing"))
+    role_field = field_map.get("role_title", AssembledFieldEvidence(field_name="role_title", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="role missing"))
+    fit_field = field_map.get("fit_signals", AssembledFieldEvidence(field_name="fit_signals", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="fit missing"))
+    website_field = field_map.get("website", AssembledFieldEvidence(field_name="website", status=FieldEvidenceStatus.UNKNOWN, reasoning_note="website missing"))
+
+    size_contradiction_class, _ = classify_employee_contradiction(size_field, request)
+    size_value = dossier.company.employee_estimate if dossier.company else None
+    size_in_requested_range = True
+    if size_value is not None:
+        if request.constraints.min_company_size is not None and size_value < request.constraints.min_company_size:
+            size_in_requested_range = False
+        if request.constraints.max_company_size is not None and size_value > request.constraints.max_company_size:
+            size_in_requested_range = False
+    size_is_critical = False
+
+    if request.constraints.preferred_country and country_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        needs.append(
+            EnrichmentNeed(
+                field_name="country",
+                current_status=country_field.status,
+                priority_class="critical",
+                reason="country is still required as a hard constraint",
+                max_queries_for_this_pass=1,
+            )
+        )
+
+    if request.constraints.min_company_size is not None or request.constraints.max_company_size is not None:
+        if size_field.status == FieldEvidenceStatus.UNKNOWN or size_value is None:
+            size_is_critical = True
+            needs.append(
+                EnrichmentNeed(
+                    field_name="employee_estimate",
+                    current_status=size_field.status,
+                    priority_class="critical",
+                    reason="company size is still unknown and is a hard commercial constraint",
+                    max_queries_for_this_pass=2,
+                    contradiction_class=size_contradiction_class,
+                )
+            )
+        elif size_field.status == FieldEvidenceStatus.CONTRADICTED:
+            priority = "critical" if size_contradiction_class in {"moderate", "severe"} else "medium"
+            size_is_critical = priority == "critical"
+            needs.append(
+                EnrichmentNeed(
+                    field_name="employee_estimate",
+                    current_status=size_field.status,
+                    priority_class=priority,
+                    reason=(
+                        "company size has a serious public contradiction"
+                        if priority == "critical"
+                        else "company size contradiction looks mild and only needs one corroboration"
+                    ),
+                    max_queries_for_this_pass=2 if priority == "critical" else 1,
+                    contradiction_class=size_contradiction_class,
+                )
+            )
+        elif size_field.status == FieldEvidenceStatus.WEAKLY_SUPPORTED:
+            priority = "critical" if not size_in_requested_range else "medium"
+            size_is_critical = priority == "critical"
+            needs.append(
+                EnrichmentNeed(
+                    field_name="employee_estimate",
+                    current_status=size_field.status,
+                    priority_class=priority,
+                    reason=(
+                        "current size hint suggests the company may fall outside the requested range"
+                        if priority == "critical"
+                        else "company size is plausible but still needs one corroborating source"
+                    ),
+                    max_queries_for_this_pass=2 if priority == "critical" else 1,
+                    contradiction_class=size_contradiction_class,
+                )
+            )
+
+    governance_priority = "medium" if size_is_critical else "high"
+    if person_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        needs.append(
+            EnrichmentNeed(
+                field_name="person_name",
+                current_status=person_field.status,
+                priority_class=governance_priority,
+                reason="named person is still missing or weakly supported",
+                max_queries_for_this_pass=1,
+            )
+        )
+    if role_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        needs.append(
+            EnrichmentNeed(
+                field_name="role_title",
+                current_status=role_field.status,
+                priority_class=governance_priority,
+                reason="role title is still missing or weakly supported",
+                max_queries_for_this_pass=1,
+            )
+        )
+    if website_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED} and (
+        not dossier.company
+        or not dossier.company.website
+        or person_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}
+        or role_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}
+    ):
+        needs.append(
+            EnrichmentNeed(
+                field_name="website",
+                current_status=website_field.status,
+                priority_class="high" if not size_is_critical else "medium",
+                reason="official website may unlock about, contact, or team pages",
+                max_queries_for_this_pass=1,
+            )
+        )
+    if request.search_themes and fit_field.status in {FieldEvidenceStatus.UNKNOWN, FieldEvidenceStatus.WEAKLY_SUPPORTED}:
+        needs.append(
+            EnrichmentNeed(
+                field_name="fit_signals",
+                current_status=fit_field.status,
+                priority_class="low",
+                reason="fit signals are still weak but less critical than size or contactability",
+                max_queries_for_this_pass=1,
+            )
+        )
+    priority_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    ordered_needs = list(needs)
+    return sorted(ordered_needs, key=lambda item: (priority_rank.get(item.priority_class, 99), ordered_needs.index(item)))
+
+
+def collect_missing_fields_for_enrichment(dossier: AssembledLeadDossier, request: NormalizedLeadSearchRequest) -> list[str]:
+    return dedupe_preserve_order([item.field_name for item in collect_prioritized_enrichment_needs(dossier, request)])
 
 
 def build_fallback_commercial_bundle(
